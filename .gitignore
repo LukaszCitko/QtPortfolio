@@ -1,0 +1,7 @@
+# Qt / CMake build directories
+build/
+cmake-build-*/
+
+# Qt Creator user-specific files
+*.user
+*.user.*
