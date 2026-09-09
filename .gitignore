@@ -4,4 +4,4 @@ cmake-build-*/
 
 # Qt Creator user-specific files
 *.user
-*.user.*
+*.user.*.DS_Store
