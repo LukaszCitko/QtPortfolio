@@ -15,13 +15,13 @@ if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/importedcontent/CMakeLists.txt")
 endif()
 
 qt_add_executable(appPumpStationHMI
-    main.cpp
+    src/main.cpp
 )
 
 qt_add_qml_module(appPumpStationHMI
     URI PumpStationHMI
     QML_FILES
-        Main.qml
+        qml/Main.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -44,3 +44,9 @@ install(TARGETS appPumpStationHMI
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+include(CTest)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
