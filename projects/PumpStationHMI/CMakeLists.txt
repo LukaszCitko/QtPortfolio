@@ -16,12 +16,17 @@ endif()
 
 qt_add_executable(appPumpStationHMI
     src/main.cpp
+    src/pump.cpp
 )
 
 qt_add_qml_module(appPumpStationHMI
     URI PumpStationHMI
     QML_FILES
         qml/Main.qml
+
+        SOURCES
+        src/pump.h
+        src/pump.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
