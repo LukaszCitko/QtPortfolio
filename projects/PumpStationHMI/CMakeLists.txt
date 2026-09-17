@@ -17,6 +17,7 @@ endif()
 qt_add_executable(appPumpStationHMI
     src/main.cpp
     src/pump.cpp
+    src/processsimulator.cpp
 )
 
 qt_add_qml_module(appPumpStationHMI
@@ -27,6 +28,9 @@ qt_add_qml_module(appPumpStationHMI
         SOURCES
         src/pump.h
         src/pump.cpp
+        src/processsimulator.h
+        src/processsimulator.cpp
+        QML_FILES qml/SimulationControlPanel.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

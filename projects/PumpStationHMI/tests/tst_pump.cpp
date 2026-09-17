@@ -10,6 +10,8 @@ private slots:
     void faultState();
     void resetFault();
     void stopDoesNotClearFault();
+    void rpmValues();
+    void temperature();
 };
 
 void TestPump::initialState()
@@ -19,6 +21,17 @@ void TestPump::initialState()
     QCOMPARE(pump.state(), Pump::State::Stopped);
 
     QVERIFY(!pump.isRunning());
+}
+
+void TestPump::temperature()
+{
+    Pump pump;
+
+    QCOMPARE(pump.temperatureFromSensor(), 25.0);
+
+    pump.setTemperatureFromSensor(40.0);
+
+    QCOMPARE(pump.temperatureFromSensor(), 40.0);
 }
 
 void TestPump::startPump()
@@ -75,6 +88,22 @@ void TestPump::stopDoesNotClearFault()
     QCOMPARE(pump.state(), Pump::State::Fault);
 }
 
+void TestPump::rpmValues()
+{
+    Pump pump;
+
+    QCOMPARE(pump.targetRpm(), 0.0);
+    QCOMPARE(pump.actualRpm(), 0.0);
+
+    pump.setTargetRpm(900.0);
+    QCOMPARE(pump.targetRpm(), 900.0);
+
+    pump.setActualRpm(450.0);
+    QCOMPARE(pump.actualRpm(), 450.0);
+
+
+
+}
 QTEST_APPLESS_MAIN(TestPump)
 
 #include "tst_pump.moc"

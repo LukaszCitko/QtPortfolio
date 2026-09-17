@@ -1,90 +1,378 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
 
 ApplicationWindow {
-    id: window
-    width: 640
-    height: 480
-    minimumWidth: 200
-    minimumHeight: 250
+    id: root
+
     visible: true
-    title: qsTr("Hello World")
-    property bool lightMode: Application.styleHints.colorScheme === Qt.Light
-    property color reallyDark: "#1f1f1f"
-    property color dark: "#262626"
-    property color reallyLight: "#e7e7e7"
-    property color light: "#e0e0e0"
+    width: 1024
+    height: 600
+    minimumWidth: 1024
+    minimumHeight: 600
 
-    GridLayout {
-        id: grid
-        columns: width < 400 ? 1 : 2
-        rowSpacing: 0
-        columnSpacing: 0
+    title: "Pump Station HMI"
+
+    property int margin: 24
+    property int cardSize: 180
+
+    Rectangle {
+
         anchors.fill: parent
+        color: "#20242a"
 
-        Rectangle {
-            id: rectangle1
-            color: window.lightMode ? window.reallyLight : window.reallyDark
-            Layout.fillHeight: true
-            Layout.fillWidth: true
+// ------------------------------------------------------------
+// Main area
+// ------------------------------------------------------------
 
-            ColumnLayout {
-                anchors.fill: parent
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+        Column {
+            id: mainArea
 
-                Label {
-                    id: text1
-                    color: window.lightMode ? window.dark : window.light
-                    font.pixelSize: 120
-                    fontSizeMode: Text.Fit
-                    text: qsTr("Hello World")
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.margins: 16
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.right: simulationPanel.left
+
+            anchors.margins: root.margin
+            anchors.rightMargin: root.margin + 20
+
+            spacing: 24
+
+            Label {
+                text: "PUMP STATION HMI"
+                font.pixelSize: 30
+                font.bold: true
+                color: "white"
+            }
+
+            Row {
+                spacing: 20
+
+// ----------------------------------------------------
+// Actual RPM
+// ----------------------------------------------------
+
+                Rectangle {
+                    width: root.cardSize
+                    height: root.cardSize
+                    radius: 10
+                    color: "#2b3038"
+                    border.color: "#59616d"
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 10
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "ACTUAL RPM"
+                            color: "#b8c0ca"
+                            font.pixelSize: 12
+                        }
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: Number(pump.actualRpm).toFixed(0)
+                            color: "white"
+                            font.pixelSize: 42
+                            font.bold: true
+                        }
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "RPM"
+                            color: "#b8c0ca"
+                            font.pixelSize: 8
+                        }
+                    }
+                }
+
+// ----------------------------------------------------
+// Target RPM
+// ----------------------------------------------------
+
+                Rectangle {
+                    width: root.cardSize
+                    height: root.cardSize
+                    radius: 10
+                    color: "#2b3038"
+                    border.color: "#59616d"
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 10
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "TARGET RPM"
+                            color: "#b8c0ca"
+                            font.pixelSize: 12
+                        }
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: Number(pump.targetRpm).toFixed(0)
+                            color: "white"
+                            font.pixelSize: 36
+                            font.bold: true
+                        }
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: Math.round(rpmSlider.value) + " %"
+                            color: "#b8c0ca"
+                            font.pixelSize: 12
+                        }
+                    }
+                }
+
+// ----------------------------------------------------
+// Temperature
+// ----------------------------------------------------
+
+                Rectangle {
+                    width: root.cardSize
+                    height: root.cardSize
+                    radius: 10
+                    color: "#2b3038"
+                    border.color: "#59616d"
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 10
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "TEMP. SENSOR"
+                            color: "#b8c0ca"
+                            font.pixelSize: 12
+                        }
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: Number(
+                                      pump.temperatureFromSensor
+                                  ).toFixed(1) + " °C"
+                            color: "white"
+                            font.pixelSize: 36
+                            font.bold: true
+                        }
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "TEMPERATURE"
+                            color: "#b8c0ca"
+                            font.pixelSize: 12
+                        }
+                    }
+                }
+            }
+
+// --------------------------------------------------------
+// Start / Stop
+// --------------------------------------------------------
+
+            Row {
+                spacing: 20
+
+                Button {
+                    width: 150
+                    height: 60
+
+                    text: "START"
+                    font.pixelSize: 12
+
+                    onClicked: {
+                        pump.start()
+
+                    }
+                }
+
+                Button {
+                    width: 150
+                    height: 60
+
+                    text: "STOP"
+                    font.pixelSize: 12
+
+                    onClicked: {
+                        pump.stop()
+                    }
                 }
             }
         }
 
+// ------------------------------------------------------------
+// Vertical RPM slider
+// ------------------------------------------------------------
+
+        Column {
+            id: rpmControl
+
+            anchors.top: parent.top
+            anchors.right: simulationPanel.left
+            anchors.rightMargin: root.margin
+            anchors.bottom: simulationPanel.top
+            anchors.bottomMargin: 20
+
+            width: 90
+
+            spacing: 10
+
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: ""
+                color: "white"
+                font.pixelSize: 12
+                font.bold: true
+            }
+
+            Slider {
+                id: rpmSlider
+
+                orientation: Qt.Vertical
+
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                height: 300
+                width: 60
+
+                from: 0
+                to: pump.maxRpm
+                stepSize: 10
+                snapMode: Slider.SnapAlways
+                value: pump.targetRpm
+
+                onMoved: {
+                        pump.targetRpm = value
+                    }
+
+            }
+
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                text: Math.round(rpmSlider.value) + " RPM"
+
+                color: "white"
+                font.pixelSize: 20
+                font.bold: true
+            }
+        }
+
+// ------------------------------------------------------------
+// Simulation panel
+// ------------------------------------------------------------
+
         Rectangle {
-            id: rectangle2
-            color: window.lightMode ? window.light : window.dark
-            Layout.fillHeight: true
-            Layout.fillWidth: true
+            id: simulationPanel
 
-            ColumnLayout {
+            width: 270
+            height: 240
+
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: root.margin
+
+            radius: 10
+
+            color: "#292e36"
+            border.color: "#59616d"
+
+            Column {
                 anchors.fill: parent
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                anchors.margins: 16
 
-                Button {
-                    id: button1
-                    text: window.lightMode ? qsTr("\u263D  Dark mode")
-                                           : qsTr("\u263C  Light mode")
-                    Layout.bottomMargin: 16
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                spacing: 12
 
-                    contentItem: Text {
-                        text: button1.text
-                        color: window.lightMode ? window.light : window.dark
-                        font: button1.font
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                Label {
+                    text: "SIMULATION"
+                    color: "white"
+                    font.pixelSize: 20
+                    font.bold: true
+                }
+
+                Label {
+                    text: "Temperature sensor"
+                    color: "#b8c0ca"
+                    font.pixelSize: 12
+                }
+
+                Row {
+                    spacing: 8
+
+                    SpinBox {
+                        id: simulatedTemperature
+
+                        width: 120
+                        from: 0
+                        to: 150
+                        value: 60
+                        stepSize: 10
+
+                        onValueChanged: {
+                            pump.setTemperatureFromSensor(value)
+                        }
                     }
 
-                    background: Rectangle {
-                        implicitWidth: 120
-                        implicitHeight: 36
-                        radius: 8
-                        color: window.lightMode ? window.dark : window.light
+                    Label {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "°C"
+                        color: "white"
+                        font.pixelSize: 12
+                    }
+                }
+
+                Row {
+                    spacing: 8
+
+                    Button {
+                        text: "60 °C"
+                        width: 70
+
+                        onClicked: {
+                            simulatedTemperature.value = 60
+                        }
                     }
 
-                    onClicked: window.lightMode = !window.lightMode
+                    Button {
+                        text: "90 °C"
+                        width: 70
+
+                        onClicked: {
+                            simulatedTemperature.value = 90
+                        }
+                    }
+                }
+
+                Row {
+                    spacing: 8
+
+                    Button {
+
+                        id: faultBtn
+                        text: "FAULT"
+                        width: 105
+                        height: 45
+
+                        onClicked: {
+                            pump.setFault()
+
+
+                        }
+
+                    }
+                    Button {
+                        text: "RESET"
+                        width: 105
+                        height: 45
+
+                        onClicked: {
+                            pump.resetFault()
+                        }
+                    }
                 }
             }
         }
     }
-
 }
