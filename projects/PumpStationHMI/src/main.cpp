@@ -3,7 +3,10 @@
 #include <QQmlContext>
 
 #include "pump.h"
+#include "valve.h"
 #include "processsimulator.h"
+#include "processcontroller.h"
+#include "eventmanager.h"
 
 int main(int argc, char *argv[])
 {
@@ -11,10 +14,17 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    Pump pump;
-    ProcessSimulator simulator(&pump);
+    Pump pump1(1);
+    Valve valve1(1);
+    ProcessSimulator simulator(&pump1);
+    EventManager eventManager;
+    ProcessController controller(&pump1, &valve1, &eventManager);
 
-    engine.rootContext()->setContextProperty("pump", &pump);
+    engine.rootContext()->setContextProperty("pump", &pump1);
+    engine.rootContext()->setContextProperty("valve1", &valve1);
+    engine.rootContext()->setContextProperty("controller", &controller);
+    engine.rootContext()->setContextProperty("eventManager", &eventManager);
+
 
     QObject::connect(
         &engine,

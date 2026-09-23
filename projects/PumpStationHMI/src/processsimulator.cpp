@@ -8,6 +8,7 @@ ProcessSimulator::ProcessSimulator(Pump *pump, QObject *parent)
 {
     Q_ASSERT(pump != nullptr); // no pump no fun :)  TODO: when few pumps and vales added change dependency.
     m_timer.setInterval(100);
+
     connect(&m_timer, &QTimer::timeout, this, &ProcessSimulator::update);
     m_timer.start();
 }

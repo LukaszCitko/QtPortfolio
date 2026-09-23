@@ -14,7 +14,7 @@ private:
                     READ actualRpm NOTIFY actualRpmChanged)
     Q_PROPERTY(double temperatureFromSensor
                     READ temperatureFromSensor NOTIFY temperatureFromSensorChanged)
-
+    Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
 
 public:
 
@@ -27,8 +27,9 @@ public:
         Fault
     };
 
-    explicit Pump(QObject *parent = nullptr);
+    explicit Pump(int id, QObject *parent = nullptr);
 
+    int id() const;
     bool isRunning() const;
     State state() const;
 
@@ -36,9 +37,9 @@ public:
     double actualRpm() const;
     double temperatureFromSensor() const;  // measured in Celsius
     void setActualRpm(double rpm);
+    QString stateText() const;
 
     double maxRpm() const {return MaxRpm;}
-
     // extended to QML
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
@@ -51,6 +52,7 @@ public:
 
 
 private:
+    int m_id;
     State m_state;
     double m_targetRpm;
     double m_actualRpm;
@@ -59,6 +61,7 @@ signals:
     void targetRpmChanged();
     void actualRpmChanged();
     void temperatureFromSensorChanged();
+    void stateChanged();
 };
 
 #endif // PUMP_H

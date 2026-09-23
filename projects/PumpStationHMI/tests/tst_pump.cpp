@@ -16,7 +16,7 @@ private slots:
 
 void TestPump::initialState()
 {
-    Pump pump;
+    Pump pump(1);
 
     QCOMPARE(pump.state(), Pump::State::Stopped);
 
@@ -25,7 +25,7 @@ void TestPump::initialState()
 
 void TestPump::temperature()
 {
-    Pump pump;
+    Pump pump(1);
 
     QCOMPARE(pump.temperatureFromSensor(), 25.0);
 
@@ -36,7 +36,7 @@ void TestPump::temperature()
 
 void TestPump::startPump()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.start();
 
@@ -44,7 +44,7 @@ void TestPump::startPump()
 }
 void TestPump::stopPump()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.start();
     pump.stop();
@@ -54,7 +54,7 @@ void TestPump::stopPump()
 
 void TestPump::faultState()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.setFault();
     QCOMPARE(pump.state(), Pump::State::Fault);
@@ -65,7 +65,7 @@ void TestPump::faultState()
 
 void TestPump::resetFault()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.setFault();
 
@@ -80,7 +80,7 @@ void TestPump::resetFault()
 
 void TestPump::stopDoesNotClearFault()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.setFault();
     pump.stop();
@@ -90,9 +90,9 @@ void TestPump::stopDoesNotClearFault()
 
 void TestPump::rpmValues()
 {
-    Pump pump;
+    Pump pump(1);
 
-    QCOMPARE(pump.targetRpm(), 0.0);
+    QCOMPARE(pump.targetRpm(), 1500.0);
     QCOMPARE(pump.actualRpm(), 0.0);
 
     pump.setTargetRpm(900.0);

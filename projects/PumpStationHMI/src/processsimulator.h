@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QPointer>
 
 class Pump;
 
@@ -17,7 +18,7 @@ private slots:
     void update();
 
 private:
-    Pump *m_pump;
+    QPointer<Pump> m_pump;
     QTimer m_timer;
 
     static constexpr double RpmStep = 50.0;

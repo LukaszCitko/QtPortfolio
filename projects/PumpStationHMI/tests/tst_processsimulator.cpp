@@ -16,7 +16,7 @@ private slots:
 
 void TestProcessSimulator::reachesTargetRpm()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.start();
     pump.setTargetRpm(200.0);
@@ -29,7 +29,7 @@ void TestProcessSimulator::reachesTargetRpm()
 
 void TestProcessSimulator::pumpsStop()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.start();
     pump.setTargetRpm(500.0);
@@ -47,7 +47,7 @@ void TestProcessSimulator::pumpsStop()
 
 void TestProcessSimulator::restartPump()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.start();
     pump.setTargetRpm(500.0);
@@ -67,7 +67,7 @@ void TestProcessSimulator::restartPump()
 
 void TestProcessSimulator::faultStopsPump()
 {
-    Pump pump;
+    Pump pump(1);
 
     pump.start();
     pump.setTargetRpm(500.0);

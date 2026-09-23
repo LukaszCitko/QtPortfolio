@@ -2,8 +2,9 @@
 
 
 
-Pump::Pump(QObject *parent)
+Pump::Pump(int id, QObject *parent)
     : QObject{parent}
+    , m_id(id)
     , m_state(State::Stopped)
     , m_targetRpm(1500.0)
     , m_actualRpm(0.0)
@@ -11,7 +12,10 @@ Pump::Pump(QObject *parent)
 {
 
 }
-
+int Pump::id() const
+{
+    return m_id;
+}
 
 double Pump::temperatureFromSensor() const
 {
@@ -34,6 +38,7 @@ void Pump::start()
     if (m_state != State::Fault)
     {
         m_state = State::Running;
+        emit stateChanged();
     }
 }
 
@@ -42,18 +47,25 @@ void Pump::stop()
     if (m_state != State::Fault)
     {
         m_state = State::Stopped;
+        emit stateChanged();
 
     }
 }
 
 void Pump::setFault()
 {
+    if (m_state == State::Fault)
+    {
+        return;
+    }
     m_state = State::Fault;
+    emit stateChanged();
 
 }
 void Pump::resetFault()
 {
     m_state = State::Stopped;
+    emit stateChanged();
 }
 
 bool Pump::isRunning() const
@@ -97,4 +109,21 @@ void Pump::setActualRpm(double rpm)
 double Pump::actualRpm() const
 {
     return  m_actualRpm;
+}
+
+QString Pump::stateText() const
+{
+    switch (m_state)
+    {
+    case State::Stopped:
+        return "STOPPED";
+
+    case State::Running:
+        return "RUNNING";
+
+    case State::Fault:
+        return "FAULT";
+    }
+
+    return "UNKNOWN";
 }

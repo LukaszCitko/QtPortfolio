@@ -3,375 +3,816 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ApplicationWindow {
-    id: root
+    id: window
 
     visible: true
-    width: 1024
-    height: 600
-    minimumWidth: 1024
-    minimumHeight: 600
-
+    width: 1280
+    height: 800
     title: "Pump Station HMI"
 
-    property int margin: 24
-    property int cardSize: 180
+    color: "#1b1f24"
+
+    // ============================================================
+    // HEADER
+    // ============================================================
 
     Rectangle {
+        id: header
 
-        anchors.fill: parent
-        color: "#20242a"
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
 
-// ------------------------------------------------------------
-// Main area
-// ------------------------------------------------------------
+        height: 48
 
-        Column {
-            id: mainArea
+        color: "#252a31"
+
+        // User / Login
+        Button {
+            id: userButton
 
             anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.right: simulationPanel.left
+            anchors.leftMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
 
-            anchors.margins: root.margin
-            anchors.rightMargin: root.margin + 20
+            width: 155
+            height: 34
 
-            spacing: 24
+            text: "USER: OPERATOR"
 
-            Label {
-                text: "PUMP STATION HMI"
-                font.pixelSize: 30
-                font.bold: true
-                color: "white"
+            onClicked: loginDialog.open()
+        }
+
+        // Centered title
+        Label {
+            anchors.centerIn: parent
+
+            text: "PUMP STATION #1"
+
+            color: "white"
+            font.pixelSize: 21
+            font.bold: true
+        }
+
+        // System status
+        Label {
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+
+            text: "SYSTEM: RUNNING"
+
+            color: "#7fd38b"
+            font.pixelSize: 15
+            font.bold: true
+        }
+    }
+
+    // ============================================================
+    // MAIN CONTENT
+    // ============================================================
+
+    ColumnLayout {
+        id: pageLayout
+
+        anchors.top: header.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: eventBar.top
+
+        anchors.margins: 16
+
+        spacing: 12
+
+        // ========================================================
+        // MAIN PANELS
+        // ========================================================
+
+        RowLayout {
+            id: mainPanels
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            spacing: 16
+
+            // ====================================================
+            // LEFT - PUMP CONTROL
+            // ====================================================
+
+            Rectangle {
+                id: pumpPanel
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 1
+
+                radius: 10
+                color: "#252a31"
+                border.color: "#414852"
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+
+                    spacing: 12
+
+                    // ------------------------------------------------
+                    // PUMP SELECT
+                    // ------------------------------------------------
+
+                    Label {
+                        text: "PUMP SELECT"
+
+                        color: "#b8c0ca"
+                        font.pixelSize: 14
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        spacing: 8
+
+                        Button {
+                            text: "1"
+
+                            Layout.preferredWidth: 58
+                            Layout.preferredHeight: 38
+
+                            highlighted: true
+                        }
+
+                        Button {
+                            text: "2"
+
+                            Layout.preferredWidth: 58
+                            Layout.preferredHeight: 38
+
+                            enabled: false
+                        }
+
+                        Button {
+                            text: "3"
+
+                            Layout.preferredWidth: 58
+                            Layout.preferredHeight: 38
+
+                            enabled: false
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+
+                        color: "#414852"
+                    }
+
+                    // ------------------------------------------------
+                    // PUMP STATUS
+                    // ------------------------------------------------
+
+                    Label {
+                        text: "PUMP 1"
+
+                        color: "white"
+                        font.pixelSize: 24
+                        font.bold: true
+                    }
+
+                    Label {
+                        text: pump.stateText
+
+                        color: pump.stateText === "RUNNING"
+                               ? "#7fd38b"
+                               : pump.stateText === "FAULT"
+                                 ? "#e06b6b"
+                                 : "#b8c0ca"
+
+                        font.pixelSize: 17
+                        font.bold: true
+                    }
+
+                    // ------------------------------------------------
+                    // PROCESS VALUES
+                    // ------------------------------------------------
+
+                    GridLayout {
+                        Layout.fillWidth: true
+
+                        columns: 2
+
+                        columnSpacing: 20
+                        rowSpacing: 9
+
+                        Label {
+                            text: "Actual RPM"
+
+                            color: "#b8c0ca"
+                            font.pixelSize: 15
+                        }
+
+                        Label {
+                            text: Math.round(pump.actualRpm) + " RPM"
+
+                            color: "white"
+                            font.pixelSize: 18
+                            font.bold: true
+
+                            Layout.alignment: Qt.AlignRight
+                        }
+
+                        Label {
+                            text: "Target RPM"
+
+                            color: "#b8c0ca"
+                            font.pixelSize: 15
+                        }
+
+                        Label {
+                            text: Math.round(pump.targetRpm) + " RPM"
+
+                            color: "white"
+                            font.pixelSize: 18
+                            font.bold: true
+
+                            Layout.alignment: Qt.AlignRight
+                        }
+
+                        Label {
+                            text: "Temperature"
+
+                            color: "#b8c0ca"
+                            font.pixelSize: 15
+                        }
+
+                        Label {
+                            text: pump.temperatureFromSensor.toFixed(0) + " °C"
+
+                            color: pump.temperatureFromSensor > 90
+                                   ? "#e06b6b"
+                                   : "white"
+
+                            font.pixelSize: 18
+                            font.bold: true
+
+                            Layout.alignment: Qt.AlignRight
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+
+                        color: "#414852"
+                    }
+
+                    // ------------------------------------------------
+                    // RPM CONTROL
+                    // ------------------------------------------------
+
+                    Label {
+                        text: "RPM CONTROL"
+
+                        color: "#b8c0ca"
+                        font.pixelSize: 14
+                        font.bold: true
+                    }
+
+                    Slider {
+                        id: rpmSlider
+
+                        Layout.fillWidth: true
+
+                        from: 0
+                        to: pump.maxRpm
+                        stepSize: 10
+
+                        value: pump.targetRpm
+
+                        onMoved: {
+                            pump.setTargetRpm(value)
+                        }
+                    }
+
+                    Label {
+                        text: Math.round(rpmSlider.value) + " RPM"
+
+                        color: "white"
+                        font.pixelSize: 15
+
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+
+                    Item {
+                        Layout.fillHeight: true
+                    }
+
+                    // ------------------------------------------------
+                    // MAIN CONTROLS
+                    // ------------------------------------------------
+
+                    RowLayout {
+
+
+                        spacing: 10
+
+                        Button {
+                            text: pump.stateText === "RUNNING" ?
+                                      "PUMP OFF" : "PUMP ON"
+
+                            Layout.preferredWidth: 160
+                            Layout.preferredHeight: 48
+
+                            onClicked: {
+                                if (pump.stateText === "RUNNING") {
+                                            controller.stopPump()
+                                        } else {
+                                            controller.startPump()
+                                        }
+                            }
+                        }
+
+                        Button {
+                            text: valve1.stateText === "OPEN" ?
+                                    "VALVE OFF" : "VALVE ON"
+
+                            Layout.preferredWidth: 160
+                            Layout.preferredHeight: 48
+
+                            onClicked: {
+                                if (valve1.stateText === "OPEN") {
+                                            valve1.close()
+                                } else {
+                                            valve1.open()
+                                }
+                            }
+                        }
+
+                        Button {
+                            text: "SYSTEM CONTROLS"
+
+                            Layout.preferredWidth: 250
+                            Layout.preferredHeight: 48
+
+                            onClicked: systemControlsDialog.open()
+                        }
+                    }
+                }
             }
 
-            Row {
-                spacing: 20
+            // ====================================================
+            // RIGHT - PROCESS OVERVIEW
+            // ====================================================
 
-// ----------------------------------------------------
-// Actual RPM
-// ----------------------------------------------------
+            Rectangle {
+                id: overviewPanel
 
-                Rectangle {
-                    width: root.cardSize
-                    height: root.cardSize
-                    radius: 10
-                    color: "#2b3038"
-                    border.color: "#59616d"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 1
 
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 10
+                radius: 10
+                color: "#252a31"
+                border.color: "#414852"
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+
+                    spacing: 12
+
+                    Label {
+                        text: "PROCESS OVERVIEW"
+
+                        color: "white"
+                        font.pixelSize: 20
+                        font.bold: true
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+
+                        color: "#414852"
+                    }
+
+                    // ------------------------------------------------
+                    // PUMPS
+                    // ------------------------------------------------
+
+                    Label {
+                        text: "PUMPS"
+
+                        color: "#b8c0ca"
+                        font.pixelSize: 13
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
 
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "ACTUAL RPM"
-                            color: "#b8c0ca"
-                            font.pixelSize: 12
+                            text: "PUMP 1"
+
+                            color: "white"
+                            font.pixelSize: 16
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
                         }
 
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: Number(pump.actualRpm).toFixed(0)
-                            color: "white"
-                            font.pixelSize: 42
+                            text: pump.stateText
+
+                            color: pump.stateText === "RUNNING"
+                                   ? "#7fd38b"
+                                   : pump.stateText === "FAULT"
+                                     ? "#e06b6b"
+                                     : "#b8c0ca"
+
+                            font.pixelSize: 15
                             font.bold: true
                         }
 
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "RPM"
+                            text: Math.round(pump.actualRpm) + " RPM"
+
                             color: "#b8c0ca"
-                            font.pixelSize: 8
+                            font.pixelSize: 14
                         }
                     }
-                }
 
-// ----------------------------------------------------
-// Target RPM
-// ----------------------------------------------------
-
-                Rectangle {
-                    width: root.cardSize
-                    height: root.cardSize
-                    radius: 10
-                    color: "#2b3038"
-                    border.color: "#59616d"
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 10
+                    RowLayout {
+                        Layout.fillWidth: true
 
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "TARGET RPM"
-                            color: "#b8c0ca"
-                            font.pixelSize: 12
+                            text: "PUMP 2"
+
+                            color: "#6f7782"
+                            font.pixelSize: 16
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
                         }
 
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: Number(pump.targetRpm).toFixed(0)
+                            text: "NOT AVAILABLE"
+
+                            color: "#6f7782"
+                            font.pixelSize: 13
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Label {
+                            text: "PUMP 3"
+
+                            color: "#6f7782"
+                            font.pixelSize: 16
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: "NOT AVAILABLE"
+
+                            color: "#6f7782"
+                            font.pixelSize: 13
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+
+                        color: "#414852"
+                    }
+
+                    // ------------------------------------------------
+                    // VALVES
+                    // ------------------------------------------------
+
+                    Label {
+                        text: "VALVES"
+
+                        color: "#b8c0ca"
+                        font.pixelSize: 13
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Label {
+                            text: "VALVE 1"
+
                             color: "white"
-                            font.pixelSize: 36
+                            font.pixelSize: 16
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: valve1.stateText
+
+                            color: valve1.isOpen
+                                   ? "#7fd38b"
+                                   : valve1.stateText === "FAULT"
+                                     ? "#e06b6b"
+                                     : "#b8c0ca"
+
+                            font.pixelSize: 15
                             font.bold: true
                         }
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: Math.round(rpmSlider.value) + " %"
-                            color: "#b8c0ca"
-                            font.pixelSize: 12
-                        }
                     }
-                }
 
-// ----------------------------------------------------
-// Temperature
-// ----------------------------------------------------
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
 
-                Rectangle {
-                    width: root.cardSize
-                    height: root.cardSize
-                    radius: 10
-                    color: "#2b3038"
-                    border.color: "#59616d"
+                        color: "#414852"
+                    }
 
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 10
+                    // ------------------------------------------------
+                    // TANK
+                    // ------------------------------------------------
+
+                    Label {
+                        text: "TANK"
+
+                        color: "#b8c0ca"
+                        font.pixelSize: 13
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
 
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "TEMP. SENSOR"
-                            color: "#b8c0ca"
-                            font.pixelSize: 12
+                            text: "LEVEL"
+
+                            color: "white"
+                            font.pixelSize: 16
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
                         }
 
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: Number(
-                                      pump.temperatureFromSensor
-                                  ).toFixed(1) + " °C"
+                            text: "72 %"
+
                             color: "white"
-                            font.pixelSize: 36
+                            font.pixelSize: 16
                             font.bold: true
                         }
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "TEMPERATURE"
-                            color: "#b8c0ca"
-                            font.pixelSize: 12
-                        }
                     }
-                }
-            }
 
-// --------------------------------------------------------
-// Start / Stop
-// --------------------------------------------------------
-
-            Row {
-                spacing: 20
-
-                Button {
-                    width: 150
-                    height: 60
-
-                    text: "START"
-                    font.pixelSize: 12
-
-                    onClicked: {
-                        pump.start()
-
-                    }
-                }
-
-                Button {
-                    width: 150
-                    height: 60
-
-                    text: "STOP"
-                    font.pixelSize: 12
-
-                    onClicked: {
-                        pump.stop()
+                    Item {
+                        Layout.fillHeight: true
                     }
                 }
             }
         }
 
-// ------------------------------------------------------------
-// Vertical RPM slider
-// ------------------------------------------------------------
+        // ========================================================
+        // SIMULATION BAR
+        // ========================================================
 
-        Column {
-            id: rpmControl
+        SimulationControlPanel {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 58
+        }
+    }
 
-            anchors.top: parent.top
-            anchors.right: simulationPanel.left
-            anchors.rightMargin: root.margin
-            anchors.bottom: simulationPanel.top
-            anchors.bottomMargin: 20
+    // ============================================================
+    // EVENT BAR
+    // ============================================================
 
-            width: 90
+    Rectangle {
+        id: eventBar
 
-            spacing: 10
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+
+        height: 50
+
+        color: "#20252b"
+        border.color: "#414852"
+
+        RowLayout {
+            anchors.fill: parent
+
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+
+            spacing: 12
 
             Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: ""
-                color: "white"
-                font.pixelSize: 12
+                text: eventManager.currentLevel === 2
+                      ? "ALARM"
+                      : eventManager.currentLevel === 1
+                        ? "WARNING"
+                        : "INFO"
+
+                color: eventManager.currentLevel === 2
+                       ? "#e06b6b"
+                       : eventManager.currentLevel === 1
+                         ? "#e0b45c"
+                         : "#7fa9d3"
+
+                font.pixelSize: 13
                 font.bold: true
             }
 
-            Slider {
-                id: rpmSlider
+            Label {
+                text: eventManager.currentSource
+                      + " — "
+                      + eventManager.currentMessage
 
-                orientation: Qt.Vertical
+                color: "white"
+                font.pixelSize: 14
 
-                anchors.horizontalCenter: parent.horizontalCenter
+                Layout.fillWidth: true
 
-                height: 300
-                width: 60
+                elide: Text.ElideRight
+            }
 
-                from: 0
-                to: pump.maxRpm
-                stepSize: 10
-                snapMode: Slider.SnapAlways
-                value: pump.targetRpm
+            Button {
+                text: "HISTORY"
 
-                onMoved: {
-                        pump.targetRpm = value
-                    }
+                Layout.preferredWidth: 90
+                Layout.preferredHeight: 34
 
+                onClicked: {
+                    // History dialog will be implemented later.
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // LOGIN DIALOG - MOCK
+    // ============================================================
+
+    Dialog {
+        id: loginDialog
+
+        title: "LOGIN"
+
+        modal: true
+
+        anchors.centerIn: Overlay.overlay
+
+        width: 360
+
+        standardButtons: Dialog.Cancel
+
+        ColumnLayout {
+            width: parent.width
+
+            spacing: 12
+
+            Label {
+                text: "Username"
+
+                color: "#b8c0ca"
+            }
+
+            TextField {
+                id: usernameField
+
+                Layout.fillWidth: true
+
+                placeholderText: "Enter username"
             }
 
             Label {
-                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Password"
 
-                text: Math.round(rpmSlider.value) + " RPM"
+                color: "#b8c0ca"
+            }
+
+            TextField {
+                id: passwordField
+
+                Layout.fillWidth: true
+
+                placeholderText: "Enter password"
+
+                echoMode: TextInput.Password
+            }
+
+            Button {
+                text: "LOGIN"
+
+                Layout.fillWidth: true
+
+                onClicked: {
+                    loginDialog.close()
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // SYSTEM CONTROLS DIALOG - MOCK
+    // ============================================================
+
+    Dialog {
+        id: systemControlsDialog
+
+        title: "SYSTEM CONTROLS"
+
+        modal: true
+
+        anchors.centerIn: Overlay.overlay
+
+        width: 400
+
+        standardButtons: Dialog.Close
+
+        ColumnLayout {
+            width: parent.width
+
+            spacing: 14
+
+            Label {
+                text: "PUMP 1"
 
                 color: "white"
                 font.pixelSize: 20
                 font.bold: true
             }
-        }
 
-// ------------------------------------------------------------
-// Simulation panel
-// ------------------------------------------------------------
+            Label {
+                text: "Fault status: "
+                      + pump.stateText
 
-        Rectangle {
-            id: simulationPanel
+                color: "#b8c0ca"
+                font.pixelSize: 16
+            }
 
-            width: 270
-            height: 240
+            Button {
+                text: "RESET FAULT"
 
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: root.margin
+                Layout.fillWidth: true
+                Layout.preferredHeight: 45
 
-            radius: 10
-
-            color: "#292e36"
-            border.color: "#59616d"
-
-            Column {
-                anchors.fill: parent
-                anchors.margins: 16
-
-                spacing: 12
-
-                Label {
-                    text: "SIMULATION"
-                    color: "white"
-                    font.pixelSize: 20
-                    font.bold: true
+                onClicked: {
+                    controller.resetPumpFault()
                 }
+            }
 
-                Label {
-                    text: "Temperature sensor"
-                    color: "#b8c0ca"
-                    font.pixelSize: 12
-                }
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
 
-                Row {
-                    spacing: 8
+                color: "#414852"
+            }
 
-                    SpinBox {
-                        id: simulatedTemperature
+            Label {
+                text: "TECHNICIAN FUNCTIONS"
 
-                        width: 120
-                        from: 0
-                        to: 150
-                        value: 60
-                        stepSize: 10
+                color: "#b8c0ca"
+                font.pixelSize: 13
+                font.bold: true
+            }
 
-                        onValueChanged: {
-                            pump.setTemperatureFromSensor(value)
-                        }
-                    }
+            Button {
+                text: "SENSOR STATUS"
 
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "°C"
-                        color: "white"
-                        font.pixelSize: 12
-                    }
-                }
+                Layout.fillWidth: true
+                enabled: false
+            }
 
-                Row {
-                    spacing: 8
+            Button {
+                text: "I/O STATUS"
 
-                    Button {
-                        text: "60 °C"
-                        width: 70
+                Layout.fillWidth: true
+                enabled: false
+            }
 
-                        onClicked: {
-                            simulatedTemperature.value = 60
-                        }
-                    }
+            Button {
+                text: "DIAGNOSTICS"
 
-                    Button {
-                        text: "90 °C"
-                        width: 70
-
-                        onClicked: {
-                            simulatedTemperature.value = 90
-                        }
-                    }
-                }
-
-                Row {
-                    spacing: 8
-
-                    Button {
-
-                        id: faultBtn
-                        text: "FAULT"
-                        width: 105
-                        height: 45
-
-                        onClicked: {
-                            pump.setFault()
-
-
-                        }
-
-                    }
-                    Button {
-                        text: "RESET"
-                        width: 105
-                        height: 45
-
-                        onClicked: {
-                            pump.resetFault()
-                        }
-                    }
-                }
+                Layout.fillWidth: true
+                enabled: false
             }
         }
     }
