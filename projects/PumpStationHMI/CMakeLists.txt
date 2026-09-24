@@ -21,6 +21,9 @@ qt_add_executable(appPumpStationHMI
     src/valve.cpp
     src/processcontroller.cpp
     src/eventmanager.cpp
+    src/mixingtank.cpp
+    src/batchcontroller.cpp
+    src/mixer.cpp
 )
 
 qt_add_qml_module(appPumpStationHMI
@@ -42,6 +45,12 @@ qt_add_qml_module(appPumpStationHMI
         src/processcontroller.cpp
         src/eventmanager.h
         src/eventmanager.cpp
+        src/mixingtank.h
+        src/mixingtank.cpp
+        src/batchcontroller.h
+        src/batchcontroller.cpp
+        src/mixer.h
+        src/mixer.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

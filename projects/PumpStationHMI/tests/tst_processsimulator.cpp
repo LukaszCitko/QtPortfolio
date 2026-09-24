@@ -17,7 +17,8 @@ private slots:
     void runningPump2WithOpenValve2FillsTankWithConcentrate();
     void waterAndConcentrateCanBeAdded();
     void waterFillingCanBeStoppedBeforeConcentrateDosing();
-
+    void pump3WithOpenValve3TransfersProduct();
+    void closedValve3BlocksProductTransfer();
 };
 
 void TestProcessSimulator::stoppedPumpDoesNotFillTank()
@@ -27,6 +28,8 @@ void TestProcessSimulator::stoppedPumpDoesNotFillTank()
 
     Pump pump2(2);
     Valve valve2(2);
+    Pump pump3(3);
+    Valve valve3(3);
 
     MixingTank tank;
 
@@ -35,6 +38,8 @@ void TestProcessSimulator::stoppedPumpDoesNotFillTank()
         &valve1,
         &pump2,
         &valve2,
+        &pump3,
+        &valve3,
         &tank);
 
     valve1.open();
@@ -52,6 +57,9 @@ void TestProcessSimulator::closedValveBlocksWaterFlow()
     Pump pump2(2);
     Valve valve2(2);
 
+    Pump pump3(3);
+    Valve valve3(3);
+
     MixingTank tank;
 
     ProcessSimulator simulator(
@@ -59,6 +67,8 @@ void TestProcessSimulator::closedValveBlocksWaterFlow()
         &valve1,
         &pump2,
         &valve2,
+        &pump3,
+        &valve3,
         &tank);
 
     pump1.start();
@@ -76,6 +86,9 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
     Pump pump2(2);
     Valve valve2(2);
 
+    Pump pump3(3);
+    Valve valve3(3);
+
     MixingTank tank;
 
     ProcessSimulator simulator(
@@ -83,6 +96,8 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
         &valve1,
         &pump2,
         &valve2,
+        &pump3,
+        &valve3,
         &tank);
 
     valve1.open();
@@ -101,6 +116,10 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
     Pump pump2(2);
     Valve valve2(2);
 
+    Pump pump3(3);
+    Valve valve3(3);
+
+
     MixingTank tank;
 
     ProcessSimulator simulator(
@@ -108,6 +127,8 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
         &valve1,
         &pump2,
         &valve2,
+        &pump3,
+        &valve3,
         &tank);
 
     valve2.open();
@@ -127,6 +148,10 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
     Pump pump2(2);
     Valve valve2(2);
 
+    Pump pump3(3);
+    Valve valve3(3);
+
+
     MixingTank tank;
 
     ProcessSimulator simulator(
@@ -134,6 +159,8 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
         &valve1,
         &pump2,
         &valve2,
+        &pump3,
+        &valve3,
         &tank);
 
 
@@ -168,6 +195,10 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
     Pump pump2(2);
     Valve valve2(2);
 
+    Pump pump3(3);
+    Valve valve3(3);
+
+
     MixingTank tank;
 
     ProcessSimulator simulator(
@@ -175,6 +206,8 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
         &valve1,
         &pump2,
         &valve2,
+        &pump3,
+        &valve3,
         &tank);
 
     // Fill the tank with 70 L of water.
@@ -199,6 +232,75 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
 
     QCOMPARE(tank.waterVolume(), 70.0);
     QCOMPARE(tank.concentrateVolume(), 30.0);
+    QCOMPARE(tank.volume(), 100.0);
+}
+
+
+void TestProcessSimulator::pump3WithOpenValve3TransfersProduct()
+{
+    Pump pump1(1);
+    Valve valve1(1);
+
+    Pump pump2(2);
+    Valve valve2(2);
+
+    Pump pump3(3);
+    Valve valve3(3);
+
+    MixingTank tank;
+
+    ProcessSimulator simulator(
+        &pump1,
+        &valve1,
+        &pump2,
+        &valve2,
+        &pump3,
+        &valve3,
+        &tank);
+
+    tank.addWater(70.0);
+    tank.addConcentrate(30.0);
+
+    QCOMPARE(tank.volume(), 100.0);
+
+    pump3.start();
+    valve3.open();
+
+    simulator.simulateStep(10.0);
+
+    QCOMPARE(tank.volume(), 80.0);
+}
+
+void TestProcessSimulator::closedValve3BlocksProductTransfer()
+{
+    Pump pump1(1);
+    Valve valve1(1);
+
+    Pump pump2(2);
+    Valve valve2(2);
+
+    Pump pump3(3);
+    Valve valve3(3);
+
+    MixingTank tank;
+
+    ProcessSimulator simulator(
+        &pump1,
+        &valve1,
+        &pump2,
+        &valve2,
+        &pump3,
+        &valve3,
+        &tank);
+
+    tank.addWater(70.0);
+    tank.addConcentrate(30.0);
+
+    pump3.start();
+
+    // Valve 3 remains closed.
+    simulator.simulateStep(10.0);
+
     QCOMPARE(tank.volume(), 100.0);
 }
 

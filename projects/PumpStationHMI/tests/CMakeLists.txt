@@ -40,6 +40,7 @@ add_executable(test_processcontroller
     ../src/pump.h
     ../src/valve.cpp
     ../src/valve.h
+    ../src/mixer.cpp
     ../src/processcontroller.cpp
     ../src/processcontroller.h
     ../src/eventmanager.h
@@ -61,6 +62,7 @@ target_link_libraries(test_mixingTank
         Qt6::Test
         Qt6::Core
 )
+
 add_executable(test_batchcontroller
     tst_batchcontroller.cpp
     ../src/pump.cpp
@@ -68,6 +70,7 @@ add_executable(test_batchcontroller
     ../src/processsimulator.cpp
     ../src/mixingtank.cpp
     ../src/batchcontroller.cpp
+    ../src/mixer.cpp
 
 )
 
