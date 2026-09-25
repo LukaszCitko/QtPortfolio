@@ -4,12 +4,14 @@
 
 #include "pump.h"
 #include "valve.h"
+#include "mixer.h"
 #include "mixingtank.h"
+#include "batchcontroller.h"
 #include "processsimulator.h"
 #include "processcontroller.h"
 #include "eventmanager.h"
 
-    int main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
@@ -34,18 +36,25 @@
     Valve valve4(4);
 
     // Mixing tank
+    Mixer mixer;
     MixingTank mixingTank;
 
 // Process services
 
     ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
+        &pump1, &valve1,
+        &pump2, &valve2,
+        &pump3, &valve3,
+
         &mixingTank);
+
+// Batch controller
+    BatchController batchController(
+        &pump1, &valve1,
+        &pump2, &valve2,
+        &pump3, &valve3,
+        &valve4,
+        &mixer, &mixingTank);
 
     EventManager eventManager;
 
@@ -71,17 +80,12 @@
 
     engine.rootContext()->setContextProperty("valve4", &valve4);
 
-    engine.rootContext()->setContextProperty(
-        "mixingTank",
-        &mixingTank);
+    engine.rootContext()->setContextProperty("mixingTank", &mixingTank);
 
-    engine.rootContext()->setContextProperty(
-        "controller",
-        &controller);
+    engine.rootContext()->setContextProperty("controller", &controller);
+    engine.rootContext()->setContextProperty("batchController", &batchController);
 
-    engine.rootContext()->setContextProperty(
-        "eventManager",
-        &eventManager);
+    engine.rootContext()->setContextProperty("eventManager",&eventManager);
 
 // QML loading
 

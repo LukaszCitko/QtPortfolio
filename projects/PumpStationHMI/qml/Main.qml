@@ -60,9 +60,9 @@ ApplicationWindow {
             anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
 
-            text: "SYSTEM: RUNNING"
+            text: "PROCESS: " + batchController.stateText
+            color: "#b8c0ca"
 
-            color: "#7fd38b"
             font.pixelSize: 15
             font.bold: true
         }

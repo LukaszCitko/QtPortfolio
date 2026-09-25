@@ -12,6 +12,7 @@ class Mixer;
 class BatchController : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
 
 public:
     enum class State
@@ -27,6 +28,20 @@ public:
         Complete
     };
 
+    enum class StopReason
+    {
+        None,
+        OperatorPause,
+        MixerFault,
+        Pump1Fault,
+        Pump2Fault,
+        Pump3Fault,
+        Valve1Fault,
+        Valve2Fault,
+        Valve3Fault
+    };
+
+    Q_ENUM(StopReason)
     Q_ENUM(State)
 
     explicit BatchController(
@@ -51,6 +66,8 @@ public:
     Q_INVOKABLE void resume();
 
     void simulateStep(double elapsedSeconds);
+    StopReason stopReason() const;
+    QString stopReasonText() const;
 
 signals:
     void stateChanged();
@@ -59,6 +76,11 @@ private slots:
     void onTankVolumeChanged();
     void onTankTemperatureChanged();
 
+    void onMixerStateChanged();
+    void onPump1StateChanged();
+    void onPump2StateChanged();
+    void onPump3StateChanged();
+
 private:
     void startWaterFilling();
     void startConcentrateDosing();
@@ -66,6 +88,7 @@ private:
     void startMixing();
     void finishMixing();
     void finishTransfer();
+
 
     bool canStartPump1() const;
     bool canStartPump2() const;
@@ -95,6 +118,7 @@ private:
     double m_mixingElapsedSeconds;
     State m_state;
     State m_previousState;
+    StopReason m_stopReason;
 };
 
 #endif

@@ -1,5 +1,7 @@
 
 #include <QtTest>
+#include <QObject>
+#include <QPointer>
 
 #include "../src/batchcontroller.h"
 #include "../src/mixingtank.h"
@@ -7,6 +9,23 @@
 #include "../src/valve.h"
 #include "../src/processsimulator.h"
 #include "../src/mixer.h"
+
+//MACRO to add devices to tests...
+#define TEST_DEVICES \
+\
+    Pump pump1(1); Valve valve1(1);\
+    Pump pump2(2); Valve valve2(2);\
+    Pump pump3(3); Valve valve3(3);\
+    Valve valve4(4);\
+    Mixer mixer; MixingTank tank;\
+    ProcessSimulator simulator(\
+        &pump1,&valve1,&pump2,&valve2,\
+        &pump3,&valve3,&tank);\
+    BatchController controller(\
+        &pump1, &valve1, &pump2, &valve2,\
+        &pump3, &valve3, &valve4,\
+        &mixer, &tank);
+
 
 class TestBatchController : public QObject
 {
@@ -44,37 +63,32 @@ private slots:
     void resumeAfterTemperatureCheckPause();
     void pauseWhenReadyForTransferDoesNothing();
     void pauseWhenCompleteDoesNothing();
+    void resumeAfterPump1Fault();
+    void resumeAfterPump2Fault();
+    void resumeWhilePump2FaultActive();
+    void resumeWhilePump1FaultActive();
+    void resumeWhilePump3FaultActive();
+    void resumeAfterPump3Fault();
+    void startTransferAfterPump3FaultReset();
 
     //alarms & faults
     void mixerFaultDuringConcentrateDosing();
+    void resumeAfterMixerFault();
+    void pump1FaultDuringWaterFilling();
+    void pump2FaultDuringConcentrateDosing();
+    void pump3FaultDuringTransfer();
+    void startTransferWhilePump3FaultActive();
+    void startBatchWhilePump1FaultActive();
+    void pump2FaultBeforeConcentrateDosing();
+    void resumeDosingAfterPreexistingPump2Fault();
+
+    //stop reason
+    void operatorPauseSetsStopReason();
 };
 
 void TestBatchController::startBatchStartsWaterFilling()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3);
-
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     QCOMPARE(controller.stateText(), QString("IDLE"));
 
@@ -93,39 +107,7 @@ void TestBatchController::startBatchStartsWaterFilling()
 
 void TestBatchController::waterFillingAutomaticallyChangesToConcentrateDosing()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3);
-
-    Valve valve4(4);
-    Mixer mixer;
-
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
     controller.startBatch();
@@ -154,36 +136,7 @@ void TestBatchController::waterFillingAutomaticallyChangesToConcentrateDosing()
 }
 void TestBatchController::concentrateDosingAutomaticallyChangesToTemperatureCheck() {
 
-    Pump pump1(1);
-    Valve valve1(1);
-    Pump pump2(2);
-    Valve valve2(2);
-    Pump pump3(3);
-    Valve valve3(3);
-    Valve valve4(4);
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
-
+    TEST_DEVICES
     mixer.connect();
     controller.startBatch();
     simulator.simulateStep(70.0);
@@ -201,40 +154,7 @@ void TestBatchController::concentrateDosingAutomaticallyChangesToTemperatureChec
 
 void TestBatchController::correctTemperatureStartsMixing()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3)
-        ;
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
-
+    TEST_DEVICES
     mixer.connect();
     controller.startBatch();
 
@@ -256,39 +176,7 @@ void TestBatchController::correctTemperatureStartsMixing()
 
 void TestBatchController::incorrectTemperatureKeepsTemperatureCheck()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3);
-
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
     controller.startBatch();
@@ -316,39 +204,7 @@ void TestBatchController::incorrectTemperatureKeepsTemperatureCheck()
 
 void TestBatchController::mixingFinishesAfterSixtySeconds()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3);
-
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
     controller.startBatch();
@@ -387,37 +243,7 @@ void TestBatchController::mixingFinishesAfterSixtySeconds()
 
 void TestBatchController::readyForTransferStartsTransferring()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3);
-    Valve valve4(4);
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
     controller.startBatch();
@@ -448,38 +274,7 @@ void TestBatchController::readyForTransferStartsTransferring()
 
 void TestBatchController::transferringAutomaticallyFinishesBatch()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3);
-    Valve valve4(4);
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
-
+    TEST_DEVICES
     mixer.connect();
     controller.startBatch();
 
@@ -531,37 +326,7 @@ void TestBatchController::transferringAutomaticallyFinishesBatch()
 
 void TestBatchController::emergencyDrainStopsAllProcessDevices()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Pump pump3(3);
-    Valve valve3(3);
-    Valve valve4(4);
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     controller.startBatch();
 
@@ -587,38 +352,7 @@ void TestBatchController::emergencyDrainStopsAllProcessDevices()
 
 void TestBatchController::mixerStartsBeforeConcentrateDosing()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Mixer mixer;
-
-    Pump pump3(3);
-    Valve valve3(3);
-    Valve valve4(4);
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -635,39 +369,7 @@ void TestBatchController::mixerStartsBeforeConcentrateDosing()
 }
 void TestBatchController::mixerFaultBlocksConcentrateDosing()
 {
-    Pump pump1(1);
-    Valve valve1(1);
-
-    Pump pump2(2);
-    Valve valve2(2);
-
-    Mixer mixer;
-
-    Pump pump3(3);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
     mixer.setFault();
@@ -683,37 +385,7 @@ void TestBatchController::mixerFaultBlocksConcentrateDosing()
 
 void TestBatchController::emergencyDrainStopsMixer()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
     mixer.start();
@@ -727,37 +399,8 @@ void TestBatchController::emergencyDrainStopsMixer()
 
 void TestBatchController::emergencyDrainClosesAllProcessValves()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
+    TEST_DEVICES
 
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
 
     mixer.connect();
 
@@ -778,37 +421,7 @@ void TestBatchController::emergencyDrainClosesAllProcessValves()
 
 void TestBatchController::emergencyDrainOpensDrainValve()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     QVERIFY(!valve4.isOpen());
 
@@ -819,37 +432,7 @@ void TestBatchController::emergencyDrainOpensDrainValve()
 
 void TestBatchController::pauseDuringWaterFilling()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     controller.startBatch();
 
@@ -872,37 +455,7 @@ void TestBatchController::pauseDuringWaterFilling()
 }
 void TestBatchController::resumeAfterWaterFillingPause()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     controller.startBatch();
 
@@ -925,28 +478,7 @@ void TestBatchController::resumeAfterWaterFillingPause()
 
 void TestBatchController::pauseWhenIdleDoesNothing()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     controller.pause();
 
@@ -961,37 +493,7 @@ void TestBatchController::pauseWhenIdleDoesNothing()
 
 void TestBatchController::pauseDuringConcentrateDosing()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1030,37 +532,7 @@ void TestBatchController::pauseDuringConcentrateDosing()
 }
 void TestBatchController::resumeAfterConcentrateDosingPause()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1091,37 +563,7 @@ void TestBatchController::resumeAfterConcentrateDosingPause()
 
 void TestBatchController::pauseDuringMixing()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1158,37 +600,7 @@ void TestBatchController::pauseDuringMixing()
 
 void TestBatchController::resumeAfterMixingPause()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1240,37 +652,7 @@ void TestBatchController::resumeAfterMixingPause()
 
 void TestBatchController::pauseDuringTransferring()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1313,37 +695,7 @@ void TestBatchController::pauseDuringTransferring()
 
 void TestBatchController::resumeAfterTransferringPause()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1380,37 +732,7 @@ void TestBatchController::resumeAfterTransferringPause()
 
 void TestBatchController::pauseDuringTemperatureCheck()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1443,37 +765,7 @@ void TestBatchController::pauseDuringTemperatureCheck()
 
 void TestBatchController::resumeAfterTemperatureCheckPause()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1512,37 +804,7 @@ void TestBatchController::resumeAfterTemperatureCheckPause()
 }
 void TestBatchController::pauseWhenReadyForTransferDoesNothing()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1575,37 +837,7 @@ void TestBatchController::pauseWhenReadyForTransferDoesNothing()
 
 void TestBatchController::pauseWhenCompleteDoesNothing()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1652,37 +884,7 @@ void TestBatchController::pauseWhenCompleteDoesNothing()
 
 void TestBatchController::mixerFaultDuringConcentrateDosing()
 {
-    Pump pump1(1);
-    Pump pump2(2);
-    Pump pump3(3);
-
-    Valve valve1(1);
-    Valve valve2(2);
-    Valve valve3(3);
-    Valve valve4(4);
-
-    Mixer mixer;
-    MixingTank tank;
-
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
-    BatchController controller(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &valve4,
-        &mixer,
-        &tank);
+    TEST_DEVICES
 
     mixer.connect();
 
@@ -1718,6 +920,434 @@ void TestBatchController::mixerFaultDuringConcentrateDosing()
 
     QVERIFY(valve4.isOpen() == false);
 }
+
+void TestBatchController::resumeAfterMixerFault()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+
+    controller.startBatch();
+
+    tank.addWater(70.0);
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::DosingConcentrate);
+
+    QVERIFY(mixer.isRunning());
+    QVERIFY(pump2.isRunning());
+    QVERIFY(valve2.isOpen());
+
+    mixer.setFault();
+
+    QCOMPARE(
+        mixer.state(),
+        Mixer::State::Fault);
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::Paused);
+
+    QVERIFY(!pump2.isRunning());
+    QVERIFY(!valve2.isOpen());
+
+    // Operator fixes the mixer fault.
+    mixer.resetFault();
+
+    QCOMPARE(
+        mixer.state(),
+        Mixer::State::Stopped);
+
+    controller.resume();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::DosingConcentrate);
+
+    QVERIFY(mixer.isRunning());
+    QVERIFY(pump2.isRunning());
+    QVERIFY(valve2.isOpen());
+}
+void TestBatchController::operatorPauseSetsStopReason()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+
+    controller.startBatch();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::FillingWater);
+
+    QCOMPARE(
+        controller.stopReason(),
+        BatchController::StopReason::None);
+
+    controller.pause();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::Paused);
+
+    QCOMPARE(
+        controller.stopReason(),
+        BatchController::StopReason::OperatorPause);
+
+    QCOMPARE(
+        controller.stopReasonText(),
+        QString("OPERATOR PAUSE"));
+}
+
+void TestBatchController::pump1FaultDuringWaterFilling()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+
+    controller.startBatch();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::FillingWater);
+
+    QVERIFY(pump1.isRunning());
+    QVERIFY(valve1.isOpen());
+
+    pump1.setFault();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::Paused);
+
+    QCOMPARE(
+        controller.stopReason(),
+        BatchController::StopReason::Pump1Fault);
+
+    QVERIFY(!pump1.isRunning());
+    QVERIFY(!valve1.isOpen());
+}
+void TestBatchController::resumeAfterPump1Fault()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+
+    controller.startBatch();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::FillingWater);
+
+    pump1.setFault();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::Paused);
+
+    QCOMPARE(
+        controller.stopReason(),
+        BatchController::StopReason::Pump1Fault);
+
+    QVERIFY(!pump1.isRunning());
+    QVERIFY(!valve1.isOpen());
+
+    pump1.resetFault();
+
+    controller.resume();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::FillingWater);
+
+    QVERIFY(pump1.isRunning());
+    QVERIFY(valve1.isOpen());
+}
+void TestBatchController::pump2FaultDuringConcentrateDosing()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+
+    controller.startBatch();
+
+    // 70 L water -> start concentrate dosing.
+    tank.addWater(70.0);
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::DosingConcentrate);
+
+    QVERIFY(pump2.isRunning());
+    QVERIFY(valve2.isOpen());
+    QVERIFY(mixer.isRunning());
+
+    // Simulate Pump 2 fault.
+    pump2.setFault();
+
+    QCOMPARE(
+        controller.state(),
+        BatchController::State::Paused);
+
+    QCOMPARE(
+        controller.stopReason(),
+        BatchController::StopReason::Pump2Fault);
+
+    QVERIFY(!pump2.isRunning());
+    QVERIFY(!valve2.isOpen());
+    QVERIFY(!mixer.isRunning());
+}
+
+void TestBatchController::resumeAfterPump2Fault()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    controller.startBatch();
+    tank.addWater(70.0);
+
+    QCOMPARE(controller.state(),
+             BatchController::State::DosingConcentrate);
+
+    pump2.setFault();
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stopReason(),
+             BatchController::StopReason::Pump2Fault);
+    QVERIFY(!pump2.isRunning());
+    QVERIFY(!valve2.isOpen());
+    QVERIFY(!mixer.isRunning());
+
+    pump2.resetFault();
+    controller.resume();
+
+    QCOMPARE(controller.state(),
+             BatchController::State::DosingConcentrate);
+    QVERIFY(mixer.isRunning());
+    QVERIFY(valve2.isOpen());
+    QVERIFY(pump2.isRunning());
+}
+
+void TestBatchController::resumeWhilePump2FaultActive()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    controller.startBatch();
+    tank.addWater(70.0);
+
+    pump2.setFault();
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stopReason(),
+             BatchController::StopReason::Pump2Fault);
+
+    controller.resume();  // Fault has not been reset.
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QVERIFY(!pump2.isRunning());
+    QVERIFY(!valve2.isOpen());
+    QVERIFY(!mixer.isRunning());
+}
+void TestBatchController::resumeWhilePump1FaultActive()
+{
+    TEST_DEVICES
+
+    controller.startBatch();
+    pump1.setFault();
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stopReason(),
+             BatchController::StopReason::Pump1Fault);
+
+    controller.resume();  // Fault still continue
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QVERIFY(!pump1.isRunning());
+    QVERIFY(!valve1.isOpen());
+}
+
+void TestBatchController::pump3FaultDuringTransfer()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    controller.startBatch();
+    simulator.simulateStep(70.0);
+    simulator.simulateStep(30.0);
+    tank.setTemperature(60.0);
+    controller.simulateStep(60.0);
+    controller.startTransfer();
+
+    QCOMPARE(controller.state(), BatchController::State::Transferring);
+    QVERIFY(pump3.isRunning());
+
+    pump3.setFault();
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stopReason(),
+             BatchController::StopReason::Pump3Fault);
+    QVERIFY(!pump3.isRunning());
+    QVERIFY(!valve3.isOpen());
+}
+
+void TestBatchController::resumeWhilePump3FaultActive()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    controller.startBatch();
+    simulator.simulateStep(70.0);
+    simulator.simulateStep(30.0);
+    tank.setTemperature(60.0);
+    controller.simulateStep(60.0);
+    controller.startTransfer();
+    pump3.setFault();
+
+    controller.resume();  // The fault is still active.
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QVERIFY(!pump3.isRunning());
+    QVERIFY(!valve3.isOpen());
+}
+
+void TestBatchController::resumeAfterPump3Fault()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    controller.startBatch();
+    simulator.simulateStep(70.0);
+    simulator.simulateStep(30.0);
+    tank.setTemperature(60.0);
+    controller.simulateStep(60.0);
+    controller.startTransfer();
+    pump3.setFault();
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+
+    pump3.resetFault();
+    controller.resume();
+
+    QCOMPARE(controller.state(), BatchController::State::Transferring);
+    QVERIFY(pump3.isRunning());
+    QVERIFY(valve3.isOpen());
+}
+
+void TestBatchController::startTransferWhilePump3FaultActive()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    controller.startBatch();
+    simulator.simulateStep(70.0);
+    simulator.simulateStep(30.0);
+    tank.setTemperature(60.0);
+    controller.simulateStep(60.0);
+
+    QCOMPARE(controller.state(),
+             BatchController::State::ReadyForTransfer);
+
+    pump3.setFault();
+    controller.startTransfer();
+
+    QCOMPARE(controller.state(),
+             BatchController::State::ReadyForTransfer);
+    QVERIFY(!pump3.isRunning());
+    QVERIFY(!valve3.isOpen());
+}
+
+void TestBatchController::startBatchWhilePump1FaultActive()
+{
+    TEST_DEVICES
+
+    pump1.setFault();
+    controller.startBatch();
+
+    QCOMPARE(controller.state(), BatchController::State::Idle);
+    QVERIFY(!pump1.isRunning());
+    QVERIFY(!valve1.isOpen());
+}
+
+void TestBatchController::pump2FaultBeforeConcentrateDosing()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    pump2.setFault();
+
+    controller.startBatch();
+    QCOMPARE(controller.state(), BatchController::State::FillingWater);
+
+    tank.addWater(70.0);
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stopReason(),
+             BatchController::StopReason::Pump2Fault);
+
+    QVERIFY(!pump1.isRunning());
+    QVERIFY(!valve1.isOpen());
+    QVERIFY(!pump2.isRunning());
+    QVERIFY(!valve2.isOpen());
+    QVERIFY(!mixer.isRunning());
+}
+
+void TestBatchController::startTransferAfterPump3FaultReset()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    controller.startBatch();
+    simulator.simulateStep(70.0);
+    simulator.simulateStep(30.0);
+    tank.setTemperature(60.0);
+    controller.simulateStep(60.0);
+
+    QCOMPARE(controller.state(),
+             BatchController::State::ReadyForTransfer);
+
+    pump3.setFault();
+    controller.startTransfer();
+
+    QCOMPARE(controller.state(),
+             BatchController::State::ReadyForTransfer);
+    QVERIFY(!valve3.isOpen());
+
+    pump3.resetFault();
+    controller.startTransfer();
+
+    QCOMPARE(controller.state(),
+             BatchController::State::Transferring);
+    QVERIFY(valve3.isOpen());
+    QVERIFY(pump3.isRunning());
+}
+
+void TestBatchController::resumeDosingAfterPreexistingPump2Fault()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    pump2.setFault();
+
+    controller.startBatch();
+    tank.addWater(70.0);
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stopReason(),
+             BatchController::StopReason::Pump2Fault);
+
+    pump2.resetFault();
+    controller.resume();
+
+    QCOMPARE(controller.state(),
+             BatchController::State::DosingConcentrate);
+    QVERIFY(mixer.isRunning());
+    QVERIFY(valve2.isOpen());
+    QVERIFY(pump2.isRunning());
+    QVERIFY(!pump1.isRunning());
+}
+
 
 QTEST_MAIN(TestBatchController)
 
