@@ -102,6 +102,38 @@ QString BatchController::stopReasonText() const
     return "UNKNOWN";
 }
 
+bool BatchController::tryStartBatch(const QString &operatorName)
+{
+    if (m_state != State::Idle || operatorName.trimmed().isEmpty())
+        return false;
+
+    if (m_mixingTank->volume() != 0.0 ||
+        m_mixingTank->state() == MixingTank::State::Fault)
+        return false;
+
+    if (!m_mixer->isConnected() ||
+        m_mixer->state() == Mixer::State::Fault)
+        return false;
+
+    if (m_pump1->state() == Pump::State::Fault ||
+        m_pump2->state() == Pump::State::Fault ||
+        m_pump3->state() == Pump::State::Fault ||
+        m_valve1->state() == Valve::State::Fault ||
+        m_valve2->state() == Valve::State::Fault ||
+        m_valve3->state() == Valve::State::Fault ||
+        m_valve4->state() == Valve::State::Fault)
+        return false;
+
+    if (m_valve1->state() != Valve::State::Closed ||
+        m_valve2->state() != Valve::State::Closed ||
+        m_valve3->state() != Valve::State::Closed ||
+        m_valve4->state() != Valve::State::Closed)
+        return false;
+
+    startBatch();
+    return m_state == State::FillingWater;
+}
+
 void BatchController::startBatch()
 {
     if (m_state != State::Idle)
@@ -119,11 +151,14 @@ void BatchController::simulateStep(double elapsedSeconds)
         return;
 
     m_mixingElapsedSeconds += elapsedSeconds;
+     emit mixingTimeChanged();
 
     if (m_mixingElapsedSeconds >= MixingDuration)
     {
         finishMixing();
     }
+
+
 }
 
 void BatchController::startWaterFilling()
@@ -183,14 +218,17 @@ void BatchController::startTemperatureCheck()
 {
     m_pump2->stop();
     m_valve2->close();
-
     m_state = State::TemperatureCheck;
+    m_mixingTank->setState(MixingTank::State::ReadyForMixing);
     emit stateChanged();
+    onTankTemperatureChanged();
 }
 
 void BatchController::startMixing()
 {
     m_mixingElapsedSeconds = 0.0;
+    emit mixingTimeChanged();
+    m_mixingTank->setState(MixingTank::State::Mixing);
 
     m_state = State::Mixing;
     emit stateChanged();
@@ -198,8 +236,7 @@ void BatchController::startMixing()
 
 void BatchController::finishMixing()
 {
-    m_mixer->stop();
-
+    m_mixingTank->setState(MixingTank::State::ReadyForTransfer);
     m_state = State::ReadyForTransfer;
     emit stateChanged();
 }
@@ -260,6 +297,9 @@ void BatchController::startTransfer()
     if (!canStartPump3())
         return;
 
+    m_mixer->stop();
+    m_mixingTank->setState(MixingTank::State::Transferring);
+
     m_state = State::Transferring;
     emit stateChanged();
 
@@ -270,7 +310,7 @@ void BatchController::finishTransfer()
 {
     m_pump3->stop();
     m_valve3->close();
-
+    m_mixingTank->setState(MixingTank::State::Complete);
     m_state = State::Complete;
     emit stateChanged();
 }
@@ -480,6 +520,7 @@ void BatchController::onMixerStateChanged()
     m_valve3->close();
 
     m_previousState = m_state;
+    m_stopReason = StopReason::MixerFault;
     m_state = State::Paused;
 
     emit stateChanged();
@@ -574,4 +615,56 @@ void BatchController::onPump3StateChanged()
     m_stopReason = StopReason::Pump3Fault;
     m_state = State::Paused;
     emit stateChanged();
+}
+
+int BatchController::stageIndex() const
+{
+    const State displayedState =
+        m_state == State::Paused ? m_previousState : m_state;
+
+    switch (displayedState)
+    {
+    case State::Idle:
+        return 0;
+    case State::FillingWater:
+        return 1;
+    case State::DosingConcentrate:
+        return 2;
+    case State::TemperatureCheck:
+        return 3;
+    case State::Mixing:
+        return 4;
+    case State::ReadyForTransfer:
+    case State::Transferring:
+    case State::Complete:
+        return 5;
+    case State::Paused:
+        return -1;
+    }
+
+    return -1;
+}
+
+int BatchController::mixingSecondsRemaining() const
+{
+    const double remaining = MixingDuration - m_mixingElapsedSeconds;
+    return static_cast<int>(std::ceil(remaining > 0.0 ? remaining : 0.0));
+}
+
+bool BatchController::prepareNextBatch()
+{
+    if (m_state != State::Complete ||
+        !m_mixingTank->resetAfterTransfer())
+    {
+        return false;
+    }
+
+    m_mixingElapsedSeconds = 0.0;
+    m_previousState = State::Idle;
+    m_stopReason = StopReason::None;
+    m_state = State::Idle;
+
+    emit mixingTimeChanged();
+    emit stateChanged();
+    return true;
 }

@@ -22,7 +22,7 @@ double MixingTank::volume() const
 
 double MixingTank::levelPercent() const
 {
-    return (m_volume / Capacity) * 100.0;
+    return (m_volume / 100.0) * 100.0;
 }
 
 double MixingTank::temperature() const
@@ -160,4 +160,20 @@ void MixingTank::removeProduct(double amount)
         m_volume = 0.0;
 
     emit volumeChanged();
+}
+
+bool MixingTank::resetAfterTransfer()
+{
+    if (m_state != State::Complete || m_volume != 0.0)
+        return false;
+
+    m_waterVolume = 0.0;
+    m_concentrateVolume = 0.0;
+    m_temperature = 25.0;
+
+    emit compositionChanged();
+    emit temperatureChanged();
+    setState(State::Empty);
+
+    return true;
 }

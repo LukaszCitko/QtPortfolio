@@ -1,92 +1,115 @@
-// id="f3d5xq"
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
+import QtQuick.Controls.Basic
 
 Rectangle {
-    id: panel
+    id: root
 
-    radius: 8
+    required property var mixerDevice
+    required property var tankDevice
+    required property var batchDevice
 
-    color: "#292e36"
-    border.color: "#59616d"
+    color: "#eceeef"
+    border.color: "#a5aaad"
 
-    RowLayout {
-        anchors.fill: parent
+    Text {
+        anchors.left: parent.left
+        anchors.leftMargin: 24
+        anchors.top: parent.top
+        anchors.topMargin: 24
+        text: "SIMULATION"
+        color: "#252a2d"
+        font.pixelSize: 22
+        font.bold: true
+    }
 
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16
+    Rectangle {
+        width: 420
+        height: 340
+        anchors.centerIn: parent
+        color: "#f6f7f7"
+        border.color: "#a5aaad"
 
-        spacing: 10
+        Column {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 12
 
-        Label {
-            text: "SIMULATION"
-
-            color: "white"
-            font.pixelSize: 15
-            font.bold: true
-        }
-
-        Rectangle {
-            width: 1
-            Layout.fillHeight: true
-
-            color: "#59616d"
-        }
-
-        Label {
-            text: "Temperature:"
-
-            color: "#b8c0ca"
-            font.pixelSize: 14
-        }
-
-        Button {
-            text: "25 °C"
-
-            Layout.preferredWidth: 72
-            Layout.preferredHeight: 36
-
-            onClicked: {
-                pump.setTemperatureFromSensor(25)
+            Text {
+                text: "M1 · MIXER"
+                color: "#252a2d"
+                font.pixelSize: 20
+                font.bold: true
             }
-        }
 
-        Button {
-            text: "60 °C"
-
-            Layout.preferredWidth: 72
-            Layout.preferredHeight: 36
-
-            onClicked: {
-                pump.setTemperatureFromSensor(60)
+            Text {
+                text: root.mixerDevice.connected
+                      ? "Connection: CONNECTED"
+                      : "Connection: DISCONNECTED"
+                color: "#252a2d"
+                font.pixelSize: 16
             }
-        }
 
-        Button {
-            text: "90 °C"
+            Button {
+                id: connectButton
+                width: 250
+                height: 52
+                text: root.mixerDevice.connected
+                      ? "MIXER CONNECTED"
+                      : "CONNECT MIXER"
+                enabled: !root.mixerDevice.connected
+                onClicked: root.mixerDevice.connect()
 
-            Layout.preferredWidth: 72
-            Layout.preferredHeight: 36
+                background: Rectangle {
+                    color: connectButton.enabled ? "#c5ced2" : "#d7dadd"
+                    border.color: "#858e92"
+                    radius: 4
+                }
 
-            onClicked: {
-                pump.setTemperatureFromSensor(90)
+                contentItem: Text {
+                    text: connectButton.text
+                    color: "#252a2d"
+                    font.pixelSize: 16
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
-        }
-
-        Button {
-            text: "95 °C"
-
-            Layout.preferredWidth: 72
-            Layout.preferredHeight: 36
-
-            onClicked: {
-                pump.setTemperatureFromSensor(95)
+            Text {
+                text: "TK1 · TEMPERATURE: "
+                      + root.tankDevice.temperature.toFixed(1) + " °C"
+                color: "#252a2d"
+                font.pixelSize: 16
             }
-        }
 
-        Item {
-            Layout.fillWidth: true
+            Button {
+                id: temperatureButton
+                width: 250
+                height: 52
+                text: "SET TANK TO 60 °C"
+
+                onClicked: root.tankDevice.temperature = 60.0
+
+                background: Rectangle {
+                    color: temperatureButton.enabled ? "#c5ced2" : "#d7dadd"
+                    border.color: "#858e92"
+                    radius: 4
+                }
+
+                contentItem: Text {
+                    text: temperatureButton.text
+                    color: "#252a2d"
+                    font.pixelSize: 16
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            Text {
+                text: "Demo connection. No physical hardware is controlled."
+                color: "#596368"
+                font.pixelSize: 13
+            }
         }
     }
 }

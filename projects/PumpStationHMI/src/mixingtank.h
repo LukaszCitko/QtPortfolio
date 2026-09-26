@@ -43,9 +43,11 @@ public:
     void addWater(double amount);
     void addConcentrate(double amount);
     void removeProduct(double amount);
+    bool resetAfterTransfer();
 
     void setTemperature(double newTemperature);
     void setState(State newState);
+
 
 signals:
     void volumeChanged();

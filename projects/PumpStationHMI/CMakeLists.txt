@@ -30,8 +30,22 @@ qt_add_qml_module(appPumpStationHMI
     URI PumpStationHMI
 
     QML_FILES
-        qml/Main.qml
+
         qml/SimulationControlPanel.qml
+        qml/HMIScreen.qml
+        qml/StageStrip.qml
+        qml/ProcessValues.qml
+        qml/TankView.qml
+        qml/PreCheckPanel.qml
+        qml/EquipmentLane.qml
+        qml/AlarmBar.qml
+        qml/BatchActions.qml
+
+    RESOURCES
+        qml/assets/pump.png
+        qml/assets/valve.png
+        qml/assets/pump_gray.png
+        qml/assets/valve_gray.png
 
 
     SOURCES
@@ -51,6 +65,15 @@ qt_add_qml_module(appPumpStationHMI
         src/batchcontroller.cpp
         src/mixer.h
         src/mixer.cpp
+        src/operatorsession.h
+        src/operatorsession.cpp
+
+
+
+
+
+
+
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

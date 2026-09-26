@@ -33,14 +33,17 @@ class TestBatchController : public QObject
 
 private slots:
     //batch process
+    void tryStartBatchChecksConditions();
     void startBatchStartsWaterFilling();
     void waterFillingAutomaticallyChangesToConcentrateDosing();
     void concentrateDosingAutomaticallyChangesToTemperatureCheck();
     void correctTemperatureStartsMixing();
     void incorrectTemperatureKeepsTemperatureCheck();
-    void mixingFinishesAfterSixtySeconds();
+    void mixingFinishesAfterFifteenSeconds();
     void readyForTransferStartsTransferring();
     void transferringAutomaticallyFinishesBatch();
+    void temperatureSetBeforeCheckStartsMixing();
+    void completedBatchCanReturnToPrecheck();
 
     void emergencyDrainStopsAllProcessDevices();
     void mixerFaultBlocksConcentrateDosing();
@@ -48,8 +51,8 @@ private slots:
     void emergencyDrainStopsMixer();
     void emergencyDrainClosesAllProcessValves();
     void emergencyDrainOpensDrainValve();
-
     //pause & resume
+    void stageIndexRemainsOnPausedStep();
     void pauseDuringWaterFilling();
     void resumeAfterWaterFillingPause();
     void pauseWhenIdleDoesNothing();
@@ -85,6 +88,30 @@ private slots:
     //stop reason
     void operatorPauseSetsStopReason();
 };
+
+void TestBatchController::tryStartBatchChecksConditions()
+{
+    TEST_DEVICES
+
+    QVERIFY(!controller.tryStartBatch("Operator A"));
+    QCOMPARE(controller.state(), BatchController::State::Idle);
+
+    mixer.connect();
+
+    QVERIFY(!controller.tryStartBatch("  "));
+
+    valve4.open();
+    QVERIFY(!controller.tryStartBatch("Operator A"));
+    valve4.close();
+
+    pump2.setFault();
+    QVERIFY(!controller.tryStartBatch("Operator A"));
+    pump2.resetFault();
+
+    QVERIFY(controller.tryStartBatch("Operator A"));
+    QCOMPARE(controller.state(), BatchController::State::FillingWater);
+    QVERIFY(pump1.isRunning());
+}
 
 void TestBatchController::startBatchStartsWaterFilling()
 {
@@ -202,7 +229,7 @@ void TestBatchController::incorrectTemperatureKeepsTemperatureCheck()
 }
 
 
-void TestBatchController::mixingFinishesAfterSixtySeconds()
+void TestBatchController::mixingFinishesAfterFifteenSeconds()
 {
     TEST_DEVICES
 
@@ -222,13 +249,13 @@ void TestBatchController::mixingFinishesAfterSixtySeconds()
         controller.stateText(),
         QString("MIXING"));
 
-    controller.simulateStep(30.0);
+    controller.simulateStep(7.0);
 
     QCOMPARE(
         controller.stateText(),
         QString("MIXING"));
 
-    controller.simulateStep(29.9);
+    controller.simulateStep(7.9);
 
     QCOMPARE(
         controller.stateText(),
@@ -580,7 +607,7 @@ void TestBatchController::pauseDuringMixing()
 
     QVERIFY(mixer.isRunning());
 
-    controller.simulateStep(20.0);
+    controller.simulateStep(5.0);
 
     controller.pause();
 
@@ -615,7 +642,7 @@ void TestBatchController::resumeAfterMixingPause()
         controller.state(),
         BatchController::State::Mixing);
 
-    controller.simulateStep(20.0);
+    controller.simulateStep(5.0);
 
     controller.pause();
 
@@ -635,7 +662,7 @@ void TestBatchController::resumeAfterMixingPause()
 
     QVERIFY(mixer.isRunning());
 
-    controller.simulateStep(39.0);
+    controller.simulateStep(9.0);
 
     QCOMPARE(
         controller.state(),
@@ -647,7 +674,7 @@ void TestBatchController::resumeAfterMixingPause()
         controller.state(),
         BatchController::State::ReadyForTransfer);
 
-    QVERIFY(!mixer.isRunning());
+    QVERIFY(mixer.isRunning());
 }
 
 void TestBatchController::pauseDuringTransferring()
@@ -738,7 +765,7 @@ void TestBatchController::pauseDuringTemperatureCheck()
 
     controller.startBatch();
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(55.0);
 
     // 70 L water.
     tank.addWater(70.0);
@@ -830,7 +857,7 @@ void TestBatchController::pauseWhenReadyForTransferDoesNothing()
         controller.state(),
         BatchController::State::ReadyForTransfer);
 
-    QVERIFY(!mixer.isRunning());
+    QVERIFY(mixer.isRunning());
     QVERIFY(!pump3.isRunning());
     QVERIFY(!valve3.isOpen());
 }
@@ -909,6 +936,14 @@ void TestBatchController::mixerFaultDuringConcentrateDosing()
     QCOMPARE(
         controller.state(),
         BatchController::State::Paused);
+
+    QCOMPARE(
+        controller.stopReason(),
+        BatchController::StopReason::MixerFault);
+
+    QCOMPARE(
+        controller.stopReasonText(),
+        QString("MIXER FAULT"));
 
     QVERIFY(!pump1.isRunning());
     QVERIFY(!pump2.isRunning());
@@ -1346,6 +1381,85 @@ void TestBatchController::resumeDosingAfterPreexistingPump2Fault()
     QVERIFY(valve2.isOpen());
     QVERIFY(pump2.isRunning());
     QVERIFY(!pump1.isRunning());
+}
+
+void TestBatchController::stageIndexRemainsOnPausedStep()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+
+    QCOMPARE(controller.stageIndex(), 0);
+
+    controller.startBatch();
+    QCOMPARE(controller.stageIndex(), 1);
+
+    tank.addWater(70.0);
+    QCOMPARE(controller.stageIndex(), 2);
+
+    controller.pause();
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stageIndex(), 2);
+}
+
+void TestBatchController::temperatureSetBeforeCheckStartsMixing()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    tank.setTemperature(60.0);
+
+    QVERIFY(controller.tryStartBatch("Operator 01"));
+
+    simulator.simulateStep(70.0);
+    QCOMPARE(controller.state(), BatchController::State::DosingConcentrate);
+
+    simulator.simulateStep(30.0);
+
+    QCOMPARE(controller.state(), BatchController::State::Mixing);
+    QCOMPARE(tank.state(), MixingTank::State::Mixing);
+    QVERIFY(mixer.isRunning());
+}
+
+void TestBatchController::completedBatchCanReturnToPrecheck()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    QVERIFY(controller.tryStartBatch("Operator 01"));
+
+    simulator.simulateStep(70.0);
+    simulator.simulateStep(30.0);
+    tank.setTemperature(60.0);
+    controller.simulateStep(15.0);
+
+    QCOMPARE(controller.state(), BatchController::State::ReadyForTransfer);
+    QVERIFY(mixer.isRunning());
+
+    controller.startTransfer();
+    QCOMPARE(controller.state(), BatchController::State::Transferring);
+    QVERIFY(!mixer.isRunning());
+
+    simulator.simulateStep(50.0);
+    QCOMPARE(controller.state(), BatchController::State::Complete);
+    QCOMPARE(tank.volume(), 0.0);
+    QCOMPARE(tank.waterVolume(), 70.0);
+    QCOMPARE(tank.concentrateVolume(), 30.0);
+
+    QVERIFY(controller.prepareNextBatch());
+
+    QCOMPARE(controller.state(), BatchController::State::Idle);
+    QCOMPARE(controller.stageIndex(), 0);
+    QCOMPARE(tank.state(), MixingTank::State::Empty);
+    QCOMPARE(tank.volume(), 0.0);
+    QCOMPARE(tank.waterVolume(), 0.0);
+    QCOMPARE(tank.concentrateVolume(), 0.0);
+    QCOMPARE(tank.temperature(), 25.0);
+
+    QVERIFY(controller.tryStartBatch("Operator 02"));
+    QCOMPARE(controller.state(), BatchController::State::FillingWater);
+    QVERIFY(pump1.isRunning());
 }
 
 

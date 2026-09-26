@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QTimer>
 
 #include "pump.h"
 #include "valve.h"
@@ -10,6 +11,7 @@
 #include "processsimulator.h"
 #include "processcontroller.h"
 #include "eventmanager.h"
+#include "operatorsession.h"
 
 int main(int argc, char *argv[])
 {
@@ -56,7 +58,15 @@ int main(int argc, char *argv[])
         &valve4,
         &mixer, &mixingTank);
 
+    QTimer batchTimer;
+    batchTimer.setInterval(100);
+
+    QObject::connect(&batchTimer, &QTimer::timeout, &batchController, [&batchController](){ batchController.simulateStep(0.1); });
+
+    batchTimer.start();
+
     EventManager eventManager;
+    OperatorSession operatorSession;
 
 // Temporary controller for the existing Pump 1 / Valve 1 logic.
 // TODO: replace/extend by the batch controller.
@@ -81,12 +91,13 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("valve4", &valve4);
 
     engine.rootContext()->setContextProperty("mixingTank", &mixingTank);
+    engine.rootContext()->setContextProperty("mixer", &mixer);
 
     engine.rootContext()->setContextProperty("controller", &controller);
     engine.rootContext()->setContextProperty("batchController", &batchController);
 
+    engine.rootContext()->setContextProperty("operatorSession", &operatorSession);
     engine.rootContext()->setContextProperty("eventManager",&eventManager);
-
 // QML loading
 
     QObject::connect(
@@ -99,7 +110,7 @@ int main(int argc, char *argv[])
         },
         Qt::QueuedConnection);
 
-    engine.loadFromModule("PumpStationHMI", "Main");
+    engine.loadFromModule("PumpStationHMI", "HMIScreen");
 
     return QGuiApplication::exec();
 }

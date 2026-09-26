@@ -3,8 +3,9 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QString>
 
-    class Pump;
+class Pump;
 class Valve;
 class MixingTank;
 class Mixer;
@@ -13,6 +14,8 @@ class BatchController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
+    Q_PROPERTY(int stageIndex READ stageIndex NOTIFY stateChanged)
+    Q_PROPERTY(int mixingSecondsRemaining READ mixingSecondsRemaining NOTIFY mixingTimeChanged)
 
 public:
     enum class State
@@ -58,12 +61,16 @@ public:
 
     State state() const;
     QString stateText() const;
+    int stageIndex() const;
+    void startBatch();
+    int mixingSecondsRemaining() const;
 
-    Q_INVOKABLE void startBatch();
+    Q_INVOKABLE bool tryStartBatch(const QString &operatorName);
     Q_INVOKABLE void startTransfer();
     Q_INVOKABLE void emergencyDrain();
     Q_INVOKABLE void pause();
     Q_INVOKABLE void resume();
+    Q_INVOKABLE bool prepareNextBatch();
 
     void simulateStep(double elapsedSeconds);
     StopReason stopReason() const;
@@ -71,6 +78,7 @@ public:
 
 signals:
     void stateChanged();
+    void mixingTimeChanged();
 
 private slots:
     void onTankVolumeChanged();
@@ -100,7 +108,7 @@ private:
     static constexpr double MinMixingTemperature = 58.0;
     static constexpr double MaxMixingTemperature = 62.0;
 
-    static constexpr double MixingDuration = 60.0;
+    static constexpr double MixingDuration = 15.0;
 
     QPointer<Pump> m_pump1;
     QPointer<Valve> m_valve1;
