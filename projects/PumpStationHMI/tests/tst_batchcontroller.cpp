@@ -45,12 +45,16 @@ private slots:
     void temperatureSetBeforeCheckStartsMixing();
     void completedBatchCanReturnToPrecheck();
 
+    //emergency
     void emergencyDrainStopsAllProcessDevices();
     void mixerFaultBlocksConcentrateDosing();
     void mixerStartsBeforeConcentrateDosing();
     void emergencyDrainStopsMixer();
     void emergencyDrainClosesAllProcessValves();
     void emergencyDrainOpensDrainValve();
+    void emergencyDrainEmptiesTankAndClosesValve();
+    void drainPausesWhenV4FailsAndResumesAfterReset();
+
     //pause & resume
     void stageIndexRemainsOnPausedStep();
     void pauseDuringWaterFilling();
@@ -84,6 +88,10 @@ private slots:
     void startBatchWhilePump1FaultActive();
     void pump2FaultBeforeConcentrateDosing();
     void resumeDosingAfterPreexistingPump2Fault();
+
+    //Events
+    void waterCompletionEmitsOneStageEvent();
+    void completedStagesAreReportedInOrder();
 
     //stop reason
     void operatorPauseSetsStopReason();
@@ -372,9 +380,7 @@ void TestBatchController::emergencyDrainStopsAllProcessDevices()
     QVERIFY(!valve2.isOpen());
     QVERIFY(!valve3.isOpen());
 
-    QCOMPARE(
-        controller.stateText(),
-        QString("IDLE"));
+    QCOMPARE(controller.state(), BatchController::State::Draining);
 }
 
 void TestBatchController::mixerStartsBeforeConcentrateDosing()
@@ -1462,7 +1468,126 @@ void TestBatchController::completedBatchCanReturnToPrecheck()
     QVERIFY(pump1.isRunning());
 }
 
+void TestBatchController::waterCompletionEmitsOneStageEvent()
+{
+    TEST_DEVICES
 
+    mixer.connect();
+    controller.startBatch();
+
+    QSignalSpy stageSpy(&controller, &BatchController::stageCompleted);
+
+    simulator.simulateStep(69.0);
+    QCOMPARE(stageSpy.count(), 0);
+    QCOMPARE(controller.state(), BatchController::State::FillingWater);
+
+    simulator.simulateStep(1.0);
+    QCOMPARE(stageSpy.count(), 1);
+    QCOMPARE(
+        stageSpy.at(0).at(0).toInt(),
+        static_cast<int>(BatchController::State::FillingWater));
+    QCOMPARE(controller.state(), BatchController::State::DosingConcentrate);
+
+    simulator.simulateStep(1.0);
+    QCOMPARE(stageSpy.count(), 1);
+}
+void TestBatchController::completedStagesAreReportedInOrder()
+{
+    TEST_DEVICES
+
+    mixer.connect();
+    tank.setTemperature(60.0);
+    controller.startBatch();
+
+    QSignalSpy stageSpy(&controller, &BatchController::stageCompleted);
+
+    simulator.simulateStep(70.0);
+    simulator.simulateStep(30.0);
+    controller.simulateStep(15.0);
+    controller.startTransfer();
+    simulator.simulateStep(50.0);
+
+    const BatchController::State expected[] = {
+        BatchController::State::FillingWater,
+        BatchController::State::DosingConcentrate,
+        BatchController::State::TemperatureCheck,
+        BatchController::State::Mixing,
+        BatchController::State::Transferring
+    };
+
+    QCOMPARE(stageSpy.count(), 5);
+
+    for (int i = 0; i < 5; ++i) {
+        QCOMPARE(
+            stageSpy.at(i).at(0).toInt(),
+            static_cast<int>(expected[i]));
+    }
+
+    QCOMPARE(controller.state(), BatchController::State::Complete);
+}
+
+
+void TestBatchController::emergencyDrainEmptiesTankAndClosesValve()
+{
+    TEST_DEVICES
+
+    controller.startBatch();
+    simulator.simulateStep(20.0);
+
+    QCOMPARE(tank.volume(), 20.0);
+
+    controller.emergencyDrain();
+
+    QCOMPARE(controller.state(), BatchController::State::Draining);
+    QCOMPARE(tank.state(), MixingTank::State::Draining);
+    QVERIFY(valve4.isOpen());
+
+    controller.simulateStep(2.0);
+
+    QCOMPARE(tank.volume(), 10.0);
+    QCOMPARE(controller.state(), BatchController::State::Draining);
+
+    controller.simulateStep(2.0);
+
+    QCOMPARE(tank.volume(), 0.0);
+    QCOMPARE(tank.waterVolume(), 0.0);
+    QCOMPARE(tank.state(), MixingTank::State::Empty);
+    QCOMPARE(controller.state(), BatchController::State::Idle);
+    QVERIFY(!valve4.isOpen());
+}
+void TestBatchController::drainPausesWhenV4FailsAndResumesAfterReset()
+{
+    TEST_DEVICES
+
+            controller.startBatch();
+    simulator.simulateStep(10.0);
+    controller.emergencyDrain();
+
+    QCOMPARE(controller.state(), BatchController::State::Draining);
+
+    valve4.setFault();
+    controller.simulateStep(1.0);
+
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+    QCOMPARE(controller.stopReason(),
+             BatchController::StopReason::DrainValveUnavailable);
+    QCOMPARE(tank.volume(), 10.0);
+
+    controller.resume();
+    QCOMPARE(controller.state(), BatchController::State::Paused);
+
+    valve4.resetFault();
+    controller.resume();
+
+    QCOMPARE(controller.state(), BatchController::State::Draining);
+    QVERIFY(valve4.isOpen());
+
+    controller.simulateStep(2.0);
+
+    QCOMPARE(controller.state(), BatchController::State::Idle);
+    QCOMPARE(tank.volume(), 0.0);
+    QVERIFY(!valve4.isOpen());
+}
 QTEST_MAIN(TestBatchController)
 
 #include "tst_batchcontroller.moc"

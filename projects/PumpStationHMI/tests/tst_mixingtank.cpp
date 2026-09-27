@@ -15,6 +15,8 @@ private slots:
     void stateCanBeChanged();
     void productCanBeRemoved();
     void productCannotBeRemovedBelowZero();
+    void drainCannotFinishWhileTankContainsProduct();
+    void finishedDrainResetsTank();
 };
 
 void TestMixingTank::initialState()
@@ -39,7 +41,8 @@ void TestMixingTank::waterCanBeAdded()
     QCOMPARE(tank.volume(), 70.0);
     QCOMPARE(tank.waterVolume(), 70.0);
     QCOMPARE(tank.concentrateVolume(), 0.0);
-    QCOMPARE(tank.levelPercent(), 70.0 / 120.0 * 100.0);
+
+    QCOMPARE(tank.levelPercent(), 70.0);
     QCOMPARE(tank.state(), MixingTank::State::Filling);
 }
 
@@ -53,7 +56,7 @@ void TestMixingTank::concentrateCanBeAdded()
     QCOMPARE(tank.volume(), 100.0);
     QCOMPARE(tank.waterVolume(), 70.0);
     QCOMPARE(tank.concentrateVolume(), 30.0);
-    QCOMPARE(tank.levelPercent(), 100.0 / 120.0 * 100.0);
+    QCOMPARE(tank.levelPercent(), 100.0);
 }
 
 void TestMixingTank::tankCannotBeOverfilled()
@@ -123,6 +126,35 @@ void TestMixingTank::productCannotBeRemovedBelowZero()
     QCOMPARE(tank.concentrateVolume(), 30.0);
 }
 
+void TestMixingTank::drainCannotFinishWhileTankContainsProduct()
+{
+    MixingTank tank;
+    tank.addWater(10.0);
+    tank.setState(MixingTank::State::Draining);
+
+    QVERIFY(!tank.resetAfterDrain());
+    QCOMPARE(tank.volume(), 10.0);
+    QCOMPARE(tank.waterVolume(), 10.0);
+    QCOMPARE(tank.state(), MixingTank::State::Draining);
+}
+
+void TestMixingTank::finishedDrainResetsTank()
+{
+    MixingTank tank;
+    tank.addWater(20.0);
+    tank.addConcentrate(10.0);
+    tank.setTemperature(60.0);
+    tank.setState(MixingTank::State::Draining);
+
+    tank.removeProduct(30.0);
+
+    QVERIFY(tank.resetAfterDrain());
+    QCOMPARE(tank.volume(), 0.0);
+    QCOMPARE(tank.waterVolume(), 0.0);
+    QCOMPARE(tank.concentrateVolume(), 0.0);
+    QCOMPARE(tank.temperature(), 25.0);
+    QCOMPARE(tank.state(), MixingTank::State::Empty);
+}
 QTEST_MAIN(TestMixingTank)
 
 #include "tst_mixingtank.moc"

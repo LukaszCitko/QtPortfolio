@@ -80,7 +80,27 @@ target_link_libraries(test_batchcontroller
         Qt6::Quick
 )
 
+add_executable(test_eventmanager
+    tst_eventmanager.cpp
+    ../src/eventmanager.cpp
+)
 
+target_link_libraries(test_eventmanager
+    PRIVATE Qt6::Test Qt6::Core
+)
+add_executable(test_trendrecorder
+    tst_trendrecorder.cpp
+    ../src/trendrecorder.cpp
+    ../src/mixingtank.cpp
+)
+
+target_link_libraries(test_trendrecorder
+    PRIVATE Qt6::Test Qt6::Core
+)
+
+
+add_test(NAME test_trendrecorder COMMAND test_trendrecorder)
+add_test(NAME test_eventmanager COMMAND test_eventmanager)
 add_test(NAME test_processcontroller COMMAND test_processcontroller)
 add_test(NAME test_processsimulator COMMAND test_processsimulator)
 add_test(NAME test_pump COMMAND test_pump)
