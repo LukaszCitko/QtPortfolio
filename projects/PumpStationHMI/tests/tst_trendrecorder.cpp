@@ -9,6 +9,7 @@ class TestTrendRecorder : public QObject
 
 private slots:
     void recordsOnlyDuringRun();
+    void usesProvidedBatchId();
 };
 
 void TestTrendRecorder::recordsOnlyDuringRun()
@@ -47,6 +48,28 @@ void TestTrendRecorder::recordsOnlyDuringRun()
 
     recorder.recordNow();
     QCOMPARE(recorder.sampleCount(), 3);
+}
+
+void TestTrendRecorder::usesProvidedBatchId()
+{
+    MixingTank tank;
+    TrendRecorder recorder(&tank);
+    const QString batchId = "batch-from-controller";
+
+    recorder.beginRun(batchId);
+
+    QVERIFY(recorder.isRecording());
+    QCOMPARE(recorder.sampleCount(), 1);
+    QCOMPARE(recorder.runIdAt(0), batchId);
+
+    tank.addWater(10.0);
+    recorder.recordNow();
+
+    QCOMPARE(recorder.runIdAt(1), batchId);
+
+    recorder.endRun();
+
+    QCOMPARE(recorder.runIdAt(2), batchId);
 }
 
 QTEST_GUILESS_MAIN(TestTrendRecorder)

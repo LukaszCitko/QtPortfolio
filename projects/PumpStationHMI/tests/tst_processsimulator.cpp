@@ -19,6 +19,8 @@ private slots:
     void waterFillingCanBeStoppedBeforeConcentrateDosing();
     void pump3WithOpenValve3TransfersProduct();
     void closedValve3BlocksProductTransfer();
+    void lowerTargetRpmReducesFlow();
+    void actualRpmTracksPumpState();
 };
 
 void TestProcessSimulator::stoppedPumpDoesNotFillTank()
@@ -302,6 +304,81 @@ void TestProcessSimulator::closedValve3BlocksProductTransfer()
     simulator.simulateStep(10.0);
 
     QCOMPARE(tank.volume(), 100.0);
+}
+void TestProcessSimulator::lowerTargetRpmReducesFlow()
+{
+    Pump pump1(1);
+    Valve valve1(1);
+    Pump pump2(2);
+    Valve valve2(2);
+    Pump pump3(3);
+    Valve valve3(3);
+    MixingTank tank;
+
+    ProcessSimulator simulator(
+        &pump1, &valve1,
+        &pump2, &valve2,
+        &pump3, &valve3,
+        &tank);
+
+    pump1.setTargetRpm(750.0);
+    valve1.open();
+    pump1.start();
+    simulator.simulateStep(10.0);
+    QCOMPARE(tank.waterVolume(), 5.0);
+
+    pump1.stop();
+    valve1.close();
+
+    pump2.setTargetRpm(750.0);
+    valve2.open();
+    pump2.start();
+    simulator.simulateStep(10.0);
+    QCOMPARE(tank.concentrateVolume(), 5.0);
+
+    pump2.stop();
+    valve2.close();
+
+    pump3.setTargetRpm(750.0);
+    valve3.open();
+    pump3.start();
+    simulator.simulateStep(2.0);
+    QCOMPARE(tank.volume(), 8.0);
+}
+
+void TestProcessSimulator::actualRpmTracksPumpState()
+{
+    Pump pump1(1);
+    Valve valve1(1);
+    Pump pump2(2);
+    Valve valve2(2);
+    Pump pump3(3);
+    Valve valve3(3);
+    MixingTank tank;
+
+    ProcessSimulator simulator(
+        &pump1, &valve1,
+        &pump2, &valve2,
+        &pump3, &valve3,
+        &tank);
+
+    pump1.setTargetRpm(1000.0);
+    pump1.start();
+
+    simulator.simulateStep(1.0);
+    QCOMPARE(pump1.actualRpm(), 500.0);
+
+    simulator.simulateStep(1.0);
+    QCOMPARE(pump1.actualRpm(), 1000.0);
+
+    pump1.stop();
+    simulator.simulateStep(2.0);
+    QCOMPARE(pump1.actualRpm(), 0.0);
+
+    pump3.setTargetRpm(750.0);
+    pump3.start();
+    simulator.simulateStep(2.0);
+    QCOMPARE(pump3.actualRpm(), 750.0);
 }
 
 QTEST_MAIN(TestProcessSimulator)

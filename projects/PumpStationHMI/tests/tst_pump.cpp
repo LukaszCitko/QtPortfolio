@@ -12,6 +12,7 @@ private slots:
     void stopDoesNotClearFault();
     void rpmValues();
     void temperature();
+    void targetRpmStaysWithinRange();
 };
 
 void TestPump::initialState()
@@ -101,9 +102,22 @@ void TestPump::rpmValues()
     pump.setActualRpm(450.0);
     QCOMPARE(pump.actualRpm(), 450.0);
 
-
-
 }
+
+void TestPump::targetRpmStaysWithinRange()
+{
+    Pump pump(1);
+
+    pump.setTargetRpm(-100.0);
+    QCOMPARE(pump.targetRpm(), 0.0);
+
+    pump.setTargetRpm(2000.0);
+    QCOMPARE(pump.targetRpm(), Pump::MaxRpm);
+
+    pump.setTargetRpm(750.0);
+    QCOMPARE(pump.targetRpm(), 750.0);
+}
+
 QTEST_APPLESS_MAIN(TestPump)
 
 #include "tst_pump.moc"

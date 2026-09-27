@@ -9,6 +9,8 @@ class TestEventManager : public QObject
 private slots:
     void storesEventsInOrder();
     void notifiesViewAboutEachNewEvent();
+    void storesBatchIdWithEachEvent();
+    void emitsDatabaseReadyEvent();
 };
 
 void TestEventManager::storesEventsInOrder()
@@ -59,6 +61,46 @@ void TestEventManager::notifiesViewAboutEachNewEvent()
     QCOMPARE(currentSpy.count(), 2);
     QCOMPARE(manager.eventCount(), 2);
     QCOMPARE(manager.currentMessage(), QString("Batch resumed"));
+}
+
+
+void TestEventManager::storesBatchIdWithEachEvent()
+{
+    EventManager manager;
+
+    manager.addInfo("SYSTEM", "Ready");
+
+    manager.setBatchId("batch-123");
+    manager.addInfo("BATCH", "Batch started");
+    manager.addAlarm("M1", "Device fault detected");
+
+    manager.setBatchId(QString());
+    manager.addInfo("SYSTEM", "Ready for next batch");
+
+    QCOMPARE(manager.eventBatchId(0), QString());
+    QCOMPARE(manager.eventBatchId(1), QString("batch-123"));
+    QCOMPARE(manager.eventBatchId(2), QString("batch-123"));
+    QCOMPARE(manager.eventBatchId(3), QString());
+    QCOMPARE(manager.eventBatchId(-1), QString());
+}
+
+void TestEventManager::emitsDatabaseReadyEvent()
+{
+    EventManager manager;
+    QSignalSpy recordedSpy(&manager, &EventManager::eventRecorded);
+
+    manager.setBatchId("batch-123");
+    manager.addWarning("TK1", "Temperature reached 90 °C");
+
+    QCOMPARE(recordedSpy.count(), 1);
+
+    const QList<QVariant> arguments = recordedSpy.takeFirst();
+
+    QCOMPARE(arguments.at(0).toString(), QString("batch-123"));
+    QVERIFY(arguments.at(1).toLongLong() > 0);
+    QCOMPARE(arguments.at(2).toString(), QString("WARNING"));
+    QCOMPARE(arguments.at(3).toString(), QString("TK1"));
+    QCOMPARE(arguments.at(4).toString(), QString("Temperature reached 90 °C"));
 }
 
 QTEST_GUILESS_MAIN(TestEventManager)
