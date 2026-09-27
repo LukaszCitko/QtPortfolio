@@ -1,4 +1,6 @@
 #include "pump.h"
+#include <algorithm>
+#include <cmath>
 
 
 
@@ -80,15 +82,17 @@ Pump::State Pump::state() const
 
 void Pump::setTargetRpm(double rpm)
 {
-    if (qFuzzyCompare(m_targetRpm, rpm))  // maybe not necessary if we will jumps every 10%
-    {
+    if (!std::isfinite(rpm))
         return;
-    }
 
-    m_targetRpm = rpm;
+    const double boundedRpm = std::clamp(rpm, 0.0, MaxRpm);
+
+    if (qFuzzyCompare(m_targetRpm, boundedRpm))
+        return;
+
+    m_targetRpm = boundedRpm;
     emit targetRpmChanged();
 }
-
 
 double Pump::targetRpm() const
 {

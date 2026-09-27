@@ -22,6 +22,7 @@ public:
                        Mixing,
                        ReadyForTransfer,
                        Transferring,
+                       Draining,
                        Complete,
                        Fault
     };
@@ -43,7 +44,9 @@ public:
     void addWater(double amount);
     void addConcentrate(double amount);
     void removeProduct(double amount);
+
     bool resetAfterTransfer();
+    bool resetAfterDrain();
 
     void setTemperature(double newTemperature);
     void setState(State newState);

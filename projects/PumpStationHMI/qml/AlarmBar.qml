@@ -35,7 +35,11 @@ Rectangle {
 
         text: root.hasFault
               ? "ACTIVE ALARM · " + root.faults.join(", ") + " FAULT"
-              : "NO ACTIVE ALARMS"
+              : eventManager.currentMessage.length > 0
+                ? eventManager.currentLevelText
+                  + " · " + eventManager.currentSource
+                  + " · " + eventManager.currentMessage
+                : "NO ACTIVE ALARMS"
 
         color: root.hasFault ? "#8f2222" : "#252a2d"
         font.pixelSize: 20

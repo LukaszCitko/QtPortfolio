@@ -19,7 +19,6 @@ qt_add_executable(appPumpStationHMI
     src/pump.cpp
     src/processsimulator.cpp
     src/valve.cpp
-    src/processcontroller.cpp
     src/eventmanager.cpp
     src/mixingtank.cpp
     src/batchcontroller.cpp
@@ -40,6 +39,9 @@ qt_add_qml_module(appPumpStationHMI
         qml/EquipmentLane.qml
         qml/AlarmBar.qml
         qml/BatchActions.qml
+        qml/EquipmentPanel.qml
+        qml/TrendChart.qml
+        qml/TrendPanel.qml
 
     RESOURCES
         qml/assets/pump.png
@@ -55,8 +57,6 @@ qt_add_qml_module(appPumpStationHMI
         src/processsimulator.cpp
         src/valve.h
         src/valve.cpp
-        src/processcontroller.h
-        src/processcontroller.cpp
         src/eventmanager.h
         src/eventmanager.cpp
         src/mixingtank.h
@@ -67,6 +67,9 @@ qt_add_qml_module(appPumpStationHMI
         src/mixer.cpp
         src/operatorsession.h
         src/operatorsession.cpp
+        src/trendrecorder.h
+        src/trendrecorder.cpp
+
 
 
 

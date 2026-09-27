@@ -8,6 +8,9 @@ class Mixer : public QObject
     Q_OBJECT
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
     Q_PROPERTY(bool connected READ isConnected NOTIFY connectionChanged)
+    Q_PROPERTY(double maxRpm READ maxRpm CONSTANT)
+    Q_PROPERTY(double targetRpm READ targetRpm NOTIFY targetRpmChanged)
+    Q_PROPERTY(double actualRpm READ actualRpm NOTIFY actualRpmChanged)
 
 public:
     enum class State
@@ -27,6 +30,15 @@ public:
     Q_INVOKABLE void resetFault();
     Q_INVOKABLE void connect();
 
+    static constexpr double MaxRpm = 1000.0;
+
+    double maxRpm() const { return MaxRpm; }
+    double targetRpm() const;
+    double actualRpm() const;
+
+    void setTargetRpm(double rpm);
+    void simulateStep(double elapsedSeconds);
+
     bool isConnected() const;
     bool isRunning() const;
 
@@ -36,10 +48,16 @@ private:
 
     State m_state;
     bool m_connected;
+    double m_targetRpm;
+    double m_actualRpm;
+
+    void clearRpm();
 
 signals:
     void stateChanged();
     void connectionChanged();
+    void targetRpmChanged();
+    void actualRpmChanged();
 };
 
 #endif // MIXER_H

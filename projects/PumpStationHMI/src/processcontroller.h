@@ -1,6 +1,11 @@
 #ifndef PROCESSCONTROLLER_H
 #define PROCESSCONTROLLER_H
 
+
+
+// Temporary controller for the existing Pump 1 / Valve 1 logic.
+// TODO: replace/extend by the batch controller.
+
 #include <QObject>
 #include <QPointer>
 

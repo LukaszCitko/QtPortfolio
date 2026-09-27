@@ -67,6 +67,9 @@ QString MixingTank::stateText() const
     case State::Transferring:
         return "TRANSFERRING";
 
+    case State::Draining:
+        return "DRAINING";
+
     case State::Complete:
         return "COMPLETE";
 
@@ -165,6 +168,22 @@ void MixingTank::removeProduct(double amount)
 bool MixingTank::resetAfterTransfer()
 {
     if (m_state != State::Complete || m_volume != 0.0)
+        return false;
+
+    m_waterVolume = 0.0;
+    m_concentrateVolume = 0.0;
+    m_temperature = 25.0;
+
+    emit compositionChanged();
+    emit temperatureChanged();
+    setState(State::Empty);
+
+    return true;
+}
+
+bool MixingTank::resetAfterDrain()
+{
+    if (m_state != State::Draining || m_volume != 0.0)
         return false;
 
     m_waterVolume = 0.0;

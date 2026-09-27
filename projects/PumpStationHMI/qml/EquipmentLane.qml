@@ -2,7 +2,6 @@ import QtQuick
 
 Rectangle {
     id: root
-
     required property var pumpDevice
     required property var valveDevice
 
@@ -10,6 +9,9 @@ Rectangle {
     property string pumpTag: ""
     property string valveTag: ""
     property string flowArrow: "→"
+    property bool rpmControlEnabled: false
+
+    signal rpmRequested(var device, string tag)
 
     readonly property bool fault:
         pumpDevice.stateText === "FAULT"
@@ -108,6 +110,12 @@ Rectangle {
                        ? "assets/pump.png" : "assets/pump_gray.png"
                fillMode: Image.PreserveAspectFit
                mirror: root.flowArrow === "←"
+               MouseArea {
+                   anchors.fill: parent
+                   enabled: root.rpmControlEnabled
+                   cursorShape: Qt.PointingHandCursor
+                   onClicked: root.rpmRequested(root.pumpDevice, root.pumpTag)
+               }
            }
 
 

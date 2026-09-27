@@ -18,7 +18,7 @@ Rectangle {
         spacing: 16
 
         Text {
-            text: "PROCESS VALUES"
+            text: " "  // TODO: decide if add "PROCESS VALUES" as title
             color: "#252a2d"
             font.pixelSize: 20
             font.bold: true
@@ -84,6 +84,23 @@ Rectangle {
                 color: "#252a2d"
                 font.pixelSize: 20
             }
+            // One separate line
+            Text {
+                width: 176
+                text: ""
+                color: "#252a2d"
+                font.pixelSize: 16
+            }
+        }
+        Text {
+            width: parent.width
+            visible: root.controller.stateText === "TEMPERATURE CHECK"
+                     && root.tank.temperature < 58.0
+            text: "TEMP TOO LOW · HEATING MODE ACTIVATED (SIMULATED)"
+            color: "#8a5b1a"
+            font.pixelSize: 14
+            font.bold: true
+            wrapMode: Text.WordWrap
         }
         PreCheckPanel {
             width: parent.width

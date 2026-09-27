@@ -4,6 +4,7 @@
 #include "mixingtank.h"
 #include "pump.h"
 #include "valve.h"
+#include <algorithm>
 
 ProcessSimulator::ProcessSimulator(
     Pump *pump1,
@@ -33,11 +34,7 @@ ProcessSimulator::ProcessSimulator(
 
     m_timer.setInterval(100);
 
-    connect(
-        &m_timer,
-        &QTimer::timeout,
-        this,
-        &ProcessSimulator::updateSimulation);
+    connect(&m_timer, &QTimer::timeout, this, &ProcessSimulator::updateSimulation);
 
     m_timer.start();
 }
@@ -63,6 +60,7 @@ void ProcessSimulator::updateSimulation()
 
     // Remember the process conditions at the beginning
     // of this simulation step.
+
     const bool waterFlowActive =
         m_pump1->isRunning() && m_valve1->isOpen();
 
@@ -71,57 +69,29 @@ void ProcessSimulator::updateSimulation()
 
 
     // Simulate pump 1 RPM.
-    const double targetRpm1 = m_pump1->targetRpm();
-    double actualRpm1 = m_pump1->actualRpm();
 
-    if (actualRpm1 < targetRpm1)
-    {
-        actualRpm1 += RpmStep;
+    auto updateActualRpm = [elapsedSeconds](Pump *pump) {
+        const double requestedRpm =
+            pump->isRunning() ? pump->targetRpm() : 0.0;
 
-        if (actualRpm1 > targetRpm1)
-            actualRpm1 = targetRpm1;
+        const double maxChange = RpmChangePerSecond * elapsedSeconds;
+        const double difference = requestedRpm - pump->actualRpm();
+        const double change = std::clamp(difference, -maxChange, maxChange);
 
-        m_pump1->setActualRpm(actualRpm1);
-    }
-    else if (actualRpm1 > targetRpm1)
-    {
-        actualRpm1 -= RpmStep;
+        pump->setActualRpm(pump->actualRpm() + change);
+    };
 
-        if (actualRpm1 < targetRpm1)
-            actualRpm1 = targetRpm1;
-
-        m_pump1->setActualRpm(actualRpm1);
-    }
-
-    // Simulate pump 2 RPM.
-    const double targetRpm2 = m_pump2->targetRpm();
-    double actualRpm2 = m_pump2->actualRpm();
-
-    if (actualRpm2 < targetRpm2)
-    {
-        actualRpm2 += RpmStep;
-
-        if (actualRpm2 > targetRpm2)
-            actualRpm2 = targetRpm2;
-
-        m_pump2->setActualRpm(actualRpm2);
-    }
-    else if (actualRpm2 > targetRpm2)
-    {
-        actualRpm2 -= RpmStep;
-
-        if (actualRpm2 < targetRpm2)
-            actualRpm2 = targetRpm2;
-
-        m_pump2->setActualRpm(actualRpm2);
-    }
+    updateActualRpm(m_pump1.data());
+    updateActualRpm(m_pump2.data());
+    updateActualRpm(m_pump3.data());
 
     // Apply water flow using the conditions
     // from the beginning of this step.
     if (waterFlowActive)
     {
         const double waterAmount =
-            WaterFlowPerSecond * elapsedSeconds;
+            WaterFlowPerSecond * elapsedSeconds
+            * m_pump1->actualRpm() / NominalRpm;
 
         m_mixingTank->addWater(waterAmount);
     }
@@ -131,7 +101,8 @@ void ProcessSimulator::updateSimulation()
     if (concentrateFlowActive)
     {
         const double concentrateAmount =
-            ConcentrateFlowPerSecond * elapsedSeconds;
+            ConcentrateFlowPerSecond * elapsedSeconds
+            * m_pump2->actualRpm() / NominalRpm;
 
         m_mixingTank->addConcentrate(concentrateAmount);
     }
@@ -140,6 +111,10 @@ void ProcessSimulator::updateSimulation()
 
     if (productFlowActive)
     {
-        const double productAmount = ProductFlowPerSecond * elapsedSeconds; m_mixingTank->removeProduct(productAmount);
+        const double productAmount =
+            ProductFlowPerSecond * elapsedSeconds
+            * m_pump3->actualRpm() / NominalRpm;
+
+        m_mixingTank->removeProduct(productAmount);
     }
 }

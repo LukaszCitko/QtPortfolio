@@ -4,6 +4,8 @@
 #include "pump.h"
 #include "valve.h"
 #include "mixer.h"
+#include <QUuid>
+
 
 BatchController::BatchController(
     Pump *pump1, Valve *valve1,
@@ -38,6 +40,8 @@ BatchController::BatchController(
     connect(m_pump1, &Pump::stateChanged, this, &BatchController::onPump1StateChanged);
     connect(m_pump2, &Pump::stateChanged, this, &BatchController::onPump2StateChanged);
     connect(m_pump3, &Pump::stateChanged, this, &BatchController::onPump3StateChanged);
+    connect(this, &BatchController::stateChanged, this, &BatchController::transferAllowedChanged);
+    connect(m_mixingTank, &MixingTank::temperatureChanged, this, &BatchController::transferAllowedChanged);
 }
 
 BatchController::State BatchController::state() const
@@ -63,6 +67,8 @@ QString BatchController::stateText() const
         return "READY FOR TRANSFER";
     case State::Transferring:
         return "TRANSFERRING";
+    case State::Draining:
+        return "DRAINING";
     case State::Paused:
         return "PAUSED";
     case State::Complete:
@@ -98,6 +104,8 @@ QString BatchController::stopReasonText() const
         return "VALVE 2 FAULT";
     case StopReason::Valve3Fault:
         return "VALVE 3 FAULT";
+    case StopReason::DrainValveUnavailable:
+        return "DRAIN VALVE UNAVAILABLE";
     }
     return "UNKNOWN";
 }
@@ -147,11 +155,33 @@ void BatchController::simulateStep(double elapsedSeconds)
     if (elapsedSeconds <= 0.0)
         return;
 
+
+    if (m_state == State::Draining)
+    {
+        if (!m_valve4->isOpen())
+        {
+            m_previousState = State::Draining;
+            m_stopReason = StopReason::DrainValveUnavailable;
+            m_state = State::Paused;
+            emit stateChanged();
+            return;
+        }
+
+        m_mixingTank->removeProduct(
+            DrainFlowPerSecond * elapsedSeconds);
+
+        if (m_mixingTank->volume() == 0.0)
+            finishDrain();
+
+        return;
+    }
+
+    m_mixer->simulateStep(elapsedSeconds);
+
     if (m_state != State::Mixing)
         return;
-
     m_mixingElapsedSeconds += elapsedSeconds;
-     emit mixingTimeChanged();
+    emit mixingTimeChanged();
 
     if (m_mixingElapsedSeconds >= MixingDuration)
     {
@@ -172,6 +202,10 @@ void BatchController::startWaterFilling()
 
     if (!canStartPump1())
         return;
+
+
+    m_batchId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    emit batchIdChanged();
 
     m_state = State::FillingWater;
     emit stateChanged();
@@ -202,7 +236,7 @@ void BatchController::startConcentrateDosing()
     {
         return;
     }
-
+    m_mixer->setTargetRpm(DosingMixerRpm);
     m_valve2->open();
 
     if (!canStartPump2())
@@ -226,6 +260,7 @@ void BatchController::startTemperatureCheck()
 
 void BatchController::startMixing()
 {
+    m_mixer->setTargetRpm(MixingMixerRpm);
     m_mixingElapsedSeconds = 0.0;
     emit mixingTimeChanged();
     m_mixingTank->setState(MixingTank::State::Mixing);
@@ -236,9 +271,11 @@ void BatchController::startMixing()
 
 void BatchController::finishMixing()
 {
+    m_mixer->setTargetRpm(DosingMixerRpm);
     m_mixingTank->setState(MixingTank::State::ReadyForTransfer);
     m_state = State::ReadyForTransfer;
     emit stateChanged();
+    emit stageCompleted(State::Mixing);
 }
 
 void BatchController::onTankVolumeChanged()
@@ -247,6 +284,7 @@ void BatchController::onTankVolumeChanged()
     {
         if (m_mixingTank->waterVolume() >= TargetWaterVolume)
         {
+            emit stageCompleted(State::FillingWater);
             startConcentrateDosing();
         }
         return;
@@ -255,6 +293,8 @@ void BatchController::onTankVolumeChanged()
     {
         if (m_mixingTank->concentrateVolume() >= TargetConcentrateVolume)
         {
+
+            emit stageCompleted(State::DosingConcentrate);
             startTemperatureCheck();
         }
         return;
@@ -281,12 +321,13 @@ void BatchController::onTankTemperatureChanged()
         return;
     }
 
+    emit stageCompleted(State::TemperatureCheck);
     startMixing();
 }
 
 void BatchController::startTransfer()
 {
-    if (m_state != State::ReadyForTransfer)
+    if (!transferAllowed())
         return;
 
     if (m_pump3->state() == Pump::State::Fault)
@@ -313,6 +354,7 @@ void BatchController::finishTransfer()
     m_mixingTank->setState(MixingTank::State::Complete);
     m_state = State::Complete;
     emit stateChanged();
+    emit stageCompleted(State::Transferring);
 }
 
 
@@ -344,8 +386,37 @@ void BatchController::emergencyDrain()
     m_valve3->close();
 
     m_valve4->open();
+
+    if (!m_valve4->isOpen())
+    {
+        m_previousState = State::Draining;
+        m_stopReason = StopReason::DrainValveUnavailable;
+        m_state = State::Paused;
+        emit stateChanged();
+        return;
+    }
+
+    m_mixingTank->setState(MixingTank::State::Draining);
+    m_state = State::Draining;
+    emit stateChanged();
+}
+
+void BatchController::finishDrain()
+{
+    if (!m_mixingTank->resetAfterDrain())
+        return;
+
+    m_valve4->close();
+    m_previousState = State::Idle;
+    m_stopReason = StopReason::None;
     m_state = State::Idle;
     emit stateChanged();
+
+    if (!m_batchId.isEmpty())
+    {
+        m_batchId.clear();
+        emit batchIdChanged();
+    }
 }
 
 void BatchController::pause()
@@ -435,6 +506,7 @@ void BatchController::resume()
         }
 
         m_valve2->open();
+        m_mixer->setTargetRpm(DosingMixerRpm);
 
         if (!canStartPump2())
         {
@@ -455,8 +527,8 @@ void BatchController::resume()
         {
             return;
         }
-
         m_state = State::Mixing;
+        m_mixer->setTargetRpm(MixingMixerRpm);
         emit stateChanged();
     }
     else if (m_previousState == State::Transferring)
@@ -480,6 +552,13 @@ void BatchController::resume()
 
     else if (m_previousState == State::TemperatureCheck)
     {
+        m_mixer->start();
+
+        if (!m_mixer->isRunning())
+            return;
+
+        m_mixer->setTargetRpm(DosingMixerRpm);
+
         m_state = State::TemperatureCheck;
         emit stateChanged();
 
@@ -490,6 +569,17 @@ void BatchController::resume()
         }
     }
 
+    else if (m_previousState == State::Draining)
+    {
+        m_valve4->open();
+
+        if (!m_valve4->isOpen())
+            return;
+
+        m_mixingTank->setState(MixingTank::State::Draining);
+        m_state = State::Draining;
+        emit stateChanged();
+    }
 }
 
 void BatchController::onMixerStateChanged()
@@ -538,12 +628,8 @@ void BatchController::onPump1StateChanged()
         return;
     }
 
-    if (m_state == State::Idle ||
-        m_state == State::Complete ||
-        m_state == State::Paused)
-    {
+    if (m_state != State::FillingWater)
         return;
-    }
 
     m_pump1->stop();
     m_valve1->close();
@@ -639,6 +725,7 @@ int BatchController::stageIndex() const
     case State::Complete:
         return 5;
     case State::Paused:
+    case State::Draining:
         return -1;
     }
 
@@ -666,5 +753,26 @@ bool BatchController::prepareNextBatch()
 
     emit mixingTimeChanged();
     emit stateChanged();
+
+    if (!m_batchId.isEmpty())
+    {
+        m_batchId.clear();
+        emit batchIdChanged();
+    }
+
     return true;
+}
+
+QString BatchController::batchId() const
+{
+    return m_batchId;
+}
+
+bool BatchController::transferAllowed() const
+{
+    const double temperature = m_mixingTank->temperature();
+
+    return m_state == State::ReadyForTransfer
+           && temperature >= MinMixingTemperature
+           && temperature <= MaxMixingTemperature;
 }

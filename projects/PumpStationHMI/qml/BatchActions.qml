@@ -19,7 +19,7 @@ Item {
         spacing: 12
 
         Text {
-            text: "BATCH CONTROLS"
+            text: " " // TODO: decide if add as title:  "BATCH CONTROLS"
             color: "#252a2d"
             font.pixelSize: 14
             font.bold: true
@@ -34,6 +34,7 @@ Item {
             font.pixelSize: 16
             font.bold: true
         }
+
 
         Row {
             width: parent.width
@@ -64,9 +65,16 @@ Item {
             text: "START TRANSFER"
             visible: root.controller.stateText === "READY FOR TRANSFER"
             enabled: visible && !root.hasActiveFault
+                     && root.controller.transferAllowed
             onClicked: root.controller.startTransfer()
         }
-
+        Text {
+            visible: root.controller.stateText === "READY FOR TRANSFER"
+                     && !root.controller.transferAllowed
+            text: "TRANSFER BLOCKED · TK1 must be 58–62 °C"
+            color: "#8f2222"
+            font.pixelSize: 13
+        }
         Text {
             visible: root.controller.stateText === "PAUSED"
                      && root.hasActiveFault

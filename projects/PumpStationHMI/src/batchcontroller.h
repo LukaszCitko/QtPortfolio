@@ -16,7 +16,8 @@ class BatchController : public QObject
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
     Q_PROPERTY(int stageIndex READ stageIndex NOTIFY stateChanged)
     Q_PROPERTY(int mixingSecondsRemaining READ mixingSecondsRemaining NOTIFY mixingTimeChanged)
-
+    Q_PROPERTY(QString batchId READ batchId NOTIFY batchIdChanged)
+    Q_PROPERTY(bool transferAllowed READ transferAllowed NOTIFY transferAllowedChanged)
 public:
     enum class State
     {
@@ -27,6 +28,7 @@ public:
         Mixing,
         ReadyForTransfer,
         Transferring,
+        Draining,
         Paused,
         Complete
     };
@@ -41,7 +43,8 @@ public:
         Pump3Fault,
         Valve1Fault,
         Valve2Fault,
-        Valve3Fault
+        Valve3Fault,
+        DrainValveUnavailable
     };
 
     Q_ENUM(StopReason)
@@ -60,10 +63,6 @@ public:
         QObject *parent = nullptr);
 
     State state() const;
-    QString stateText() const;
-    int stageIndex() const;
-    void startBatch();
-    int mixingSecondsRemaining() const;
 
     Q_INVOKABLE bool tryStartBatch(const QString &operatorName);
     Q_INVOKABLE void startTransfer();
@@ -72,13 +71,22 @@ public:
     Q_INVOKABLE void resume();
     Q_INVOKABLE bool prepareNextBatch();
 
-    void simulateStep(double elapsedSeconds);
     StopReason stopReason() const;
     QString stopReasonText() const;
+    QString batchId() const;
+    QString stateText() const;
+    int stageIndex() const;
+    void startBatch();
+    void simulateStep(double elapsedSeconds);
+    int mixingSecondsRemaining() const;
+    bool transferAllowed() const;
 
 signals:
     void stateChanged();
     void mixingTimeChanged();
+    void stageCompleted(BatchController::State completedStage);
+    void batchIdChanged();
+    void transferAllowedChanged();
 
 private slots:
     void onTankVolumeChanged();
@@ -96,12 +104,13 @@ private:
     void startMixing();
     void finishMixing();
     void finishTransfer();
-
+    void finishDrain();
 
     bool canStartPump1() const;
     bool canStartPump2() const;
     bool canStartPump3() const;
 
+    static constexpr double DrainFlowPerSecond = 5.0;
     static constexpr double TargetWaterVolume = 70.0;
     static constexpr double TargetConcentrateVolume = 30.0;
 
@@ -109,6 +118,8 @@ private:
     static constexpr double MaxMixingTemperature = 62.0;
 
     static constexpr double MixingDuration = 15.0;
+    static constexpr double DosingMixerRpm = 200.0;
+    static constexpr double MixingMixerRpm = 800.0;
 
     QPointer<Pump> m_pump1;
     QPointer<Valve> m_valve1;
@@ -127,6 +138,7 @@ private:
     State m_state;
     State m_previousState;
     StopReason m_stopReason;
+    QString m_batchId;
 };
 
 #endif

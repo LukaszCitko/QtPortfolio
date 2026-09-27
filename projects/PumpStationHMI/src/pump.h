@@ -40,6 +40,7 @@
         QString stateText() const;
 
         double maxRpm() const {return MaxRpm;}
+
         // extended to QML
         Q_INVOKABLE void start();
         Q_INVOKABLE void stop();

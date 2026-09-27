@@ -7,6 +7,7 @@ Rectangle {
     required property var mixerDevice
     required property var tankDevice
     required property var batchDevice
+    required property var waterPumpDevice
 
     color: "#eceeef"
     border.color: "#a5aaad"
@@ -23,8 +24,8 @@ Rectangle {
     }
 
     Rectangle {
-        width: 420
-        height: 340
+        width: 620
+        height: 430
         anchors.centerIn: parent
         color: "#f6f7f7"
         border.color: "#a5aaad"
@@ -81,27 +82,100 @@ Rectangle {
                 font.pixelSize: 16
             }
 
-            Button {
-                id: temperatureButton
-                width: 250
-                height: 52
-                text: "SET TANK TO 60 °C"
+            // TEMPERATURE BUTTONS
+            Row {
+                width: parent.width
+                spacing: 8
 
-                onClicked: root.tankDevice.temperature = 60.0
+                Repeater {
+                    model: [25, 60, 90]
 
-                background: Rectangle {
-                    color: temperatureButton.enabled ? "#c5ced2" : "#d7dadd"
-                    border.color: "#858e92"
-                    radius: 4
+                    Button {
+                        id: temperaturePresetButton
+                        property int presetTemperature: modelData
+
+                        width: (parent.width - 16) / 3
+                        height: 52
+                        text: "SET " + presetTemperature + " °C"
+
+                        onClicked: root.tankDevice.temperature = presetTemperature
+
+                        background: Rectangle {
+                            color: "#c5ced2"
+                            border.color: "#858e92"
+                            radius: 4
+                        }
+
+                        contentItem: Text {
+                            text: temperaturePresetButton.text
+                            color: "#252a2d"
+                            font.pixelSize: 16
+                            font.bold: true
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
                 }
+            }
 
-                contentItem: Text {
-                    text: temperatureButton.text
+            // Fault SimulationControlPanel
+            Row {
+                width: parent.width
+                spacing: 8
+
+                Text {
+                    width: 120
+                    height: 52
+                    text: "P1 · WATER"
                     color: "#252a2d"
                     font.pixelSize: 16
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
+                }
+
+                Button {
+                    width: (parent.width - 136) / 2
+                    height: 52
+                    text: "SET FAULT"
+                    enabled: root.waterPumpDevice.stateText !== "FAULT"
+                    onClicked: root.waterPumpDevice.setFault()
+                }
+
+                Button {
+                    width: (parent.width - 136) / 2
+                    height: 52
+                    text: "RESET FAULT"
+                    enabled: root.waterPumpDevice.stateText === "FAULT"
+                    onClicked: root.waterPumpDevice.resetFault()
+                }
+            }
+
+            Row {
+                width: parent.width
+                spacing: 8
+
+                Text {
+                    width: 120
+                    height: 52
+                    text: "M1 · MIXER"
+                    color: "#252a2d"
+                    font.pixelSize: 16
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                Button {
+                    width: (parent.width - 136) / 2
+                    height: 52
+                    text: "SET FAULT"
+                    enabled: root.mixerDevice.stateText !== "FAULT"
+                    onClicked: root.mixerDevice.setFault()
+                }
+
+                Button {
+                    width: (parent.width - 136) / 2
+                    height: 52
+                    text: "RESET FAULT"
+                    enabled: root.mixerDevice.stateText === "FAULT"
+                    onClicked: root.mixerDevice.resetFault()
                 }
             }
 
