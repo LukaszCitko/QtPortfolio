@@ -53,7 +53,23 @@ void TestFaultResetService::requiresTechnicianRole()
     QCOMPARE(mixer.state(), Mixer::State::Stopped);
     QCOMPARE(events.eventCount(), 3);
     QCOMPARE(events.eventMessage(2),
-             QStringLiteral("Fault reset by Test Technician"));
+    QStringLiteral("Fault reset by Test Technician"));
+    pump1.setFault();
+    mixer.setFault();
+
+    QVERIFY(!service.demoResetPump1());
+    QVERIFY(!service.demoResetMixer());
+
+    QVERIFY(session.selectOperator("operator-1"));
+    QVERIFY(service.demoResetPump1());
+    QVERIFY(service.demoResetMixer());
+
+    QCOMPARE(pump1.state(), Pump::State::Stopped);
+    QCOMPARE(mixer.state(), Mixer::State::Stopped);
+    QCOMPARE(events.eventCount(), 5);
+    QCOMPARE(events.eventLevel(3), QStringLiteral("WARNING"));
+    QCOMPARE(events.eventMessage(4),
+    QStringLiteral("Simulation override: fault reset by Test Operator"));
 }
 
 QTEST_GUILESS_MAIN(TestFaultResetService)

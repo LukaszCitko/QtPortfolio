@@ -47,3 +47,32 @@ bool FaultResetService::resetMixer()
     m_events.addInfo("M1", "Fault reset by " + m_session.operatorName());
     return true;
 }
+bool FaultResetService::demoResetPump1()
+{
+    if (m_session.operatorRole() != "OPERATOR"
+        || m_pump1.state() != Pump::State::Fault) {
+        return false;
+    }
+
+    m_pump1.resetFault();
+    m_events.addWarning(
+        "P1",
+        "Simulation override: fault reset by "
+            + m_session.operatorName());
+    return true;
+}
+
+bool FaultResetService::demoResetMixer()
+{
+    if (m_session.operatorRole() != "OPERATOR"
+        || m_mixer.state() != Mixer::State::Fault) {
+        return false;
+    }
+
+    m_mixer.resetFault();
+    m_events.addWarning(
+        "M1",
+        "Simulation override: fault reset by "
+            + m_session.operatorName());
+    return true;
+}

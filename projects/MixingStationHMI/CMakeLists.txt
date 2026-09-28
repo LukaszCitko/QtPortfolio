@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(PumpStationHMI VERSION 0.1 LANGUAGES CXX)
+project(MixingStationHMI VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
@@ -14,7 +14,7 @@ if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/importedcontent/CMakeLists.txt")
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/importedcontent)
 endif()
 
-qt_add_executable(appPumpStationHMI
+qt_add_executable(appMixingStationHMI
     src/main.cpp
     src/pump.cpp
     src/processsimulator.cpp
@@ -62,8 +62,8 @@ qt_add_executable(appPumpStationHMI
 
 )
 
-qt_add_qml_module(appPumpStationHMI
-    URI PumpStationHMI
+qt_add_qml_module(appMixingStationHMI
+    URI MixingStationHMI
 
     QML_FILES
 
@@ -107,16 +107,7 @@ qt_add_qml_module(appPumpStationHMI
         src/operatorsession.cpp
         src/trendrecorder.h
         src/trendrecorder.cpp
-
-
-
-
-
-
-
-
-
-
+        RESOURCES README.md
 
 
 
@@ -126,7 +117,7 @@ qt_add_qml_module(appPumpStationHMI
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
-set_target_properties(appPumpStationHMI PROPERTIES
+set_target_properties(appMixingStationHMI PROPERTIES
 #    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.appPumpStationHMI
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -134,11 +125,11 @@ set_target_properties(appPumpStationHMI PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-target_link_libraries(appPumpStationHMI
+target_link_libraries(appMixingStationHMI
     PRIVATE Qt6::Quick Qt6::Sql
 )
 
-install(TARGETS appPumpStationHMI
+install(TARGETS appMixingStationHMI
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

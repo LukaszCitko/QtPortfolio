@@ -8,6 +8,8 @@ Rectangle {
     required property var tankDevice
     required property var batchDevice
     required property var waterPumpDevice
+    required property bool demoOverrideEnabled
+    required property var resetService
 
 
     color: "#eceeef"
@@ -145,6 +147,14 @@ Rectangle {
                     enabled: root.waterPumpDevice.stateText !== "FAULT"
                     onClicked: root.waterPumpDevice.setFault()
                 }
+                Button {
+                    width: (parent.width - 136) / 2
+                    height: 52
+                    text: "DEMO RESET"
+                    visible: root.demoOverrideEnabled
+                    enabled: root.waterPumpDevice.stateText === "FAULT"
+                    onClicked: root.resetService.demoResetPump1()
+                }
 
 
             }
@@ -169,7 +179,14 @@ Rectangle {
                     enabled: root.mixerDevice.stateText !== "FAULT"
                     onClicked: root.mixerDevice.setFault()
                 }
-
+                Button {
+                    width: (parent.width - 136) / 2
+                    height: 52
+                    text: "DEMO RESET"
+                    visible: root.demoOverrideEnabled
+                    enabled: root.mixerDevice.stateText === "FAULT"
+                    onClicked: root.resetService.demoResetMixer()
+                }
 
             }
 

@@ -59,8 +59,7 @@ ApplicationWindow {
                 height: 48
 
                 text: operatorSession.selected
-                      ? operatorSession.operatorName
-                        + " · " + operatorSession.operatorRole
+                      ? operatorSession.operatorName + "\n" + operatorSession.operatorRole
                       : "LOGIN"
 
                 enabled: batchController.stateText === "IDLE"
@@ -107,7 +106,9 @@ ApplicationWindow {
                 contentItem: Text {
                     text: manageUsersButton.text
                     color: manageUsersButton.enabled ? "#252a2d" : "#596368"
-                    font.pixelSize: 15
+                    font.pixelSize: 14
+                    maximumLineCount: 2
+                    wrapMode: Text.NoWrap
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -224,6 +225,8 @@ ApplicationWindow {
                 tankDevice: mixingTank
                 waterPumpDevice: pump
                 batchDevice: batchController
+                demoOverrideEnabled: operatorSession.operatorRole === "OPERATOR"
+                resetService: faultResetService
 
             }
             TrendPanel {

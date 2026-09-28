@@ -21,6 +21,8 @@ public:
 
     Q_INVOKABLE bool resetPump1();
     Q_INVOKABLE bool resetMixer();
+    Q_INVOKABLE bool demoResetPump1();
+    Q_INVOKABLE bool demoResetMixer();
 
 private:
     OperatorSession &m_session;

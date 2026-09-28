@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [](){QCoreApplication::exit(-1);},Qt::QueuedConnection);
 
-    engine.loadFromModule("PumpStationHMI", "HMIScreen");
+    engine.loadFromModule("MixingStationHMI", "HMIScreen");
 
     return QGuiApplication::exec();
 }
