@@ -3,10 +3,12 @@ import QtQuick
 Rectangle {
     id: root
 
+    signal mixerRequested()
     required property var tank
     required property var mixerDevice
     readonly property bool mixerFault: mixerDevice.stateText === "FAULT"
-
+    readonly property color mixerLineColor:
+        root.mixerFault ? "#b63838" : "#596368"
     readonly property real fillFraction:
         Math.max(0, Math.min(1, tank.volume / tank.capacity))
 
@@ -98,7 +100,7 @@ Rectangle {
             y: 32
             width: 4
             height: 180
-            color: "#596368"
+            color: root.mixerLineColor
         }
 
         // Mixer blades.
@@ -108,7 +110,7 @@ Rectangle {
             width: 50
             height: 4
             rotation: 15
-            color: "#596368"
+            color: root.mixerLineColor
         }
 
         Rectangle {
@@ -117,7 +119,17 @@ Rectangle {
             width: 50
             height: 4
             rotation: -15
-            color: "#596368"
+            color: root.mixerLineColor
+        }
+
+        // Touch target for the mixer motor.
+        MouseArea {
+            x: vessel.x + vessel.width / 2 - width / 2
+            y: 0
+            width: 80
+            height: 56
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.mixerRequested()
         }
 
         Text {

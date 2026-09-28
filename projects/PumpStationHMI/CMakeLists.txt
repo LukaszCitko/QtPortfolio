@@ -39,6 +39,24 @@ qt_add_executable(appPumpStationHMI
     src/database/eventhistorymodel.cpp
     src/database/trendsamplerepository.h
     src/database/trendsamplerepository.cpp
+    src/database/runlistmodel.h
+    src/database/runlistmodel.cpp
+    src/database/trendhistorysource.h
+    src/database/trendhistorysource.cpp
+    src/accesspolicy.h
+    src/accesspolicy.cpp
+    src/faultresetservice.h
+    src/faultresetservice.cpp
+    src/drainservice.h
+    src/drainservice.cpp
+    src/database/userrepository.h
+    src/database/userrepository.cpp
+    src/usermanagementservice.h
+    src/usermanagementservice.cpp
+    src/database/demouserseeder.h
+    src/database/demouserseeder.cpp
+
+
 
 
 
@@ -61,6 +79,7 @@ qt_add_qml_module(appPumpStationHMI
         qml/EquipmentPanel.qml
         qml/TrendChart.qml
         qml/TrendPanel.qml
+        qml/UserManagementDialog.qml
 
     RESOURCES
         qml/assets/pump.png
@@ -88,6 +107,9 @@ qt_add_qml_module(appPumpStationHMI
         src/operatorsession.cpp
         src/trendrecorder.h
         src/trendrecorder.cpp
+
+
+
 
 
 

@@ -4,6 +4,7 @@ import QtQuick.Controls.Basic
 ApplicationWindow {
     id: window
     property string activePage: "PROCESS"
+    property string highlightedEquipmentTag: ""
     property var acknowledgedFaults: []
     readonly property bool hasUnacknowledgedFault:
 
@@ -58,7 +59,8 @@ ApplicationWindow {
                 height: 48
 
                 text: operatorSession.selected
-                      ? "OPERATOR: " + operatorSession.operatorName
+                      ? operatorSession.operatorName
+                        + " · " + operatorSession.operatorRole
                       : "LOGIN"
 
                 enabled: batchController.stateText === "IDLE"
@@ -78,6 +80,35 @@ ApplicationWindow {
                     font.pixelSize: 15
                     font.bold: true
                     elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+            Button {
+                id: manageUsersButton
+                anchors.right: loginButton.left
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                width: 160
+                height: 48
+
+                visible: operatorSession.canManageUsers
+                enabled: loginButton.enabled
+                text: "USERS"
+
+                onClicked: userManagementDialog.open()
+
+                background: Rectangle {
+                    color: manageUsersButton.enabled ? "#f7f8f8" : "#d7dadd"
+                    border.color: "#858e92"
+                    radius: 4
+                }
+
+                contentItem: Text {
+                    text: manageUsersButton.text
+                    color: manageUsersButton.enabled ? "#252a2d" : "#596368"
+                    font.pixelSize: 15
+                    font.bold: true
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -158,6 +189,10 @@ ApplicationWindow {
                     height: parent.height
                     tank: mixingTank
                     mixerDevice: mixer
+                    onMixerRequested: {
+                        window.highlightedEquipmentTag = "M1"
+                        window.activePage = "EQUIPMENT"
+                    }
                 }
                 ProcessValues {
                     width: 356
@@ -175,6 +210,11 @@ ApplicationWindow {
                 visible: window.activePage === "EQUIPMENT"
                 rpmControlEnabled: operatorSession.selected
                 onRpmRequested: (device, tag) => window.openPumpRpm(device, tag)
+                resetFaultAllowed: operatorSession.canResetFault
+                resetService: faultResetService
+                drainRequestService: drainService
+                highlightedTag: window.highlightedEquipmentTag
+
             }
             SimulationControlPanel {
                 anchors.fill: parent
@@ -184,6 +224,7 @@ ApplicationWindow {
                 tankDevice: mixingTank
                 waterPumpDevice: pump
                 batchDevice: batchController
+
             }
             TrendPanel {
                 anchors.fill: parent
@@ -203,23 +244,61 @@ ApplicationWindow {
                     anchors.margins: 20
                     spacing: 16
 
-                    Text {
-                        text: "EVENT HISTORY"
-                        color: "#252a2d"
-                        font.pixelSize: 20
-                        font.bold: true
+                    Row {
+                        width: parent.width
+                        height: 48
+                        spacing: 12
+
+                        Text {
+                            width: parent.width
+                                   - (eventHistoryModel.runFilter === "" ? 192 : 384)
+                            height: parent.height
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                            color: "#252a2d"
+                            font.pixelSize: 20
+                            font.bold: true
+
+                            text: eventHistoryModel.runFilter === ""
+                                  ? "EVENT HISTORY · ALL EVENTS"
+                                  : "EVENT HISTORY · RUN "
+                                    + eventHistoryModel.runFilter.substring(0, 8)
+                        }
+
+                        Button {
+                            width: 180
+                            height: parent.height
+                            text: "SELECT RUN"
+                            onClicked: runSelectionDialog.open()
+                        }
+
+                        Button {
+                            width: 180
+                            height: parent.height
+                            visible: eventHistoryModel.runFilter !== ""
+                            text: "SHOW TRENDS"
+
+                            onClicked: {
+                                if (trendHistorySource.loadRun(eventHistoryModel.runFilter))
+                                    window.activePage = "TRENDS"
+                            }
+                        }
                     }
 
                     Text {
+                        id: noEventsText
                         visible: historyRepeater.count === 0
-                        text: "No events recorded"
+                        text: eventHistoryModel.runFilter === ""
+                              ? "No events recorded"
+                              : "No events for this run"
                         color: "#596368"
                         font.pixelSize: 16
                     }
 
                     Flickable {
                         width: parent.width
-                        height: parent.height - 44
+                        height: parent.height - 64
+                                - (noEventsText.visible ? noEventsText.implicitHeight + 16 : 0)
                         clip: true
                         contentHeight: eventColumn.height
 
@@ -445,63 +524,134 @@ ApplicationWindow {
                                     || modelData === "EQUIPMENT"
                                     || modelData === "TRENDS"
                                     || modelData === "ALARMS"
-                            onClicked: window.activePage = modelData
+                            onClicked: {
+                                window.highlightedEquipmentTag = ""
+                                window.activePage = modelData
+                            }
                         }
                     }
                 }
             }
         }
     }
-
+    UserManagementDialog {
+        id: userManagementDialog
+        usersModel: userListModel
+        managementService: userManagementService
+        currentUserId: operatorSession.operatorId
+    }
     Dialog {
         id: operatorDialog
-        width: 280
-        height: 340
-        x: (window.width - width) / 2
-        y: (window.height - height) / 2
+        parent: Overlay.overlay
+        width: 420
+        height: 480
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
         modal: true
         focus: true
-        title: "SELECT DEMO OPERATOR"
+        title: "SELECT DEMO USER"
+        standardButtons: Dialog.Cancel
 
-        Column {
-            width: parent.width
+        contentItem: Column {
+
             spacing: 12
 
-            Repeater {
+            ListView {
+                id: userListView
+                width: parent.width
+                height: Math.max(0,parent.height - demoNote.implicitHeight - parent.spacing)
+                clip: true
+                spacing: 8
                 model: userListModel
 
-                delegate:
-                    Button {
-                        required property string userId
-                        required property string displayName
+                ScrollBar.vertical: ScrollBar {}
 
-                        width: operatorDialog.availableWidth
-                        height: 64
-                        text: displayName
+                delegate: Button {
+                    required property string userId
+                    required property string displayName
+                    required property string role
 
-                        onClicked: {
-                            operatorSession.selectOperator(userId, displayName)
+                    width: userListView.width
+                    height: 64
+                    text: displayName + " · " + role
+
+                    onClicked: {
+                        if (operatorSession.selectOperator(userId))
                             operatorDialog.close()
-                        }
                     }
+                }
             }
 
             Text {
-                text: "Demo selection only · card authentication will be added later"
+                id: demoNote
                 width: parent.width
                 wrapMode: Text.WordWrap
                 color: "#596368"
                 font.pixelSize: 13
+                text: "Demo selection only · card authentication will be added later"
             }
+
+        }
+    }
+    Dialog {
+        id: runSelectionDialog
+        parent: Overlay.overlay
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        width: 720
+        height: 500
+        modal: true
+        focus: true
+        title: "SELECT RUN"
+
+        onOpened: runListModel.refresh()
+
+        Column {
+            width: runSelectionDialog.availableWidth
+            height: runSelectionDialog.availableHeight
+            spacing: 8
+
             Button {
-                width: operatorDialog.availableWidth
-                height: 52
-                text: "CANCEL"
-                onClicked: operatorDialog.close()
+                width: parent.width
+                height: 54
+                text: "ALL EVENTS"
+
+                onClicked: {
+                    if (eventHistoryModel.selectRun(""))
+                        runSelectionDialog.close()
+                }
+            }
+
+            ListView {
+                id: runListView
+                width: parent.width
+                height: parent.height - 62
+                clip: true
+                model: runListModel
+
+                delegate: ItemDelegate {
+                    required property string runId
+                    required property string kind
+                    required property string operatorName
+                    required property string startedAt
+                    required property string outcome
+
+                    width: runListView.width
+                    height: 58
+                    font.pixelSize: 16
+
+                    text: startedAt + " · " + kind
+                          + " · " + (outcome === "" ? "IN PROGRESS" : outcome)
+                          + (operatorName === "" ? "" : " · " + operatorName)
+
+                    onClicked: {
+                        if (eventHistoryModel.selectRun(runId))
+                            runSelectionDialog.close()
+                    }
+                }
             }
         }
     }
-
     Dialog {
         id: rpmDialog
         parent: Overlay.overlay

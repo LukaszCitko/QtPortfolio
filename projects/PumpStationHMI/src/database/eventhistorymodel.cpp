@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QDebug>
 
 EventHistoryModel::EventHistoryModel(const QSqlDatabase &database,
                                      QObject *parent)
@@ -56,12 +57,26 @@ QHash<int, QByteArray> EventHistoryModel::roleNames() const
 
 bool EventHistoryModel::reload(QString *errorMessage)
 {
+    QString statement =
+        "SELECT run_id, timestamp_ms, level, source, message "
+        "FROM events ";
+
+    if (!m_runFilter.isEmpty())
+        statement += "WHERE run_id = :run_id ";
+
+    statement += "ORDER BY event_id DESC";
+
     QSqlQuery query(m_database);
 
-    if (!query.exec(
-            "SELECT run_id, timestamp_ms, level, source, message "
-            "FROM events "
-            "ORDER BY event_id DESC")) {
+    if (!query.prepare(statement)) {
+        *errorMessage = query.lastError().text();
+        return false;
+    }
+
+    if (!m_runFilter.isEmpty())
+        query.bindValue(":run_id", m_runFilter);
+
+    if (!query.exec()) {
         *errorMessage = query.lastError().text();
         return false;
     }
@@ -73,8 +88,7 @@ bool EventHistoryModel::reload(QString *errorMessage)
 
         loadedEvents.append(Event{
             query.value(0).toString(),
-            QDateTime::fromMSecsSinceEpoch(timestampMs)
-                .toString("yyyy-MM-dd HH:mm:ss"),
+            QDateTime::fromMSecsSinceEpoch(timestampMs).toString("yyyy-MM-dd HH:mm:ss"),
             query.value(2).toString(),
             query.value(3).toString(),
             query.value(4).toString()
@@ -87,16 +101,18 @@ bool EventHistoryModel::reload(QString *errorMessage)
 
     return true;
 }
+
 void EventHistoryModel::prependSavedEvent(const QString &runId,
                                           qint64 timestampMs,
                                           const QString &level,
                                           const QString &source,
                                           const QString &message)
 {
+    if (!m_runFilter.isEmpty() && runId != m_runFilter) return;
+
     const Event event{
         runId,
-        QDateTime::fromMSecsSinceEpoch(timestampMs)
-            .toString("yyyy-MM-dd HH:mm:ss"),
+        QDateTime::fromMSecsSinceEpoch(timestampMs).toString("yyyy-MM-dd HH:mm:ss"),
         level,
         source,
         message
@@ -105,4 +121,27 @@ void EventHistoryModel::prependSavedEvent(const QString &runId,
     beginInsertRows(QModelIndex(), 0, 0);
     m_events.prepend(event);
     endInsertRows();
+}
+
+QString EventHistoryModel::runFilter() const
+{
+    return m_runFilter;
+}
+
+bool EventHistoryModel::selectRun(const QString &runId)
+{
+    if (m_runFilter == runId) return true;
+
+    const QString previousFilter = m_runFilter;
+    m_runFilter = runId;
+
+    QString error;
+    if (!reload(&error)) {
+        m_runFilter = previousFilter;
+        qWarning() << "Cannot filter event history:" << error;
+        return false;
+    }
+
+    emit runFilterChanged();
+    return true;
 }

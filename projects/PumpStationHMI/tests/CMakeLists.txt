@@ -127,7 +127,114 @@ add_executable(test_trendsamplerepository
 target_link_libraries(test_trendsamplerepository
     PRIVATE Qt6::Test Qt6::Sql
 )
+add_executable(test_trendhistorysource
+    tst_trendhistorysource.cpp
+    ../src/database/databaseschema.cpp
+    ../src/database/trendhistorysource.cpp
+)
 
+target_link_libraries(test_trendhistorysource
+    PRIVATE Qt6::Test Qt6::Sql
+)
+add_executable(test_operatorsession
+    tst_operatorsession.cpp
+    ../src/database/databaseschema.cpp
+    ../src/operatorsession.cpp
+    ../src/accesspolicy.cpp
+)
+
+target_link_libraries(test_operatorsession
+    PRIVATE Qt6::Test Qt6::Sql
+)
+add_executable(test_accesspolicy
+    tst_accesspolicy.cpp
+    ../src/accesspolicy.cpp
+)
+
+target_link_libraries(test_accesspolicy
+    PRIVATE Qt6::Test Qt6::Core
+)
+add_executable(test_faultresetservice
+    tst_faultresetservice.cpp
+    ../src/database/databaseschema.cpp
+    ../src/accesspolicy.cpp
+    ../src/operatorsession.cpp
+    ../src/pump.cpp
+    ../src/mixer.cpp
+    ../src/eventmanager.cpp
+    ../src/faultresetservice.cpp
+)
+
+target_link_libraries(test_faultresetservice
+    PRIVATE Qt6::Test Qt6::Sql
+)
+add_executable(test_mixer
+    tst_mixer.cpp
+    ../src/mixer.cpp
+)
+
+target_link_libraries(test_mixer
+    PRIVATE Qt6::Test Qt6::Core
+)
+add_executable(test_drainservice
+    tst_drainservice.cpp
+    ../src/database/databaseschema.cpp
+    ../src/accesspolicy.cpp
+    ../src/operatorsession.cpp
+    ../src/pump.cpp
+    ../src/valve.cpp
+    ../src/mixer.cpp
+    ../src/mixingtank.cpp
+    ../src/batchcontroller.cpp
+    ../src/eventmanager.cpp
+    ../src/drainservice.cpp
+)
+
+target_link_libraries(test_drainservice
+    PRIVATE Qt6::Test Qt6::Sql
+)
+add_executable(test_userrepository
+    tst_userrepository.cpp
+    ../src/database/databaseschema.cpp
+    ../src/database/userrepository.cpp
+)
+
+target_link_libraries(test_userrepository
+    PRIVATE Qt6::Test Qt6::Sql
+)
+add_executable(test_usermanagementservice
+    tst_usermanagementservice.cpp
+    ../src/database/databaseschema.cpp
+    ../src/database/userrepository.cpp
+    ../src/database/userlistmodel.cpp
+    ../src/operatorsession.cpp
+    ../src/accesspolicy.cpp
+    ../src/eventmanager.cpp
+    ../src/usermanagementservice.cpp
+)
+
+target_link_libraries(test_usermanagementservice
+    PRIVATE Qt6::Test Qt6::Sql
+)
+add_executable(test_demouserseeder
+    tst_demouserseeder.cpp
+    ../src/database/databaseschema.cpp
+    ../src/database/demouserseeder.cpp
+)
+
+target_link_libraries(test_demouserseeder
+    PRIVATE Qt6::Test Qt6::Sql
+)
+
+add_test(NAME test_demouserseeder COMMAND test_demouserseeder)
+add_test(NAME test_usermanagementservice COMMAND test_usermanagementservice)
+add_test(NAME test_userrepository COMMAND test_userrepository)
+add_test(NAME test_drainservice COMMAND test_drainservice)
+add_test(NAME test_mixer COMMAND test_mixer)
+add_test(NAME test_faultresetservice COMMAND test_faultresetservice)
+add_test(NAME test_accesspolicy COMMAND test_accesspolicy)
+add_test(NAME test_operatorsession COMMAND test_operatorsession)
+add_test(NAME test_trendhistorysource COMMAND test_trendhistorysource)
 add_test(NAME test_trendsamplerepository COMMAND test_trendsamplerepository)
 add_test(NAME test_eventrepository COMMAND test_eventrepository)
 add_test(NAME test_runrepository COMMAND test_runrepository)

@@ -54,6 +54,15 @@ void Mixer::connect()
     emit connectionChanged();
 }
 
+void Mixer::disconnectDevice()
+{
+    if (!m_connected || m_state == State::Running)
+        return;
+
+    m_connected = false;
+    emit connectionChanged();
+}
+
 void Mixer::start()
 {
     if (!m_connected)

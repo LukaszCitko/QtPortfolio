@@ -1,7 +1,13 @@
 #include "operatorsession.h"
+#include "accesspolicy.h"
 
-OperatorSession::OperatorSession(QObject *parent)
-    : QObject(parent)
+#include <QDebug>
+#include <QSqlError>
+#include <QSqlQuery>
+
+OperatorSession::OperatorSession(const QSqlDatabase &database, QObject *parent)
+    : QObject(parent),
+    m_database(database)
 {
 }
 
@@ -15,26 +21,77 @@ QString OperatorSession::operatorName() const
     return m_operatorName;
 }
 
-bool OperatorSession::selected() const
+QString OperatorSession::operatorRole() const
 {
-    return !m_operatorId.isEmpty() && !m_operatorName.isEmpty();
+    return m_operatorRole;
 }
 
-void OperatorSession::selectOperator(const QString &id,
-                                     const QString &name)
+bool OperatorSession::selected() const
 {
-    const QString normalizedId = id.trimmed();
-    const QString normalizedName = name.trimmed();
+    return !m_operatorId.isEmpty();
+}
 
-    if (normalizedId.isEmpty() || normalizedName.isEmpty())
-        return;
+bool OperatorSession::selectOperator(const QString &id)
+{
+    const QString userId = id.trimmed();
 
-    if (m_operatorId == normalizedId
-        && m_operatorName == normalizedName) {
-        return;
+    if (userId.isEmpty())
+        return false;
+
+    QSqlQuery query(m_database);
+
+    if (!query.prepare(
+            "SELECT display_name, role FROM users "
+            "WHERE user_id = :user_id AND is_active = 1")) {
+        qWarning() << "Cannot prepare user selection:"
+                   << query.lastError().text();
+        return false;
     }
 
-    m_operatorId = normalizedId;
-    m_operatorName = normalizedName;
+    query.bindValue(":user_id", userId);
+
+    if (!query.exec()) {
+        qWarning() << "Cannot select user:" << query.lastError().text();
+        return false;
+    }
+
+    if (!query.next())
+        return false;
+
+    const QString name = query.value(0).toString();
+    const QString role = query.value(1).toString();
+
+    if (m_operatorId == userId
+        && m_operatorName == name
+        && m_operatorRole == role) {
+        return true;
+    }
+
+    m_operatorId = userId;
+    m_operatorName = name;
+    m_operatorRole = role;
     emit operatorChanged();
+    return true;
+}
+bool OperatorSession::canControlBatch() const
+{
+    const auto role = AccessPolicy::roleFromText(m_operatorRole);
+    return AccessPolicy::canControlBatch(role);
+}
+
+bool OperatorSession::canResetFault() const
+{
+    const auto role = AccessPolicy::roleFromText(m_operatorRole);
+    return AccessPolicy::canResetFault(role);
+}
+
+bool OperatorSession::canManageUsers() const
+{
+    const auto role = AccessPolicy::roleFromText(m_operatorRole);
+    return AccessPolicy::canManageUsers(role);
+}
+bool OperatorSession::canApproveDrain() const
+{
+    const auto role = AccessPolicy::roleFromText(m_operatorRole);
+    return AccessPolicy::canApproveDrain(role);
 }

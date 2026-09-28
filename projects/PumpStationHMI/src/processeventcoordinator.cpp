@@ -229,9 +229,22 @@ void ProcessEventCoordinator::watchBatchId(BatchController &controller)
     EventManager *events = &m_events;
 
     QObject::connect(controllerPtr, &BatchController::batchIdChanged, events,
-        [controllerPtr, events]()
-        {
-            events->setBatchId(controllerPtr->batchId());
-        }
+        [controllerPtr, events]() { events->setBatchId(controllerPtr->batchId()); }
+    );
+}
+void ProcessEventCoordinator::watchMixerConnection(Mixer &mixer)
+{
+    EventManager *events = &m_events;
+    Mixer *mixerPtr = &mixer;
+
+    QObject::connect(mixerPtr, &Mixer::connectionChanged, events,
+                     [mixerPtr, events]()
+                     {
+                         events->addInfo(
+                             "M1",
+                             mixerPtr->isConnected()
+                                 ? "Mixer connection detected (simulated)"
+                                 : "Mixer connection lost (simulated)");
+                     }
     );
 }

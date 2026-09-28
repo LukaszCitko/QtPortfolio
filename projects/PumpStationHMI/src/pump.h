@@ -33,19 +33,19 @@
         bool isRunning() const;
         State state() const;
 
+        void setActualRpm(double rpm);
+        void resetFault();
+        QString stateText() const;
         double targetRpm() const;
         double actualRpm() const;
-        double temperatureFromSensor() const;  // measured in Celsius
-        void setActualRpm(double rpm);
-        QString stateText() const;
 
+        double temperatureFromSensor() const;  // measured in Celsius
         double maxRpm() const {return MaxRpm;}
 
         // extended to QML
         Q_INVOKABLE void start();
         Q_INVOKABLE void stop();
         Q_INVOKABLE void setFault();
-        Q_INVOKABLE void resetFault();
         Q_INVOKABLE void setTargetRpm(double rpm);
         Q_INVOKABLE void setTemperatureFromSensor(double newTemperature);
 

@@ -24,6 +24,7 @@ public:
     void watchStageCompletion(BatchController &controller);
     void watchBatchState(BatchController &controller, MixingTank &tank, OperatorSession &session);
     void watchBatchId(BatchController &controller);
+    void watchMixerConnection(Mixer &mixer);
 private:
     EventManager &m_events;
 };

@@ -12,6 +12,11 @@ Rectangle {
     required property string lineColor
 
     property int revision: 0
+    onRecorderChanged: {
+        revision += 1
+        if (plot)
+            plot.requestPaint()
+    }
 
     function valueAt(index) {
         return series === "volume"

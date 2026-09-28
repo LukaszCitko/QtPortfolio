@@ -22,7 +22,7 @@ public:
     Q_INVOKABLE void open();
     Q_INVOKABLE void close();
     Q_INVOKABLE void setFault();
-    Q_INVOKABLE void resetFault();
+    void resetFault();
     int id() const;
     bool isOpen() const;
     State state() const;

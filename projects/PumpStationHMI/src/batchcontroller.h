@@ -66,7 +66,7 @@ public:
 
     Q_INVOKABLE bool tryStartBatch(const QString &operatorName);
     Q_INVOKABLE void startTransfer();
-    Q_INVOKABLE void emergencyDrain();
+                void emergencyDrain();
     Q_INVOKABLE void pause();
     Q_INVOKABLE void resume();
     Q_INVOKABLE bool prepareNextBatch();

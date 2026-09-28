@@ -9,6 +9,7 @@ Rectangle {
     required property var batchDevice
     required property var waterPumpDevice
 
+
     color: "#eceeef"
     border.color: "#a5aaad"
 
@@ -55,11 +56,16 @@ Rectangle {
                 width: 250
                 height: 52
                 text: root.mixerDevice.connected
-                      ? "MIXER CONNECTED"
+                      ? "DISCONNECT MIXER"
                       : "CONNECT MIXER"
                 enabled: !root.mixerDevice.connected
-                onClicked: root.mixerDevice.connect()
-
+                         || root.mixerDevice.stateText !== "RUNNING"
+                onClicked: {
+                    if (root.mixerDevice.connected)
+                        root.mixerDevice.disconnectDevice()
+                    else
+                        root.mixerDevice.connect()
+                }
                 background: Rectangle {
                     color: connectButton.enabled ? "#c5ced2" : "#d7dadd"
                     border.color: "#858e92"
@@ -140,13 +146,7 @@ Rectangle {
                     onClicked: root.waterPumpDevice.setFault()
                 }
 
-                Button {
-                    width: (parent.width - 136) / 2
-                    height: 52
-                    text: "RESET FAULT"
-                    enabled: root.waterPumpDevice.stateText === "FAULT"
-                    onClicked: root.waterPumpDevice.resetFault()
-                }
+
             }
 
             Row {
@@ -170,13 +170,7 @@ Rectangle {
                     onClicked: root.mixerDevice.setFault()
                 }
 
-                Button {
-                    width: (parent.width - 136) / 2
-                    height: 52
-                    text: "RESET FAULT"
-                    enabled: root.mixerDevice.stateText === "FAULT"
-                    onClicked: root.mixerDevice.resetFault()
-                }
+
             }
 
             Text {

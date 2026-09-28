@@ -5,6 +5,10 @@ Rectangle {
     id: root
 
     property bool rpmControlEnabled: false
+    property string highlightedTag: ""
+    required property bool resetFaultAllowed
+    required property var resetService
+    required property var drainRequestService
     signal rpmRequested(var device, string tag)
 
     readonly property bool drainAvailable:
@@ -60,6 +64,7 @@ Rectangle {
             model: root.devices
 
             Rectangle {
+                id: equipmentCard
                 readonly property string deviceState: modelData.device.stateText
                 readonly property bool fault: deviceState === "FAULT"
 
@@ -78,8 +83,12 @@ Rectangle {
                 width: (equipmentGrid.width - 24) / 3
                 height: (equipmentGrid.height - 24) / 3
                 color: fault ? "#f4ddda" : active ? "#f7f8f8" : "#d7dadd"
-                border.color: fault ? "#b63838" : "#a5aaad"
-                border.width: fault ? 2 : 1
+                border.color: fault ? "#b63838"
+                              : modelData.tag === root.highlightedTag ? "#496879"
+                              : "#a5aaad"
+                border.width: fault ? 2
+                              : modelData.tag === root.highlightedTag ? 3
+                              : 1
 
                 Text {
                     anchors.left: parent.left
@@ -106,8 +115,16 @@ Rectangle {
                     anchors.leftMargin: 14
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 10
+                    width: equipmentCard.fault
+                           && (modelData.tag === "P1" || modelData.tag === "M1")
+                           ? parent.width - 170
+                           : parent.width - 28
+                    elide: Text.ElideRight
 
-                    text: pumpCard ?
+                    text:
+                        equipmentCard.fault
+                          ? "FAULT ACTIVE · CHECK ALARMS"
+                          : pumpCard ?
                             "TARGET " + Math.round(modelData.device.targetRpm) + " RPM · TAP TO SET"
                             : modelData.tag === "M1" ? (mixer.connected
                                                      ? Math.round(mixer.actualRpm) + " / " + Math.round(mixer.targetRpm) + " RPM"
@@ -116,15 +133,15 @@ Rectangle {
                             : modelData.tag === "V4" ? (batchController.stateText === "DRAINING"
                                                     ? "DRAIN IN PROGRESS" : root.drainAvailable
                                                     ? "DRAIN TK1 · TAP TO CONFIRM"
-                                                    : mixingTank.volume <= 0 ? "TK1 EMPTY" : "DRAIN UNAVAILABLE") // UNAVAILABLE FOR FAULT V4
+                                                    : mixingTank.volume <= 0 ? "TK1 EMPTY" : "DRAIN UNAVAILABLE")
                             : ""
 
-                    color: "#596368"
+                    color: equipmentCard.fault ? "#8f2222" : "#596368"
                     font.pixelSize: 13
                 }
                 MouseArea {
                     anchors.fill: parent
-                    enabled: root.rpmControlEnabled && pumpCard
+                    enabled: root.rpmControlEnabled && pumpCard && !equipmentCard.fault
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.rpmRequested(modelData.device, modelData.tag)
                 }
@@ -133,6 +150,41 @@ Rectangle {
                     enabled: modelData.tag === "V4" && root.drainAvailable
                     cursorShape: Qt.PointingHandCursor
                     onClicked: drainDialog.open()
+                }
+                Button {
+                    id: resetFaultButton
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 8
+                    width: 140
+                    height: 38
+
+                    visible: equipmentCard.fault
+                             && (modelData.tag === "P1" || modelData.tag === "M1")
+                    enabled: root.resetFaultAllowed
+                    text: "RESET FAULT"
+
+                    onClicked: {
+                        if (modelData.tag === "P1")
+                            root.resetService.resetPump1()
+                        else
+                            root.resetService.resetMixer()
+                    }
+
+                    background: Rectangle {
+                        color: resetFaultButton.enabled ? "#f7f8f8" : "#d7dadd"
+                        border.color: "#b63838"
+                    }
+
+                    contentItem: Text {
+                        text: resetFaultButton.text
+                        color: resetFaultButton.enabled ? "#252a2d" : "#596368"
+                        font.pixelSize: 14
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
             }
         }
@@ -147,12 +199,19 @@ Rectangle {
         height: 200
         modal: true
         focus: true
-        title: "CONFIRM DRAIN"
-        standardButtons: Dialog.Ok | Dialog.Cancel
+        title: operatorSession.canApproveDrain
+               ? "CONFIRM DRAIN"
+               : "TECHNICIAN AUTHORIZATION REQUIRED"
+
+        standardButtons: operatorSession.canApproveDrain
+                         ? (Dialog.Ok | Dialog.Cancel)
+                         : Dialog.Cancel
 
         Text {
             width: parent.width
-            text: "Stop the current batch and drain TK1 through V4?"
+            text: operatorSession.canApproveDrain
+                  ? "Stop the current batch and drain TK1 through V4?"
+                  : "Drain is unavailable for the selected operator. Technician authorization is required."
             color: "#252a2d"
             font.pixelSize: 16
             wrapMode: Text.WordWrap
@@ -160,7 +219,7 @@ Rectangle {
 
         onAccepted: {
             if (root.drainAvailable)
-                batchController.emergencyDrain()
+                root.drainRequestService.requestDrain()
         }
     }
 }

@@ -19,6 +19,10 @@
 #include "eventmanager.h"
 #include "operatorsession.h"
 #include "trendrecorder.h"
+#include "drainservice.h"
+
+#include "faultresetservice.h"
+
 #include "database/databaseschema.h"
 #include "database/userlistmodel.h"
 #include "database/runrepository.h"
@@ -26,6 +30,13 @@
 #include "database/runpersistencecoordinator.h"
 #include "database/eventrepository.h"
 #include "database/eventhistorymodel.h"
+#include "database/trendsamplerepository.h"
+#include "database/runlistmodel.h"
+#include "database/trendhistorysource.h"
+#include "database/userrepository.h"
+#include "database/demouserseeder.h"
+#include "usermanagementservice.h"
+
 
 int main(int argc, char *argv[])
 {
@@ -61,8 +72,15 @@ int main(int argc, char *argv[])
     }
     qInfo() << "SQLite database opened at" << database.databaseName();
 
+    QString demoUsersError;
+
+    if (!seedDemoUsersIfEmpty(database, &demoUsersError)) {
+        qCritical() << "Cannot prepare demo users:" << demoUsersError;
+        return 1;
+    }
 
     UserListModel userListModel(database);
+    UserRepository userRepository(database);
 
     QString usersError;
     if (!userListModel.reload(&usersError)) {
@@ -72,7 +90,15 @@ int main(int argc, char *argv[])
 
     RunRepository runRepository(database);
     EventRepository eventRepository(database);
+    TrendSampleRepository trendSampleRepository(database);
     EventHistoryModel eventHistoryModel(database);
+    RunListModel runListModel(database);
+    TrendHistorySource trendHistorySource(database);
+    QString runsError;
+    if (!runListModel.reload(&runsError)) {
+        qCritical() << "Cannot load runs:" << runsError;
+        return 1;
+    }
 
     QString historyError;
     if (!eventHistoryModel.reload(&historyError)) {
@@ -118,7 +144,7 @@ int main(int argc, char *argv[])
 
     processEventCoordinator.watchTemperature(mixingTank);
     processEventCoordinator.watchFaults(pump1, valve1, pump2, valve2, pump3, valve3, mixer, mixingTank, valve4);
-
+    processEventCoordinator.watchMixerConnection(mixer);
 
 // Process services
     ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &mixingTank);
@@ -128,6 +154,17 @@ int main(int argc, char *argv[])
 
 //Trend recorder
     TrendRecorder trendRecorder(&mixingTank);
+
+    QObject::connect(&trendRecorder, &TrendRecorder::sampleRecorded, &trendRecorder,
+                     [&trendSampleRepository](const QString &runId, qint64 timestampMs, double volumeL, double temperatureC)
+                     {
+                         QString error;
+                         if (!trendSampleRepository.saveSample(runId, timestampMs, volumeL, temperatureC, &error)) {
+                             qCritical() << "Cannot save trend sample:" << error;
+                         }
+                     }
+    );
+
     QTimer batchTimer;
     batchTimer.setInterval(100);
 
@@ -136,7 +173,10 @@ int main(int argc, char *argv[])
     batchTimer.start();
 
 
-    OperatorSession operatorSession;
+    OperatorSession operatorSession(database);
+    UserManagementService userManagementService(operatorSession, userRepository, userListModel, eventManager);
+    DrainService drainService(operatorSession, batchController, mixingTank, valve4, eventManager);
+    FaultResetService faultResetService(operatorSession, pump1, mixer, eventManager);
     RunPersistenceCoordinator runPersistenceCoordinator(runRepository, eventManager);
 
     runPersistenceCoordinator.watchBatchStart(batchController, operatorSession);
@@ -164,6 +204,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("trendRecorder", &trendRecorder);
     engine.rootContext()->setContextProperty("userListModel", &userListModel);
     engine.rootContext()->setContextProperty("eventHistoryModel", &eventHistoryModel);
+    engine.rootContext()->setContextProperty("runListModel", &runListModel);
+    engine.rootContext()->setContextProperty("trendHistorySource", &trendHistorySource);
+    engine.rootContext()->setContextProperty("faultResetService",  &faultResetService);
+    engine.rootContext()->setContextProperty("drainService", &drainService);
+    engine.rootContext()->setContextProperty("userManagementService", &userManagementService);
 
     // QML loading
 

@@ -27,8 +27,9 @@ public:
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void setFault();
-    Q_INVOKABLE void resetFault();
+                void resetFault();
     Q_INVOKABLE void connect();
+    Q_INVOKABLE void disconnectDevice();
 
     static constexpr double MaxRpm = 1000.0;
 
