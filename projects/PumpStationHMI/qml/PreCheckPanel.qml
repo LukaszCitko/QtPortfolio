@@ -43,7 +43,7 @@ Item {
                   + root.checks.filter(function(check) { return check.ok }).length
                   + " / 5"
             color: "#252a2d"
-            font.pixelSize: 14
+            font.pixelSize: 15
             font.bold: true
         }
 
@@ -58,7 +58,7 @@ Item {
                     width: 220
                     text: modelData.label
                     color: "#252a2d"
-                    font.pixelSize: 12
+                    font.pixelSize: 13
                 }
 
                 Text {
@@ -66,7 +66,7 @@ Item {
                     text: modelData.ok ? "OK" : "REQUIRED"
                     horizontalAlignment: Text.AlignRight
                     color: "#252a2d"
-                    font.pixelSize: 12
+                    font.pixelSize: 13
                     font.bold: true
                 }
             }

@@ -6,7 +6,7 @@
 #include <QPointer>
 #include <QTimer>
 
-    class Pump;
+class Pump;
 class Valve;
 class MixingTank;
 

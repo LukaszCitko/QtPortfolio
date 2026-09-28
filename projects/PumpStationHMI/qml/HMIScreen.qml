@@ -163,6 +163,7 @@ ApplicationWindow {
                     width: 356
                     height: parent.height
                     tank: mixingTank
+                    mixerDevice: mixer
                     controller: batchController
                     hasActiveFault: alarmBar.hasFault
                     operatorSelected: operatorSession.selected
@@ -210,7 +211,7 @@ ApplicationWindow {
                     }
 
                     Text {
-                        visible: eventManager.eventCount === 0
+                        visible: historyRepeater.count === 0
                         text: "No events recorded"
                         color: "#596368"
                         font.pixelSize: 16
@@ -228,10 +229,16 @@ ApplicationWindow {
                             spacing: 4
 
                             Repeater {
-                                model: eventManager.eventCount
+                                id: historyRepeater
+                                model: eventHistoryModel
 
-                                Rectangle {
-                                    property int eventIndex: eventManager.eventCount - 1 - index
+                                delegate: Rectangle {
+                                    id: eventRow
+
+                                    required property string time
+                                    required property string level
+                                    required property string source
+                                    required property string message
 
                                     width: eventColumn.width
                                     height: 44
@@ -247,10 +254,10 @@ ApplicationWindow {
                                         color: "#252a2d"
                                         font.pixelSize: 15
 
-                                        text: eventManager.eventTime(eventIndex)
-                                              + "   " + eventManager.eventLevel(eventIndex)
-                                              + "   " + eventManager.eventSource(eventIndex)
-                                              + "   " + eventManager.eventMessage(eventIndex)
+                                        text: eventRow.time
+                                              + "   " + eventRow.level
+                                              + "   " + eventRow.source
+                                              + "   " + eventRow.message
                                     }
                                 }
                             }
@@ -461,18 +468,22 @@ ApplicationWindow {
             spacing: 12
 
             Repeater {
-                model: [    "Operator 01", "Operator 02"]
+                model: userListModel
 
-                Button {
-                    width: operatorDialog.availableWidth
-                    height: 64
-                    text: modelData
+                delegate:
+                    Button {
+                        required property string userId
+                        required property string displayName
 
-                    onClicked: {
-                        operatorSession.selectOperator(modelData)
-                        operatorDialog.close()
+                        width: operatorDialog.availableWidth
+                        height: 64
+                        text: displayName
+
+                        onClicked: {
+                            operatorSession.selectOperator(userId, displayName)
+                            operatorDialog.close()
+                        }
                     }
-                }
             }
 
             Text {

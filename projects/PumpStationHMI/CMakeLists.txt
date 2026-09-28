@@ -5,7 +5,7 @@ project(PumpStationHMI VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick Sql)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -23,6 +23,25 @@ qt_add_executable(appPumpStationHMI
     src/mixingtank.cpp
     src/batchcontroller.cpp
     src/mixer.cpp
+    src/database/databaseschema.h
+    src/database/databaseschema.cpp
+    src/database/userlistmodel.h
+    src/database/userlistmodel.cpp
+    src/database/runrepository.h
+    src/database/runrepository.cpp
+    src/processeventcoordinator.h
+    src/processeventcoordinator.cpp
+    src/database/runpersistencecoordinator.h
+    src/database/runpersistencecoordinator.cpp
+    src/database/eventrepository.h
+    src/database/eventrepository.cpp
+    src/database/eventhistorymodel.h
+    src/database/eventhistorymodel.cpp
+    src/database/trendsamplerepository.h
+    src/database/trendsamplerepository.cpp
+
+
+
 )
 
 qt_add_qml_module(appPumpStationHMI
@@ -77,6 +96,9 @@ qt_add_qml_module(appPumpStationHMI
 
 
 
+
+
+
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -91,7 +113,7 @@ set_target_properties(appPumpStationHMI PROPERTIES
 )
 
 target_link_libraries(appPumpStationHMI
-    PRIVATE Qt6::Quick
+    PRIVATE Qt6::Quick Qt6::Sql
 )
 
 install(TARGETS appPumpStationHMI

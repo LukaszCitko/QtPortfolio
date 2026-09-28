@@ -98,7 +98,39 @@ target_link_libraries(test_trendrecorder
     PRIVATE Qt6::Test Qt6::Core
 )
 
+add_executable(test_runrepository
+    tst_runrepository.cpp
+    ../src/database/databaseschema.cpp
+    ../src/database/runrepository.cpp
+)
 
+target_link_libraries(test_runrepository
+    PRIVATE Qt6::Test Qt6::Sql
+)
+
+add_executable(test_eventrepository
+    tst_eventrepository.cpp
+    ../src/database/databaseschema.cpp
+    ../src/database/eventrepository.cpp
+)
+
+target_link_libraries(test_eventrepository
+    PRIVATE Qt6::Test Qt6::Sql
+)
+
+add_executable(test_trendsamplerepository
+    tst_trendssamplerepository.cpp
+    ../src/database/databaseschema.cpp
+    ../src/database/trendsamplerepository.cpp
+)
+
+target_link_libraries(test_trendsamplerepository
+    PRIVATE Qt6::Test Qt6::Sql
+)
+
+add_test(NAME test_trendsamplerepository COMMAND test_trendsamplerepository)
+add_test(NAME test_eventrepository COMMAND test_eventrepository)
+add_test(NAME test_runrepository COMMAND test_runrepository)
 add_test(NAME test_trendrecorder COMMAND test_trendrecorder)
 add_test(NAME test_eventmanager COMMAND test_eventmanager)
 add_test(NAME test_processcontroller COMMAND test_processcontroller)

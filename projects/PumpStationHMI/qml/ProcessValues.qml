@@ -8,6 +8,7 @@ Rectangle {
     required property var controller
     required property bool hasActiveFault
     required property bool operatorSelected
+    required property var mixerDevice
 
     color: "#eceeef"
     border.color: "#a5aaad"
@@ -17,13 +18,6 @@ Rectangle {
         anchors.margins: 24
         spacing: 16
 
-        Text {
-            text: " "  // TODO: decide if add "PROCESS VALUES" as title
-            color: "#252a2d"
-            font.pixelSize: 20
-            font.bold: true
-        }
-
         Grid {
             columns: 2
             columnSpacing: 12
@@ -31,77 +25,87 @@ Rectangle {
 
             Text {
                 width: 176
-                text: "Temperature"
-                color: "#252a2d"
-                font.pixelSize: 16
+                text: (root.tank.temperature < 58.0 && mixingTank.volume !== 0) ?
+                        "Temperature (TOO LOW)" : root.tank.temperature > 62.0
+                        ? "Temperature (TOO HIGH)": "Temperature"
+
+                color: ((root.tank.temperature < 58.0 || root.tank.temperature > 62.0) && mixingTank.volume !== 0) ? "#b63838": "#252a2d"
+
+                font.pixelSize: 18
             }
             Text {
                 width: 120
                 text: root.tank.temperature.toFixed(1) + " °C"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 20
+                font.pixelSize: 18
             }
 
             Text {
                 width: 176
                 text: "Water added"
                 color: "#252a2d"
-                font.pixelSize: 16
+                font.pixelSize: 18
             }
             Text {
                 width: 120
                 text: root.tank.waterVolume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 20
+                font.pixelSize: 18
             }
 
             Text {
                 width: 176
                 text: "Concentrate added"
                 color: "#252a2d"
-                font.pixelSize: 16
+                font.pixelSize: 18
             }
             Text {
                 width: 120
-                text: root.tank.concentrateVolume.toFixed(1) + " L"
+                text:  root.tank.concentrateVolume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 20
+                font.pixelSize: 18
             }
 
             Text {
                 width: 176
                 text: "Mixture volume"
                 color: "#252a2d"
-                font.pixelSize: 16
+                font.pixelSize: 18
             }
             Text {
                 width: 120
                 text: root.tank.volume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 20
+                font.pixelSize: 18
+            }
+            Text {
+                width: 176
+                text: "Mixer speed"
+                color: "#252a2d"
+                font.pixelSize: 18
+            }
+            Text {
+                width: 120
+                text: Math.round(root.mixerDevice.actualRpm) + "/" + Math.round(root.mixerDevice.targetRpm) + " RPM"
+                horizontalAlignment: Text.AlignRight
+                color: "#252a2d"
+                font.pixelSize: 18
             }
             // One separate line
             Text {
                 width: 176
                 text: ""
                 color: "#252a2d"
-                font.pixelSize: 16
+                font.pixelSize: 15
             }
+
+
         }
-        Text {
-            width: parent.width
-            visible: root.controller.stateText === "TEMPERATURE CHECK"
-                     && root.tank.temperature < 58.0
-            text: "TEMP TOO LOW · HEATING MODE ACTIVATED (SIMULATED)"
-            color: "#8a5b1a"
-            font.pixelSize: 14
-            font.bold: true
-            wrapMode: Text.WordWrap
-        }
+
         PreCheckPanel {
             width: parent.width
             height: 184

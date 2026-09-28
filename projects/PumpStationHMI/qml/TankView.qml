@@ -5,6 +5,7 @@ Rectangle {
 
     required property var tank
     required property var mixerDevice
+    readonly property bool mixerFault: mixerDevice.stateText === "FAULT"
 
     readonly property real fillFraction:
         Math.max(0, Math.min(1, tank.volume / tank.capacity))
@@ -84,10 +85,11 @@ Rectangle {
             width: 38
             height: 30
             radius: 3
-            color: root.mixerDevice.stateText === "RUNNING"
-                   ? "#f7f8f8" : "#c5cace"
-            border.color: "#596368"
-            border.width: 2
+            color: root.mixerFault ? "#f4ddda"
+                   : root.mixerDevice.stateText === "RUNNING"
+                     ? "#f7f8f8" : "#c5cace"
+            border.color: root.mixerFault ? "#b63838" : "#596368"
+            border.width: root.mixerFault ? 3 : 2
         }
 
         // Mixer shaft.
@@ -152,7 +154,9 @@ Rectangle {
         spacing: 3
 
         Text {
-            text: "TK1 · " + root.tank.stateText
+            text: (root.tank.temperature < 58.0 && root.tank.volume > 0)
+                  ? "TK1 · HEATING MODE · " + root.tank.stateText
+                  : "TK1 · " + root.tank.stateText
             color: "#252a2d"
             font.pixelSize: 16
             font.bold: true
@@ -160,9 +164,7 @@ Rectangle {
 
         Text {
             text: "M1 · " + root.mixerDevice.stateText
-                   + Math.round(root.mixerDevice.actualRpm)
-                   + " / " + Math.round(root.mixerDevice.targetRpm) + " RPM"
-            color: "#252a2d"
+            color: root.mixerFault ? "#b63838" : "#252a2d"
             font.pixelSize: 16
         }
     }
