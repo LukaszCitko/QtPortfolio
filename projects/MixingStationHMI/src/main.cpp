@@ -4,11 +4,11 @@
 #include <QTimer>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
-
 
 #include "pump.h"
 #include "valve.h"
@@ -20,7 +20,6 @@
 #include "operatorsession.h"
 #include "trendrecorder.h"
 #include "drainservice.h"
-
 #include "faultresetservice.h"
 
 #include "database/databaseschema.h"
@@ -49,8 +48,31 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // Preserve data created under the previous application name.
+    const QString databasePath =
+        QDir(dataPath).filePath("mixingstation.sqlite");
+
+    const QString legacyDatabasePath =
+        QDir(dataPath).filePath("pumpstation.sqlite");
+
+    if (!QFile::exists(databasePath)
+        && QFile::exists(legacyDatabasePath))
+    {
+        if (!QFile::rename(legacyDatabasePath, databasePath))
+        {
+            qCritical() << "Cannot rename legacy database:"
+                        << legacyDatabasePath
+                        << "to"
+                        << databasePath;
+            return 1;
+        }
+
+        qInfo() << "Legacy database renamed to" << databasePath;
+    }
+
     QSqlDatabase database = QSqlDatabase::addDatabase("QSQLITE");
-    database.setDatabaseName(QDir(dataPath).filePath("pumpstation.sqlite"));
+    database.setDatabaseName(databasePath);
+
 
     if (!database.open()) {qCritical() << "Cannot open SQLite database:"
                     << database.lastError().text();
