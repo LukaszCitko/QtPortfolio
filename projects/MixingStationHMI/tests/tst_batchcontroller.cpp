@@ -1735,6 +1735,6 @@ void TestBatchController::transferRequiresValidTemperatureAfterMixing()
     QCOMPARE(controller.state(), BatchController::State::Transferring);
 }
 
-QTEST_MAIN(TestBatchController)
+QTEST_GUILESS_MAIN(TestBatchController)
 
 #include "tst_batchcontroller.moc"

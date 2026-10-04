@@ -155,6 +155,6 @@ void TestMixingTank::finishedDrainResetsTank()
     QCOMPARE(tank.temperature(), 25.0);
     QCOMPARE(tank.state(), MixingTank::State::Empty);
 }
-QTEST_MAIN(TestMixingTank)
+QTEST_GUILESS_MAIN(TestMixingTank)
 
 #include "tst_mixingtank.moc"

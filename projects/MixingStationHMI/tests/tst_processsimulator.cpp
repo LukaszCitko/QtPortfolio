@@ -381,6 +381,6 @@ void TestProcessSimulator::actualRpmTracksPumpState()
     QCOMPARE(pump3.actualRpm(), 750.0);
 }
 
-QTEST_MAIN(TestProcessSimulator)
+QTEST_GUILESS_MAIN(TestProcessSimulator)
 
 #include "tst_processsimulator.moc"

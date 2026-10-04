@@ -57,9 +57,6 @@ qt_add_executable(appMixingStationHMI
     src/database/demouserseeder.cpp
 
 
-
-
-
 )
 
 qt_add_qml_module(appMixingStationHMI
@@ -107,6 +104,7 @@ qt_add_qml_module(appMixingStationHMI
         src/operatorsession.cpp
         src/trendrecorder.h
         src/trendrecorder.cpp
+
         RESOURCES README.md
 
 

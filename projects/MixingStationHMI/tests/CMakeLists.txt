@@ -29,17 +29,17 @@ add_executable(test_processsimulator
 target_link_libraries(test_processsimulator
     PRIVATE
         Qt6::Test
-        Qt6::Quick
+        Qt6::Core
 )
 
 
 
 
-add_executable(test_mixingTank
+add_executable(test_mixingtank
     tst_mixingtank.cpp
     ../src/mixingtank.cpp
 )
-target_link_libraries(test_mixingTank
+target_link_libraries(test_mixingtank
     PRIVATE
         Qt6::Test
         Qt6::Core
@@ -59,7 +59,7 @@ add_executable(test_batchcontroller
 target_link_libraries(test_batchcontroller
     PRIVATE
         Qt6::Test
-        Qt6::Quick
+        Qt6::Core
 )
 
 add_executable(test_eventmanager
@@ -225,5 +225,5 @@ add_test(NAME test_eventmanager COMMAND test_eventmanager)
 add_test(NAME test_processsimulator COMMAND test_processsimulator)
 add_test(NAME test_pump COMMAND test_pump)
 add_test(NAME test_valve COMMAND test_valve)
-add_test(NAME test_mixingTank COMMAND test_mixingTank)
+add_test(NAME test_mixingtank COMMAND test_mixingtank)
 add_test(NAME test_batchcontroller COMMAND test_batchcontroller)
