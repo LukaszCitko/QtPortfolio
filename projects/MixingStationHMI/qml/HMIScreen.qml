@@ -198,11 +198,13 @@ ApplicationWindow {
                 ProcessValues {
                     width: 356
                     height: parent.height
+
                     tank: mixingTank
                     mixerDevice: mixer
                     controller: batchController
                     hasActiveFault: alarmBar.hasFault
                     operatorSelected: operatorSession.selected
+                    operatorName: operatorSession.operatorName
                 }
             }
             EquipmentPanel {
@@ -455,6 +457,21 @@ ApplicationWindow {
             id: alarmBar
             width: parent.width
             height: 80
+
+            eventSource: eventManager
+
+            monitoredDevices: [
+                { tag: "P1", device: pump1 },
+                { tag: "V1", device: valve1 },
+                { tag: "P2", device: pump2 },
+                { tag: "V2", device: valve2 },
+                { tag: "P3", device: pump3 },
+                { tag: "V3", device: valve3 },
+                { tag: "M1", device: mixer },
+                { tag: "TK1", device: mixingTank },
+                { tag: "V4", device: valve4 }
+            ]
+
             onFaultsChanged: {
                 const activeFaults = faults
                 window.acknowledgedFaults =

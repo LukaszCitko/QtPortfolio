@@ -3,17 +3,16 @@ import QtQuick
 Rectangle {
     id: root
 
-    readonly property var faults: [
-        pump1.stateText === "FAULT" ? "P1" : "",
-        valve1.stateText === "FAULT" ? "V1" : "",
-        pump2.stateText === "FAULT" ? "P2" : "",
-        valve2.stateText === "FAULT" ? "V2" : "",
-        pump3.stateText === "FAULT" ? "P3" : "",
-        valve3.stateText === "FAULT" ? "V3" : "",
-        mixer.stateText === "FAULT" ? "M1" : "",
-        mixingTank.stateText === "FAULT" ? "TK1" : "",
-        valve4.stateText === "FAULT" ? "V4" : ""
-    ].filter(function(device) { return device !== "" })
+    required property var eventSource
+    required property var monitoredDevices
+
+    readonly property var faults: root.monitoredDevices
+        .filter(function(item) {
+            return item.device.stateText === "FAULT"
+        })
+        .map(function(item) {
+            return item.tag
+        })
 
     readonly property bool hasFault: faults.length > 0
 
@@ -35,10 +34,10 @@ Rectangle {
 
         text: root.hasFault
               ? "ACTIVE ALARM · " + root.faults.join(", ") + " FAULT"
-              : eventManager.currentMessage.length > 0
-                ? eventManager.currentLevelText
-                  + " · " + eventManager.currentSource
-                  + " · " + eventManager.currentMessage
+              : root.eventSource.currentMessage.length > 0
+                ? root.eventSource.currentLevelText
+                  + " · " + root.eventSource.currentSource
+                  + " · " + root.eventSource.currentMessage
                 : "NO ACTIVE ALARMS"
 
         color: root.hasFault ? "#8f2222" : "#252a2d"
