@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 
 // QML context properties
 
-    engine.rootContext()->setContextProperty("pump", &pump1);
+    engine.rootContext()->setContextProperty("pump1", &pump1);
     engine.rootContext()->setContextProperty("valve1", &valve1);
     engine.rootContext()->setContextProperty("pump2", &pump2);
     engine.rootContext()->setContextProperty("valve2", &valve2);

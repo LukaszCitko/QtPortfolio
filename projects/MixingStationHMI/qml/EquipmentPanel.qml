@@ -22,7 +22,7 @@ Rectangle {
     border.color: "#a5aaad"
 
     readonly property var devices: [
-        { tag: "P1", name: "WATER PUMP", device: pump },
+        { tag: "P1", name: "WATER PUMP", device: pump1 },
         { tag: "V1", name: "WATER VALVE", device: valve1 },
         { tag: "P2", name: "CONCENTRATE PUMP", device: pump2 },
         { tag: "V2", name: "CONCENTRATE VALVE", device: valve2 },

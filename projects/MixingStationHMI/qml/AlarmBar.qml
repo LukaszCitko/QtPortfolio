@@ -4,7 +4,7 @@ Rectangle {
     id: root
 
     readonly property var faults: [
-        pump.stateText === "FAULT" ? "P1" : "",
+        pump1.stateText === "FAULT" ? "P1" : "",
         valve1.stateText === "FAULT" ? "V1" : "",
         pump2.stateText === "FAULT" ? "P2" : "",
         valve2.stateText === "FAULT" ? "V2" : "",

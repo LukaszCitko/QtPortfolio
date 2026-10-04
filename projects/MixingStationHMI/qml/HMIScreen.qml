@@ -155,7 +155,7 @@ ApplicationWindow {
                             flowArrow: "→"
                             rpmControlEnabled: operatorSession.selected
                             onRpmRequested: (device, tag) => window.openPumpRpm(device, tag)
-                            pumpDevice: pump
+                            pumpDevice: pump1
                             valveDevice: valve1
                         }
 
@@ -223,7 +223,7 @@ ApplicationWindow {
                 visible: window.activePage === "SIMULATION"
                 mixerDevice: mixer
                 tankDevice: mixingTank
-                waterPumpDevice: pump
+                waterPumpDevice: pump1
                 batchDevice: batchController
                 demoOverrideEnabled: operatorSession.operatorRole === "OPERATOR"
                 resetService: faultResetService

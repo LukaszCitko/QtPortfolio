@@ -7,7 +7,7 @@ Item {
     required property bool operatorSelected
     readonly property bool tankEmpty: mixingTank.volume === 0
     readonly property bool devicesHealthy:
-        pump.stateText !== "FAULT"
+        pump1.stateText !== "FAULT"
         && pump2.stateText !== "FAULT"
         && pump3.stateText !== "FAULT"
         && mixer.stateText !== "FAULT"
