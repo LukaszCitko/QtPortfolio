@@ -18,12 +18,12 @@ Item {
         anchors.fill: parent
         spacing: 12
 
-        Text {
-            text: " " // TODO: decide if add as title:  "BATCH CONTROLS"
-            color: "#252a2d"
-            font.pixelSize: 14
-            font.bold: true
+        // Keeps the batch controls aligned below the process values.
+        Item {
+            width: parent.width
+            height: 18
         }
+
         Text {
             visible: root.controller.stageIndex === 4
             text: root.controller.stateText === "READY FOR TRANSFER"

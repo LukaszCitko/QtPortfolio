@@ -5,33 +5,20 @@ import QtQuick.Controls.Basic
 Item {
     id: root
     required property bool operatorSelected
-    readonly property bool tankEmpty: mixingTank.volume === 0
-    readonly property bool devicesHealthy:
-        pump1.stateText !== "FAULT"
-        && pump2.stateText !== "FAULT"
-        && pump3.stateText !== "FAULT"
-        && mixer.stateText !== "FAULT"
-        && valve1.stateText !== "FAULT"
-        && valve2.stateText !== "FAULT"
-        && valve3.stateText !== "FAULT"
-        && valve4.stateText !== "FAULT"
-        && mixingTank.stateText !== "FAULT"
+    required property string operatorName
+    required property var controller
 
-    readonly property bool mixerReady:
-        mixer.connected && mixer.stateText !== "FAULT"
-
-    readonly property bool valvesClosed:
-        valve1.stateText === "CLOSED"
-        && valve2.stateText === "CLOSED"
-        && valve3.stateText === "CLOSED"
-        && valve4.stateText === "CLOSED"
-
-    readonly property var checks: [
+    readonly property bool tankEmpty: root.controller.tankEmpty
+    readonly property bool devicesHealthy: root.controller.devicesHealthy
+    readonly property bool mixerReady: root.controller.mixerReady
+    readonly property bool valvesClosed: root.controller.valvesClosed
+    readonly property var checks:
+    [
         { label: "Operator selected", ok: root.operatorSelected },
-        { label: "Tank empty", ok: tankEmpty },
-        { label: "Devices without faults", ok: devicesHealthy },
-        { label: "Mixer connected", ok: mixerReady },
-        { label: "All valves closed", ok: valvesClosed }
+        { label: "Tank empty", ok: root.tankEmpty },
+        { label: "Devices without faults", ok: root.devicesHealthy },
+        { label: "Mixer connected", ok: root.mixerReady },
+        { label: "All valves closed", ok: root.valvesClosed }
     ]
 
     Column {
@@ -78,7 +65,7 @@ Item {
             height: 42
             text: "START BATCH"
             enabled: root.checks.every(function(check) { return check.ok })
-            onClicked: batchController.tryStartBatch(operatorSession.operatorName)
+            onClicked: root.controller.tryStartBatch(root.operatorName)
 
             background: Rectangle {
                 color: startButton.enabled ? "#f7f8f8" : "#d7dadd"

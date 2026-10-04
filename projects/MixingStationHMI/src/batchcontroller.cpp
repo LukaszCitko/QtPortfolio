@@ -32,6 +32,7 @@ BatchController::BatchController(
     Q_ASSERT(m_pump3);
     Q_ASSERT(m_valve3);
     Q_ASSERT(m_valve4);
+    Q_ASSERT(m_mixer);
     Q_ASSERT(m_mixingTank);
 
     connect(m_mixingTank, &MixingTank::volumeChanged, this, &BatchController::onTankVolumeChanged);
@@ -42,6 +43,17 @@ BatchController::BatchController(
     connect(m_pump3, &Pump::stateChanged, this, &BatchController::onPump3StateChanged);
     connect(this, &BatchController::stateChanged, this, &BatchController::transferAllowedChanged);
     connect(m_mixingTank, &MixingTank::temperatureChanged, this, &BatchController::transferAllowedChanged);
+    connect(m_mixingTank, &MixingTank::volumeChanged, this, &BatchController::startConditionsChanged);
+    connect(m_mixingTank, &MixingTank::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_mixer, &Mixer::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_mixer, &Mixer::connectionChanged, this, &BatchController::startConditionsChanged);
+    connect(m_pump1, &Pump::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_pump2, &Pump::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_pump3, &Pump::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_valve1, &Valve::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_valve2, &Valve::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_valve3, &Valve::stateChanged, this, &BatchController::startConditionsChanged);
+    connect(m_valve4, &Valve::stateChanged, this, &BatchController::startConditionsChanged);
 }
 
 BatchController::State BatchController::state() const
@@ -109,34 +121,50 @@ QString BatchController::stopReasonText() const
     }
     return "UNKNOWN";
 }
+bool BatchController::tankEmpty() const
+{
+    return m_mixingTank->volume() == 0.0;
+}
+
+bool BatchController::devicesHealthy() const
+{
+    return m_pump1->state() != Pump::State::Fault
+           && m_pump2->state() != Pump::State::Fault
+           && m_pump3->state() != Pump::State::Fault
+           && m_valve1->state() != Valve::State::Fault
+           && m_valve2->state() != Valve::State::Fault
+           && m_valve3->state() != Valve::State::Fault
+           && m_valve4->state() != Valve::State::Fault
+           && m_mixer->state() != Mixer::State::Fault
+           && m_mixingTank->state() != MixingTank::State::Fault;
+}
+
+bool BatchController::mixerReady() const
+{
+    return m_mixer->isConnected()
+    && m_mixer->state() != Mixer::State::Fault;
+}
+
+bool BatchController::valvesClosed() const
+{
+    return m_valve1->state() == Valve::State::Closed
+           && m_valve2->state() == Valve::State::Closed
+           && m_valve3->state() == Valve::State::Closed
+           && m_valve4->state() == Valve::State::Closed;
+}
 
 bool BatchController::tryStartBatch(const QString &operatorName)
 {
     if (m_state != State::Idle || operatorName.trimmed().isEmpty())
         return false;
 
-    if (m_mixingTank->volume() != 0.0 ||
-        m_mixingTank->state() == MixingTank::State::Fault)
+    if (!tankEmpty()
+        || !devicesHealthy()
+        || !mixerReady()
+        || !valvesClosed())
+    {
         return false;
-
-    if (!m_mixer->isConnected() ||
-        m_mixer->state() == Mixer::State::Fault)
-        return false;
-
-    if (m_pump1->state() == Pump::State::Fault ||
-        m_pump2->state() == Pump::State::Fault ||
-        m_pump3->state() == Pump::State::Fault ||
-        m_valve1->state() == Valve::State::Fault ||
-        m_valve2->state() == Valve::State::Fault ||
-        m_valve3->state() == Valve::State::Fault ||
-        m_valve4->state() == Valve::State::Fault)
-        return false;
-
-    if (m_valve1->state() != Valve::State::Closed ||
-        m_valve2->state() != Valve::State::Closed ||
-        m_valve3->state() != Valve::State::Closed ||
-        m_valve4->state() != Valve::State::Closed)
-        return false;
+    }
 
     startBatch();
     return m_state == State::FillingWater;

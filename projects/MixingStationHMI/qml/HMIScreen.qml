@@ -218,6 +218,18 @@ ApplicationWindow {
                 drainRequestService: drainService
                 highlightedTag: window.highlightedEquipmentTag
 
+                waterPumpDevice: pump1
+                waterValveDevice: valve1
+                concentratePumpDevice: pump2
+                concentrateValveDevice: valve2
+                transferPumpDevice: pump3
+                transferValveDevice: valve3
+                mixerDevice: mixer
+                tankDevice: mixingTank
+                drainValveDevice: valve4
+                operatorSelected: operatorSession.selected
+                canApproveDrain: operatorSession.canApproveDrain
+                batchDevice: batchController
             }
             SimulationControlPanel {
                 anchors.fill: parent
@@ -235,6 +247,8 @@ ApplicationWindow {
                 anchors.fill: parent
                 anchors.margins: 24
                 visible: window.activePage === "TRENDS"
+                liveSource: trendRecorder
+                historySource: trendHistorySource
             }
             Rectangle {
                 id: eventManagerHistory

@@ -3,10 +3,12 @@ import QtQuick.Controls.Basic
 
 Rectangle {
     id: root
+    required property var liveSource
+    required property var historySource
     readonly property var dataSource:
-        trendHistorySource.runId === ""
-        ? trendRecorder
-        : trendHistorySource
+        root.historySource.runId === ""
+        ? root.liveSource
+        : root.historySource
 
     color: "#eceeef"
     border.color: "#a5aaad"
@@ -31,18 +33,18 @@ Rectangle {
                 font.pixelSize: 20
                 font.bold: true
 
-                text: trendHistorySource.runId === ""
+                text: root.historySource.runId === ""
                       ? "PROCESS TRENDS · LATEST RUN"
                       : "PROCESS TRENDS · RUN "
-                        + trendHistorySource.runId.substring(0, 8)
+                        + root.historySource.runId.substring(0, 8)
             }
 
             Button {
                 width: 180
                 height: parent.height
                 text: "LIVE TREND"
-                enabled: trendHistorySource.runId !== ""
-                onClicked: trendHistorySource.loadRun("")
+                enabled: root.historySource.runId !== ""
+                onClicked: root.historySource.loadRun("")
             }
         }
 

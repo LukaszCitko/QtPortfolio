@@ -48,6 +48,7 @@ private slots:
     void batchIdRemainsDuringDrainAndClearsAtEnd();
     void mixerRpmFollowsBatchStages();
     void mixerRpmRecoversAfterFaultDuringTemperatureCheck();
+    void startConditionsReflectDeviceState();
 
     //emergency
     void emergencyDrainStopsAllProcessDevices();
@@ -126,6 +127,41 @@ void TestBatchController::tryStartBatchChecksConditions()
     QVERIFY(controller.tryStartBatch("Operator A"));
     QCOMPARE(controller.state(), BatchController::State::FillingWater);
     QVERIFY(pump1.isRunning());
+}
+void TestBatchController::startConditionsReflectDeviceState()
+{
+    TEST_DEVICES
+
+            QVERIFY(controller.tankEmpty());
+    QVERIFY(controller.devicesHealthy());
+    QVERIFY(!controller.mixerReady());
+    QVERIFY(controller.valvesClosed());
+
+    QSignalSpy conditionsSpy(
+        &controller,
+        &BatchController::startConditionsChanged);
+
+    mixer.connect();
+
+    QVERIFY(controller.mixerReady());
+    QCOMPARE(conditionsSpy.count(), 1);
+
+    valve1.open();
+
+    QVERIFY(!controller.valvesClosed());
+
+    valve1.close();
+    pump2.setFault();
+
+    QVERIFY(!controller.devicesHealthy());
+
+    pump2.resetFault();
+
+    QVERIFY(controller.devicesHealthy());
+
+    tank.addWater(1.0);
+
+    QVERIFY(!controller.tankEmpty());
 }
 
 void TestBatchController::startBatchStartsWaterFilling()

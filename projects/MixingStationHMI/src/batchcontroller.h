@@ -18,6 +18,10 @@ class BatchController : public QObject
     Q_PROPERTY(int mixingSecondsRemaining READ mixingSecondsRemaining NOTIFY mixingTimeChanged)
     Q_PROPERTY(QString batchId READ batchId NOTIFY batchIdChanged)
     Q_PROPERTY(bool transferAllowed READ transferAllowed NOTIFY transferAllowedChanged)
+    Q_PROPERTY(bool tankEmpty READ tankEmpty NOTIFY startConditionsChanged)
+    Q_PROPERTY(bool devicesHealthy READ devicesHealthy NOTIFY startConditionsChanged)
+    Q_PROPERTY(bool mixerReady READ mixerReady NOTIFY startConditionsChanged)
+    Q_PROPERTY(bool valvesClosed READ valvesClosed NOTIFY startConditionsChanged)
 public:
     enum class State
     {
@@ -64,22 +68,26 @@ public:
 
     State state() const;
 
-    Q_INVOKABLE bool tryStartBatch(const QString &operatorName);
     Q_INVOKABLE void startTransfer();
-                void emergencyDrain();
     Q_INVOKABLE void pause();
     Q_INVOKABLE void resume();
     Q_INVOKABLE bool prepareNextBatch();
+    Q_INVOKABLE bool tryStartBatch(const QString &operatorName);
 
     StopReason stopReason() const;
     QString stopReasonText() const;
     QString batchId() const;
     QString stateText() const;
     int stageIndex() const;
+    int mixingSecondsRemaining() const;
+    void emergencyDrain();
     void startBatch();
     void simulateStep(double elapsedSeconds);
-    int mixingSecondsRemaining() const;
     bool transferAllowed() const;
+    bool tankEmpty() const;
+    bool devicesHealthy() const;
+    bool mixerReady() const;
+    bool valvesClosed() const;
 
 signals:
     void stateChanged();
@@ -87,6 +95,7 @@ signals:
     void stageCompleted(BatchController::State completedStage);
     void batchIdChanged();
     void transferAllowedChanged();
+    void startConditionsChanged();
 
 private slots:
     void onTankVolumeChanged();

@@ -9,29 +9,79 @@ Rectangle {
     required property bool resetFaultAllowed
     required property var resetService
     required property var drainRequestService
+    required property var drainValveDevice
+    required property var waterPumpDevice
+    required property var waterValveDevice
+    required property var concentratePumpDevice
+    required property var concentrateValveDevice
+    required property var transferPumpDevice
+    required property var transferValveDevice
+    required property var mixerDevice
+    required property var tankDevice
+    required property bool operatorSelected
+    required property bool canApproveDrain
+    required property var batchDevice
+
     signal rpmRequested(var device, string tag)
 
     readonly property bool drainAvailable:
-        operatorSession.selected
-        && mixingTank.volume > 0
-        && mixingTank.stateText !== "FAULT"
-        && valve4.stateText === "CLOSED"
-        && batchController.stateText !== "DRAINING"
+        root.operatorSelected
+        && root.tankDevice.volume > 0
+        && root.tankDevice.stateText !== "FAULT"
+        && root.drainValveDevice.stateText === "CLOSED"
+        && root.batchDevice.stateText !== "DRAINING"
+
+    readonly property var devices: [
+        {
+            tag: "P1",
+            name: "WATER PUMP",
+            device: root.waterPumpDevice
+        },
+        {
+            tag: "V1",
+            name: "WATER VALVE",
+            device: root.waterValveDevice
+        },
+        {
+            tag: "P2",
+            name: "CONCENTRATE PUMP",
+            device: root.concentratePumpDevice
+        },
+        {
+            tag: "V2",
+            name: "CONCENTRATE VALVE",
+            device: root.concentrateValveDevice
+        },
+        {
+            tag: "P3",
+            name: "TRANSFER PUMP",
+            device: root.transferPumpDevice
+        },
+        {
+            tag: "V3",
+            name: "TRANSFER VALVE",
+            device: root.transferValveDevice
+        },
+        {
+            tag: "M1",
+            name: "MIXER",
+            device: root.mixerDevice
+        },
+        {
+            tag: "TK1",
+            name: "MIXING TANK",
+            device: root.tankDevice
+        },
+        {
+            tag: "V4",
+            name: "DRAIN VALVE",
+            device: root.drainValveDevice
+        }
+    ]
 
     color: "#eceeef"
     border.color: "#a5aaad"
 
-    readonly property var devices: [
-        { tag: "P1", name: "WATER PUMP", device: pump1 },
-        { tag: "V1", name: "WATER VALVE", device: valve1 },
-        { tag: "P2", name: "CONCENTRATE PUMP", device: pump2 },
-        { tag: "V2", name: "CONCENTRATE VALVE", device: valve2 },
-        { tag: "P3", name: "TRANSFER PUMP", device: pump3 },
-        { tag: "V3", name: "TRANSFER VALVE", device: valve3 },
-        { tag: "M1", name: "MIXER", device: mixer },
-        { tag: "TK1", name: "MIXING TANK", device: mixingTank },
-        { tag: "V4", name: "DRAIN VALVE", device: valve4 }
-    ]
 
     Text {
         id: title
@@ -126,14 +176,21 @@ Rectangle {
                           ? "FAULT ACTIVE · CHECK ALARMS"
                           : pumpCard ?
                             "TARGET " + Math.round(modelData.device.targetRpm) + " RPM · TAP TO SET"
-                            : modelData.tag === "M1" ? (mixer.connected
-                                                     ? Math.round(mixer.actualRpm) + " / " + Math.round(mixer.targetRpm) + " RPM"
-                                                     : "DISCONNECTED")
-                            : modelData.tag === "TK1" ? "VOLUME " + mixingTank.volume.toFixed(1) + " L"
-                            : modelData.tag === "V4" ? (batchController.stateText === "DRAINING"
-                                                    ? "DRAIN IN PROGRESS" : root.drainAvailable
-                                                    ? "DRAIN TK1 · TAP TO CONFIRM"
-                                                    : mixingTank.volume <= 0 ? "TK1 EMPTY" : "DRAIN UNAVAILABLE")
+                              : modelData.tag === "M1" ? (modelData.device.connected
+                                                       ? Math.round(modelData.device.actualRpm)
+                                                         + " / "
+                                                         + Math.round(modelData.device.targetRpm)
+                                                         + " RPM"
+                                                       : "DISCONNECTED")
+                              : modelData.tag === "TK1"
+                                  ? "VOLUME " + modelData.device.volume.toFixed(1) + " L"
+                              : modelData.tag === "V4" ? (root.batchDevice.stateText === "DRAINING"
+                                                       ? "DRAIN IN PROGRESS"
+                                                       : root.drainAvailable
+                                                       ? "DRAIN TK1 · TAP TO CONFIRM"
+                                                       : root.tankDevice.volume <= 0
+                                                       ? "TK1 EMPTY"
+                                                       : "DRAIN UNAVAILABLE")
                             : ""
 
                     color: equipmentCard.fault ? "#8f2222" : "#596368"
@@ -199,17 +256,17 @@ Rectangle {
         height: 200
         modal: true
         focus: true
-        title: operatorSession.canApproveDrain
+        title: root.canApproveDrain
                ? "CONFIRM DRAIN"
                : "TECHNICIAN AUTHORIZATION REQUIRED"
 
-        standardButtons: operatorSession.canApproveDrain
+        standardButtons: root.canApproveDrain
                          ? (Dialog.Ok | Dialog.Cancel)
                          : Dialog.Cancel
 
         Text {
             width: parent.width
-            text: operatorSession.canApproveDrain
+            text: root.canApproveDrain
                   ? "Stop the current batch and drain TK1 through V4?"
                   : "Drain is unavailable for the selected operator. Technician authorization is required."
             color: "#252a2d"

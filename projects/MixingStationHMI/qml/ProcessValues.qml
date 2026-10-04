@@ -9,6 +9,7 @@ Rectangle {
     required property bool hasActiveFault
     required property bool operatorSelected
     required property var mixerDevice
+    required property string operatorName
 
     color: "#eceeef"
     border.color: "#a5aaad"
@@ -110,7 +111,10 @@ Rectangle {
             width: parent.width
             height: 184
             visible: root.controller.stateText === "IDLE"
+
+            controller: root.controller
             operatorSelected: root.operatorSelected
+            operatorName: root.operatorName
         }
         BatchActions {
             width: parent.width
