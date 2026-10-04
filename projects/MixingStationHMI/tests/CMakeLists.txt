@@ -119,7 +119,7 @@ target_link_libraries(test_eventrepository
 )
 
 add_executable(test_trendsamplerepository
-    tst_trendssamplerepository.cpp
+    tst_trendsamplerepository.cpp
     ../src/database/databaseschema.cpp
     ../src/database/trendsamplerepository.cpp
 )
