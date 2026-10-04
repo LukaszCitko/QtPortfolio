@@ -1,41 +1,40 @@
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QTimer>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
+#include <QTimer>
 
-#include "pump.h"
-#include "valve.h"
+#include "batchcontroller.h"
+#include "drainservice.h"
+#include "eventmanager.h"
+#include "faultresetservice.h"
 #include "mixer.h"
 #include "mixingtank.h"
-#include "batchcontroller.h"
-#include "processsimulator.h"
-#include "eventmanager.h"
 #include "operatorsession.h"
+#include "processeventcoordinator.h"
+#include "processsimulator.h"
+#include "pump.h"
 #include "trendrecorder.h"
-#include "drainservice.h"
-#include "faultresetservice.h"
+#include "usermanagementservice.h"
+#include "valve.h"
 
 #include "database/databaseschema.h"
-#include "database/userlistmodel.h"
-#include "database/runrepository.h"
-#include "processeventcoordinator.h"
-#include "database/runpersistencecoordinator.h"
-#include "database/eventrepository.h"
-#include "database/eventhistorymodel.h"
-#include "database/trendsamplerepository.h"
-#include "database/runlistmodel.h"
-#include "database/trendhistorysource.h"
-#include "database/userrepository.h"
 #include "database/demouserseeder.h"
-#include "usermanagementservice.h"
-
+#include "database/eventhistorymodel.h"
+#include "database/eventrepository.h"
+#include "database/runlistmodel.h"
+#include "database/runpersistencecoordinator.h"
+#include "database/runrepository.h"
+#include "database/trendhistorysource.h"
+#include "database/trendsamplerepository.h"
+#include "database/userlistmodel.h"
+#include "database/userrepository.h"
 
 int main(int argc, char *argv[])
 {
@@ -43,7 +42,8 @@ int main(int argc, char *argv[])
 
     const QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 
-    if (dataPath.isEmpty() || !QDir().mkpath(dataPath)) {
+    if (dataPath.isEmpty() || !QDir().mkpath(dataPath))
+    {
         qCritical() << "Cannot create application data directory:" << dataPath;
         return 1;
     }
@@ -73,14 +73,16 @@ int main(int argc, char *argv[])
     QSqlDatabase database = QSqlDatabase::addDatabase("QSQLITE");
     database.setDatabaseName(databasePath);
 
-
-    if (!database.open()) {qCritical() << "Cannot open SQLite database:"
+    if (!database.open())
+    {
+        qCritical() << "Cannot open SQLite database:"
                     << database.lastError().text();
         return 1;
     }
 
     QSqlQuery foreignKeys(database);
-    if (!foreignKeys.exec("PRAGMA foreign_keys = ON")) {
+    if (!foreignKeys.exec("PRAGMA foreign_keys = ON"))
+    {
         qCritical() << "Cannot enable SQLite foreign keys:"
                     << foreignKeys.lastError().text();
         return 1;
@@ -96,7 +98,8 @@ int main(int argc, char *argv[])
 
     QString demoUsersError;
 
-    if (!seedDemoUsersIfEmpty(database, &demoUsersError)) {
+    if (!seedDemoUsersIfEmpty(database, &demoUsersError))
+    {
         qCritical() << "Cannot prepare demo users:" << demoUsersError;
         return 1;
     }
@@ -105,7 +108,8 @@ int main(int argc, char *argv[])
     UserRepository userRepository(database);
 
     QString usersError;
-    if (!userListModel.reload(&usersError)) {
+    if (!userListModel.reload(&usersError))
+    {
         qCritical() << "Cannot load users:" << usersError;
         return 1;
     }
@@ -117,13 +121,15 @@ int main(int argc, char *argv[])
     RunListModel runListModel(database);
     TrendHistorySource trendHistorySource(database);
     QString runsError;
-    if (!runListModel.reload(&runsError)) {
+    if (!runListModel.reload(&runsError))
+    {
         qCritical() << "Cannot load runs:" << runsError;
         return 1;
     }
 
     QString historyError;
-    if (!eventHistoryModel.reload(&historyError)) {
+    if (!eventHistoryModel.reload(&historyError))
+    {
         qCritical() << "Cannot load event history:" << historyError;
         return 1;
     }
@@ -152,7 +158,8 @@ int main(int argc, char *argv[])
                          QString error;
 
                          if (!eventRepository.saveEvent(runId, timestampMs, level,
-                                                        source, message, &error)) {
+                                                        source, message, &error))
+                         {
                              qCritical() << "Cannot save event:" << error;
                              return;
                          }
@@ -168,20 +175,16 @@ int main(int argc, char *argv[])
     processEventCoordinator.watchFaults(pump1, valve1, pump2, valve2, pump3, valve3, mixer, mixingTank, valve4);
     processEventCoordinator.watchMixerConnection(mixer);
 
-// Process services
     ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &mixingTank);
-
-// Batch controller
     BatchController batchController(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
-
-//Trend recorder
     TrendRecorder trendRecorder(&mixingTank);
 
     QObject::connect(&trendRecorder, &TrendRecorder::sampleRecorded, &trendRecorder,
                      [&trendSampleRepository](const QString &runId, qint64 timestampMs, double volumeL, double temperatureC)
                      {
                          QString error;
-                         if (!trendSampleRepository.saveSample(runId, timestampMs, volumeL, temperatureC, &error)) {
+                         if (!trendSampleRepository.saveSample(runId, timestampMs, volumeL, temperatureC, &error))
+                         {
                              qCritical() << "Cannot save trend sample:" << error;
                          }
                      }
@@ -190,10 +193,14 @@ int main(int argc, char *argv[])
     QTimer batchTimer;
     batchTimer.setInterval(100);
 
-    QObject::connect(&batchTimer, &QTimer::timeout, &batchController, [&batchController](){ batchController.simulateStep(0.1); });
+    QObject::connect(&batchTimer, &QTimer::timeout, &batchController,
+                     [&batchController]()
+                     {
+                         batchController.simulateStep(0.1);
+                     }
+    );
 
     batchTimer.start();
-
 
     OperatorSession operatorSession(database);
     UserManagementService userManagementService(operatorSession, userRepository, userListModel, eventManager);
@@ -209,8 +216,6 @@ int main(int argc, char *argv[])
     processEventCoordinator.watchBatchId(batchController);
     runPersistenceCoordinator.watchBatchFinish(batchController);
 
-// QML context properties
-
     engine.rootContext()->setContextProperty("pump1", &pump1);
     engine.rootContext()->setContextProperty("valve1", &valve1);
     engine.rootContext()->setContextProperty("pump2", &pump2);
@@ -222,20 +227,25 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mixer", &mixer);
     engine.rootContext()->setContextProperty("batchController", &batchController);
     engine.rootContext()->setContextProperty("operatorSession", &operatorSession);
-    engine.rootContext()->setContextProperty("eventManager",&eventManager);
+    engine.rootContext()->setContextProperty("eventManager", &eventManager);
     engine.rootContext()->setContextProperty("trendRecorder", &trendRecorder);
     engine.rootContext()->setContextProperty("userListModel", &userListModel);
     engine.rootContext()->setContextProperty("eventHistoryModel", &eventHistoryModel);
     engine.rootContext()->setContextProperty("runListModel", &runListModel);
     engine.rootContext()->setContextProperty("trendHistorySource", &trendHistorySource);
-    engine.rootContext()->setContextProperty("faultResetService",  &faultResetService);
+    engine.rootContext()->setContextProperty("faultResetService", &faultResetService);
     engine.rootContext()->setContextProperty("drainService", &drainService);
     engine.rootContext()->setContextProperty("userManagementService", &userManagementService);
 
-    // QML loading
-
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
-        [](){QCoreApplication::exit(-1);},Qt::QueuedConnection);
+    QObject::connect(
+        &engine,
+        &QQmlApplicationEngine::objectCreationFailed,
+        &app,
+        []()
+        {
+            QCoreApplication::exit(-1);
+        },
+        Qt::QueuedConnection);
 
     engine.loadFromModule("MixingStationHMI", "HMIScreen");
 
