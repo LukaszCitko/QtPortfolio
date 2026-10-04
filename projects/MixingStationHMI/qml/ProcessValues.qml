@@ -25,11 +25,11 @@ Rectangle {
 
             Text {
                 width: 176
-                text: (root.tank.temperature < 58.0 && mixingTank.volume !== 0) ?
+                text: (root.tank.temperature < 58.0 && root.tank.volume !== 0) ?
                         "Temperature (TOO LOW)" : root.tank.temperature > 62.0
                         ? "Temperature (TOO HIGH)": "Temperature"
 
-                color: ((root.tank.temperature < 58.0 || root.tank.temperature > 62.0) && mixingTank.volume !== 0) ? "#b63838": "#252a2d"
+                color: ((root.tank.temperature < 58.0 || root.tank.temperature > 62.0) && root.tank.volume !== 0) ? "#b63838": "#252a2d"
 
                 font.pixelSize: 18
             }
@@ -109,7 +109,7 @@ Rectangle {
         PreCheckPanel {
             width: parent.width
             height: 184
-            visible: batchController.stateText === "IDLE"
+            visible: root.controller.stateText === "IDLE"
             operatorSelected: root.operatorSelected
         }
         BatchActions {
