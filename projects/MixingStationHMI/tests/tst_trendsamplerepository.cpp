@@ -52,4 +52,4 @@ void TestTrendSampleRepository::storesSampleForExistingRun()
 }
 
 QTEST_GUILESS_MAIN(TestTrendSampleRepository)
-#include "tst_trendssamplerepository.moc"
+#include "tst_trendsamplerepository.moc"

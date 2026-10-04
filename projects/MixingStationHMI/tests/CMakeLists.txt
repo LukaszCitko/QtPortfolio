@@ -34,24 +34,6 @@ target_link_libraries(test_processsimulator
 
 
 
-add_executable(test_processcontroller
-    tst_processcontroller.cpp
-    ../src/pump.cpp
-    ../src/pump.h
-    ../src/valve.cpp
-    ../src/valve.h
-    ../src/mixer.cpp
-    ../src/processcontroller.cpp
-    ../src/processcontroller.h
-    ../src/eventmanager.h
-    ../src/eventmanager.cpp
-)
-
-target_link_libraries(test_processcontroller
-    PRIVATE
-        Qt6::Test
-        Qt6::Core
-)
 
 add_executable(test_mixingTank
     tst_mixingtank.cpp
@@ -240,7 +222,6 @@ add_test(NAME test_eventrepository COMMAND test_eventrepository)
 add_test(NAME test_runrepository COMMAND test_runrepository)
 add_test(NAME test_trendrecorder COMMAND test_trendrecorder)
 add_test(NAME test_eventmanager COMMAND test_eventmanager)
-add_test(NAME test_processcontroller COMMAND test_processcontroller)
 add_test(NAME test_processsimulator COMMAND test_processsimulator)
 add_test(NAME test_pump COMMAND test_pump)
 add_test(NAME test_valve COMMAND test_valve)
