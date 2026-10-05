@@ -23,7 +23,7 @@ A touch-oriented batch mixing station HMI built with Qt 6.8, C++ and QML. This p
 4. Watch water filling and concentrate dosing. The mixer then runs at 800 RPM for 15 seconds; after mixing it returns to 200 RPM while waiting for transfer.
 5. Press **START TRANSFER**. Open **TRENDS** for live data or **HISTORY** to inspect a saved run and its historical trend.
 
-To explore faults, inject a P1 or M1 fault in **SIMULATION**. A technician or admin can reset the supported fault from **EQUIPMENT**. The simulation panel also includes an explicitly labelled **DEMO RESET** for an operator during a batch; its use is logged as a simulation override.
+To explore faults, inject a P1 or M1 fault in **SIMULATION**. A technician or admin can reset the supported fault from **EQUIPMENT**. The simulation panel also includes explicitly labelled **DEMO RESET** and **DEMO DRAIN TK1** overrides for an operator; their use is logged as a simulation override.
 
 ## Screens
 
@@ -56,4 +56,4 @@ The C++ process objects and services expose state and actions to QML. Repositori
 
 ## Scope of this version
 
-This is a portfolio **simulation**, not a controller for physical equipment. Demo login has no card, chip or password authentication. No hardware I/O, physical interlocks or production safety validation are implemented. The **DEMO RESET** path is intentionally limited to the simulator and should not be treated as an equipment permission.
+This is a portfolio **simulation**, not a controller for physical equipment. Demo login has no card, chip or password authentication. No hardware I/O, physical interlocks or production safety validation are implemented. The **DEMO RESET** and **DEMO DRAIN TK1** paths are intentionally limited to the simulator and should not be treated as an equipment permission.
