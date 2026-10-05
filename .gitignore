@@ -14,3 +14,7 @@ cmake-build-*/
 
 # Editor autosave files
 *.autosave
+
+# CTest generated output
+Testing/
+
