@@ -12,6 +12,30 @@ find_package(Qt6 REQUIRED COMPONENTS Quick Sql)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
+function(enable_project_warnings target)
+    if(MSVC)
+        target_compile_options(${target}
+            PRIVATE
+                /W4
+                /permissive-
+        )
+    else()
+        target_compile_options(${target}
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+        )
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(${target}
+                PRIVATE
+                    -Wno-gnu-zero-variadic-macro-arguments
+            )
+        endif()
+    endif()
+
+endfunction()
+
 qt_add_library(mixingstation_core STATIC
     src/accesspolicy.cpp
     src/accesspolicy.h
@@ -69,6 +93,8 @@ target_link_libraries(mixingstation_core
         Qt6::Core
         Qt6::Sql
 )
+
+enable_project_warnings(mixingstation_core)
 
 qt_add_executable(appMixingStationHMI
     src/main.cpp
@@ -129,6 +155,8 @@ target_link_libraries(appMixingStationHMI
         Qt6::Quick
         Qt6::Sql
 )
+
+enable_project_warnings(appMixingStationHMI)
 
 install(TARGETS appMixingStationHMI
     BUNDLE DESTINATION .

@@ -1,0 +1,68 @@
+name: MixingStationHMI CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "projects/MixingStationHMI/**"
+      - ".github/workflows/mixingstation-ci.yml"
+
+  pull_request:
+    paths:
+      - "projects/MixingStationHMI/**"
+      - ".github/workflows/mixingstation-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mixingstation-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test on Linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    defaults:
+      run:
+        working-directory: projects/MixingStationHMI
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          install-deps: true
+          cache: true
+
+      - name: Configure
+        run: >
+          cmake
+          -S .
+          -B build/ci
+          -DCMAKE_BUILD_TYPE=Debug
+          -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build/ci --parallel 2
+
+      - name: Run tests
+        run: >
+          ctest
+          --test-dir build/ci
+          --parallel 2
+          --output-on-failure
