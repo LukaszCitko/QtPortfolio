@@ -54,6 +54,36 @@ Replace `CMAKE_PREFIX_PATH` with the location of your Qt installation. Run `appM
 
 The C++ process objects and services expose state and actions to QML. Repositories write runs, events and trend samples to SQLite; list models read persisted data for the HMI.
 
+## Roadmap: Embedded Linux
+
+The next development phase will extend the existing desktop simulation into an Embedded Linux HMI while preserving the tested simulation mode.
+
+Planned work:
+
+- Introduce a process I/O abstraction between `BatchController` and the equipment layer.
+- Keep the current simulator as a `SimulationBackend`.
+- Add a `ModbusBackend`, starting with Modbus TCP and later allowing Modbus RTU over RS-485.
+- Read process values and equipment status from external registers and write pump, valve and mixer commands.
+- Handle communication timeout, stale data, reconnection and safe process shutdown.
+- Deploy the application to an ARM-based Embedded Linux device with a 10.1-inch, 1280 × 800 touchscreen.
+- Run the HMI in fullscreen mode and start it automatically as a system service.
+- Add communication integration tests, deployment instructions and a hardware demonstration.
+
+The intended architecture is:
+
+```text
+Qt/QML HMI
+    |
+BatchController
+    |
+Process I/O interface
+    |
+    +-- SimulationBackend
+    |
+    +-- ModbusBackend
+            |
+            +-- PLC, remote I/O or microcontroller
+
 ## Scope of this version
 
 This is a portfolio **simulation**, not a controller for physical equipment. Demo login has no card, chip or password authentication. No hardware I/O, physical interlocks or production safety validation are implemented. The **DEMO RESET** and **DEMO DRAIN TK1** paths are intentionally limited to the simulator and should not be treated as an equipment permission.
