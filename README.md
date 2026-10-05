@@ -6,6 +6,8 @@ This repository presents my work with C++, Qt/QML and software for industrial pr
 
 ### [MixingStationHMI](projects/MixingStationHMI/)
 
+[![MixingStationHMI CI](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml/badge.svg?branch=main)](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml)
+
 A touch-oriented HMI simulation for a batch mixing station. The application guides a batch through pre-start checks, water filling, concentrate dosing, temperature validation, mixing and transfer. Equipment faults can pause the process, while events and trend samples are saved for later review.
 
 **Technologies:** C++, Qt 6.8, QML, SQLite, CMake and Qt Test.
