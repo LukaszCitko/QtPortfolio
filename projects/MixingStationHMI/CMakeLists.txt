@@ -12,15 +12,9 @@ find_package(Qt6 REQUIRED COMPONENTS Quick Sql)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
-qt_add_executable(appMixingStationHMI
-    src/main.cpp
-
+qt_add_library(mixingstation_core STATIC
     src/accesspolicy.cpp
     src/accesspolicy.h
-    src/batchcontroller.cpp
-    src/batchcontroller.h
-    src/drainservice.cpp
-    src/drainservice.h
     src/eventmanager.cpp
     src/eventmanager.h
     src/faultresetservice.cpp
@@ -31,8 +25,6 @@ qt_add_executable(appMixingStationHMI
     src/mixingtank.h
     src/operatorsession.cpp
     src/operatorsession.h
-    src/processeventcoordinator.cpp
-    src/processeventcoordinator.h
     src/processsimulator.cpp
     src/processsimulator.h
     src/pump.cpp
@@ -54,8 +46,7 @@ qt_add_executable(appMixingStationHMI
     src/database/eventrepository.h
     src/database/runlistmodel.cpp
     src/database/runlistmodel.h
-    src/database/runpersistencecoordinator.cpp
-    src/database/runpersistencecoordinator.h
+
     src/database/runrepository.cpp
     src/database/runrepository.h
     src/database/trendhistorysource.cpp
@@ -66,6 +57,31 @@ qt_add_executable(appMixingStationHMI
     src/database/userlistmodel.h
     src/database/userrepository.cpp
     src/database/userrepository.h
+)
+
+target_include_directories(mixingstation_core
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(mixingstation_core
+    PUBLIC
+        Qt6::Core
+        Qt6::Sql
+)
+
+qt_add_executable(appMixingStationHMI
+    src/main.cpp
+
+    src/batchcontroller.cpp
+    src/batchcontroller.h
+    src/drainservice.cpp
+    src/drainservice.h
+    src/processeventcoordinator.cpp
+    src/processeventcoordinator.h
+
+    src/database/runpersistencecoordinator.cpp
+    src/database/runpersistencecoordinator.h
 )
 
 qt_add_qml_module(appMixingStationHMI
@@ -109,6 +125,7 @@ set_target_properties(appMixingStationHMI PROPERTIES
 
 target_link_libraries(appMixingStationHMI
     PRIVATE
+        mixingstation_core
         Qt6::Quick
         Qt6::Sql
 )
