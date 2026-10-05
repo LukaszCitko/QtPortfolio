@@ -8,11 +8,11 @@ Item {
     required property bool hasActiveFault
 
     readonly property bool canPause:
-        controller.stateText === "FILLING WATER"
-        || controller.stateText === "DOSING CONCENTRATE"
-        || controller.stateText === "TEMPERATURE CHECK"
-        || controller.stateText === "MIXING"
-        || controller.stateText === "TRANSFERRING"
+        root.controller.state === BatchController.FillingWater
+        || root.controller.state === BatchController.DosingConcentrate
+        || root.controller.state === BatchController.TemperatureCheck
+        || root.controller.state === BatchController.Mixing
+        || root.controller.state === BatchController.Transferring
 
     Column {
         anchors.fill: parent
@@ -26,7 +26,7 @@ Item {
 
         Text {
             visible: root.controller.stageIndex === 4
-            text: root.controller.stateText === "READY FOR TRANSFER"
+            text: root.controller.state === BatchController.ReadyForTransfer
                   ? "MIXING COMPLETE · M1 RUNNING"
                   : "MIXING REMAINING  "
                     + root.controller.mixingSecondsRemaining + " s"
@@ -39,8 +39,7 @@ Item {
         Row {
             width: parent.width
             spacing: 12
-            visible: root.controller.stateText !== "READY FOR TRANSFER"
-
+            visible: root.controller.state !== BatchController.ReadyForTransfer
             Button {
                 width: (parent.width - 12) / 2
                 height: 52
@@ -53,7 +52,7 @@ Item {
                 width: (parent.width - 12) / 2
                 height: 52
                 text: "RESUME"
-                enabled: root.controller.stateText === "PAUSED"
+                enabled: root.controller.state === BatchController.Paused
                          && !root.hasActiveFault
                 onClicked: root.controller.resume()
             }
@@ -63,20 +62,20 @@ Item {
             width: parent.width
             height: 52
             text: "START TRANSFER"
-            visible: root.controller.stateText === "READY FOR TRANSFER"
+            visible: root.controller.state === BatchController.ReadyForTransfer
             enabled: visible && !root.hasActiveFault
                      && root.controller.transferAllowed
             onClicked: root.controller.startTransfer()
         }
         Text {
-            visible: root.controller.stateText === "READY FOR TRANSFER"
+            visible: root.controller.state === BatchController.ReadyForTransfer
                      && !root.controller.transferAllowed
             text: "TRANSFER BLOCKED · TK1 must be 58–62 °C"
             color: "#8f2222"
             font.pixelSize: 13
         }
         Text {
-            visible: root.controller.stateText === "PAUSED"
+            visible: root.controller.state === BatchController.Paused
                      && root.hasActiveFault
             text: "Clear the active fault before resuming."
             color: "#8f2222"

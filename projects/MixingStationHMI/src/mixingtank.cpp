@@ -45,6 +45,26 @@ MixingTank::State MixingTank::state() const
     return m_state;
 }
 
+bool MixingTank::hasFault() const
+{
+    return m_state == State::Fault;
+}
+
+bool MixingTank::isActive() const
+{
+    switch (m_state)
+    {
+    case State::Filling:
+    case State::Mixing:
+    case State::Transferring:
+    case State::Draining:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 QString MixingTank::stateText() const
 {
     switch (m_state)

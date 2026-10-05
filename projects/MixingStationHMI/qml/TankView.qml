@@ -6,7 +6,8 @@ Rectangle {
     signal mixerRequested()
     required property var tank
     required property var mixerDevice
-    readonly property bool mixerFault: mixerDevice.stateText === "FAULT"
+    readonly property bool mixerFault:
+        root.mixerDevice.fault
     readonly property color mixerLineColor:
         root.mixerFault ? "#b63838" : "#596368"
     readonly property real fillFraction:
@@ -88,7 +89,7 @@ Rectangle {
             height: 30
             radius: 3
             color: root.mixerFault ? "#f4ddda"
-                   : root.mixerDevice.stateText === "RUNNING"
+                   : root.mixerDevice.running
                      ? "#f7f8f8" : "#c5cace"
             border.color: root.mixerFault ? "#b63838" : "#596368"
             border.width: root.mixerFault ? 3 : 2

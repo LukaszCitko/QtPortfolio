@@ -22,8 +22,12 @@ public:
                  QObject *parent = nullptr);
 
     Q_INVOKABLE bool requestDrain();
+    Q_INVOKABLE bool demoRequestDrain();
 
 private:
+
+    bool startDrain();
+
     OperatorSession &m_session;
     BatchController &m_controller;
     MixingTank &m_tank;

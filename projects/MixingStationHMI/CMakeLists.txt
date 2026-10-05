@@ -93,6 +93,11 @@ qt_add_qml_module(appMixingStationHMI
         qml/assets/valve_gray.png
 )
 
+target_include_directories(appMixingStationHMI
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
 set_target_properties(appMixingStationHMI PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER com.lukaszcitko.mixingstationhmi
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

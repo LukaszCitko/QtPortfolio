@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QString>
+#include <QtQml/qqmlregistration.h>
 
 class Pump;
 class Valve;
@@ -13,6 +14,10 @@ class Mixer;
 class BatchController : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("BatchController is created in C++")
+
+    Q_PROPERTY(State state READ state NOTIFY stateChanged)
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
     Q_PROPERTY(int stageIndex READ stageIndex NOTIFY stateChanged)
     Q_PROPERTY(int mixingSecondsRemaining READ mixingSecondsRemaining NOTIFY mixingTimeChanged)

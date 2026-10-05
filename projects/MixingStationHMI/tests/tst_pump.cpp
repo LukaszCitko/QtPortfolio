@@ -22,6 +22,7 @@ void TestPump::initialState()
     QCOMPARE(pump.state(), Pump::State::Stopped);
 
     QVERIFY(!pump.isRunning());
+    QVERIFY(!pump.hasFault());
 }
 
 void TestPump::temperature()
@@ -42,6 +43,8 @@ void TestPump::startPump()
     pump.start();
 
     QVERIFY(pump.isRunning());
+    QVERIFY(pump.property("running").toBool());
+    QVERIFY(!pump.hasFault());
 }
 void TestPump::stopPump()
 {
@@ -58,6 +61,8 @@ void TestPump::faultState()
     Pump pump(1);
 
     pump.setFault();
+    QVERIFY(pump.hasFault());
+    QVERIFY(pump.property("fault").toBool());
     QCOMPARE(pump.state(), Pump::State::Fault);
     pump.start();
     QCOMPARE(pump.state(), Pump::State::Fault);
@@ -76,6 +81,7 @@ void TestPump::resetFault()
 
     QCOMPARE(pump.state(), Pump::State::Stopped);
     QVERIFY(!pump.isRunning());
+    QVERIFY(!pump.hasFault());
 
 }
 

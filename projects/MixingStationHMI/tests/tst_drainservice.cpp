@@ -64,6 +64,18 @@ void TestDrainService::requiresAuthorizationAndAvailableEquipment()
     QCOMPARE(controller.state(), BatchController::State::Draining);
     QVERIFY(valve4.isOpen());
     QCOMPARE(tank.volume(), 10.0);
+    controller.simulateStep(2.0);
+
+    QCOMPARE(controller.state(), BatchController::State::Idle);
+    QCOMPARE(tank.volume(), 0.0);
+    QVERIFY(!valve4.isOpen());
+
+    tank.addWater(10.0);
+    QVERIFY(session.selectOperator("operator-1"));
+
+    QVERIFY(service.demoRequestDrain());
+    QCOMPARE(controller.state(), BatchController::State::Draining);
+    QVERIFY(valve4.isOpen());
 }
 
 QTEST_GUILESS_MAIN(TestDrainService)

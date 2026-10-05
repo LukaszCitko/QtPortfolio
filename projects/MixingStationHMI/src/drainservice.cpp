@@ -24,13 +24,40 @@ DrainService::DrainService(OperatorSession &session,
 
 bool DrainService::requestDrain()
 {
-    const auto role = AccessPolicy::roleFromText(m_session.operatorRole());
+    const auto role =
+        AccessPolicy::roleFromText(m_session.operatorRole());
 
     if (!AccessPolicy::canApproveDrain(role)) {
-        m_events.addWarning("ACCESS", "Drain denied: technician authorization required");
+        m_events.addWarning(
+            "ACCESS",
+            "Drain denied: technician authorization required");
         return false;
     }
 
+    return startDrain();
+}
+
+bool DrainService::demoRequestDrain()
+{
+    const auto role =
+        AccessPolicy::roleFromText(m_session.operatorRole());
+
+    if (role != AccessPolicy::Role::Operator)
+        return false;
+
+    if (!startDrain())
+        return false;
+
+    m_events.addWarning(
+        "V4",
+        "Simulation override: drain requested by "
+            + m_session.operatorName());
+
+    return true;
+}
+
+bool DrainService::startDrain()
+{
     if (m_tank.volume() <= 0.0
         || m_tank.state() == MixingTank::State::Fault
         || m_drainValve.state() != Valve::State::Closed

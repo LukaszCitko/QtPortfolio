@@ -7,6 +7,8 @@ class Valve : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
+    Q_PROPERTY(bool open READ isOpen NOTIFY stateChanged)
+    Q_PROPERTY(bool fault READ hasFault NOTIFY stateChanged)
 
 public:
     enum class State
@@ -25,6 +27,8 @@ public:
     void resetFault();
     int id() const;
     bool isOpen() const;
+    bool hasFault() const;
+
     State state() const;
 
 private:

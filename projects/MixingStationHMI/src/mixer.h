@@ -11,6 +11,8 @@ class Mixer : public QObject
     Q_PROPERTY(double maxRpm READ maxRpm CONSTANT)
     Q_PROPERTY(double targetRpm READ targetRpm NOTIFY targetRpmChanged)
     Q_PROPERTY(double actualRpm READ actualRpm NOTIFY actualRpmChanged)
+    Q_PROPERTY(bool running READ isRunning NOTIFY stateChanged)
+    Q_PROPERTY(bool fault READ hasFault NOTIFY stateChanged)
 
 public:
     enum class State
@@ -42,6 +44,7 @@ public:
 
     bool isConnected() const;
     bool isRunning() const;
+    bool hasFault() const;
 
     State state() const;
 

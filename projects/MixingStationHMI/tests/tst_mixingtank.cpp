@@ -30,6 +30,10 @@ void TestMixingTank::initialState()
     QCOMPARE(tank.waterVolume(), 0.0);
     QCOMPARE(tank.concentrateVolume(), 0.0);
     QCOMPARE(tank.state(), MixingTank::State::Empty);
+    QVERIFY(!tank.hasFault());
+    QVERIFY(!tank.property("fault").toBool());
+    QVERIFY(!tank.isActive());
+    QVERIFY(!tank.property("active").toBool());
 }
 
 void TestMixingTank::waterCanBeAdded()
@@ -88,6 +92,20 @@ void TestMixingTank::stateCanBeChanged()
 
     QCOMPARE(tank.state(), MixingTank::State::ReadyForMixing);
     QCOMPARE(tank.stateText(), QString("READY FOR MIXING"));
+    QVERIFY(!tank.hasFault());
+    QVERIFY(!tank.isActive());
+
+    tank.setState(MixingTank::State::Mixing);
+
+    QVERIFY(tank.isActive());
+    QVERIFY(tank.property("active").toBool());
+
+    tank.setState(MixingTank::State::Fault);
+
+    QCOMPARE(tank.state(), MixingTank::State::Fault);
+    QVERIFY(tank.hasFault());
+    QVERIFY(tank.property("fault").toBool());
+    QVERIFY(!tank.isActive());
 }
 
 void TestMixingTank::productCanBeRemoved()

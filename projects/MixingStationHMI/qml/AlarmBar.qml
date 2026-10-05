@@ -8,7 +8,7 @@ Rectangle {
 
     readonly property var faults: root.monitoredDevices
         .filter(function(item) {
-            return item.device.stateText === "FAULT"
+            return item.device.fault
         })
         .map(function(item) {
             return item.tag

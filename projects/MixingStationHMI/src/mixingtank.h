@@ -14,6 +14,8 @@
     Q_PROPERTY(double waterVolume READ waterVolume NOTIFY compositionChanged)
     Q_PROPERTY(double concentrateVolume READ concentrateVolume NOTIFY compositionChanged)
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
+    Q_PROPERTY(bool fault READ hasFault NOTIFY stateChanged)
+    Q_PROPERTY(bool active READ isActive NOTIFY stateChanged)
 
 public:
     enum class State { Empty,
@@ -47,6 +49,8 @@ public:
 
     bool resetAfterTransfer();
     bool resetAfterDrain();
+    bool hasFault() const;
+    bool isActive() const;
 
     void setTemperature(double newTemperature);
     void setState(State newState);

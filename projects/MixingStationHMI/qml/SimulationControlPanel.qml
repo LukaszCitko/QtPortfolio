@@ -10,6 +10,7 @@ Rectangle {
     required property var waterPumpDevice
     required property bool demoOverrideEnabled
     required property var resetService
+    required property var drainRequestService
 
 
     color: "#eceeef"
@@ -53,34 +54,71 @@ Rectangle {
                 font.pixelSize: 16
             }
 
-            Button {
-                id: connectButton
-                width: 250
+            Row {
+                width: parent.width
                 height: 52
-                text: root.mixerDevice.connected
-                      ? "DISCONNECT MIXER"
-                      : "CONNECT MIXER"
-                enabled: !root.mixerDevice.connected
-                         || root.mixerDevice.stateText !== "RUNNING"
-                onClicked: {
-                    if (root.mixerDevice.connected)
-                        root.mixerDevice.disconnectDevice()
-                    else
-                        root.mixerDevice.connect()
-                }
-                background: Rectangle {
-                    color: connectButton.enabled ? "#c5ced2" : "#d7dadd"
-                    border.color: "#858e92"
-                    radius: 4
+                spacing: 12
+
+                Button {
+                    id: connectButton
+                    width: (parent.width - parent.spacing) / 2
+                    height: parent.height
+                    text: root.mixerDevice.connected
+                          ? "DISCONNECT MIXER"
+                          : "CONNECT MIXER"
+
+                    enabled: !root.mixerDevice.connected
+                             || !root.mixerDevice.running
+
+                    onClicked: {
+                        if (root.mixerDevice.connected)
+                            root.mixerDevice.disconnectDevice()
+                        else
+                            root.mixerDevice.connect()
+                    }
+
+                    background: Rectangle {
+                        color: connectButton.enabled ? "#c5ced2" : "#d7dadd"
+                        border.color: "#858e92"
+                        radius: 4
+                    }
+
+                    contentItem: Text {
+                        text: connectButton.text
+                        color: "#252a2d"
+                        font.pixelSize: 16
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
 
-                contentItem: Text {
-                    text: connectButton.text
-                    color: "#252a2d"
-                    font.pixelSize: 16
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                Button {
+                    id: demoDrainButton
+                    width: (parent.width - parent.spacing) / 2
+                    height: parent.height
+                    visible: root.demoOverrideEnabled
+                    text: "DEMO DRAIN TK1"
+
+                    enabled: root.tankDevice.volume > 0
+                             && root.batchDevice.state !== BatchController.Draining
+
+                    onClicked: root.drainRequestService.demoRequestDrain()
+
+                    background: Rectangle {
+                        color: demoDrainButton.enabled ? "#c5ced2" : "#d7dadd"
+                        border.color: "#858e92"
+                        radius: 4
+                    }
+
+                    contentItem: Text {
+                        text: demoDrainButton.text
+                        color: demoDrainButton.enabled ? "#252a2d" : "#596368"
+                        font.pixelSize: 16
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
             }
             Text {
@@ -144,7 +182,7 @@ Rectangle {
                     width: (parent.width - 136) / 2
                     height: 52
                     text: "SET FAULT"
-                    enabled: root.waterPumpDevice.stateText !== "FAULT"
+                    enabled: !root.waterPumpDevice.fault
                     onClicked: root.waterPumpDevice.setFault()
                 }
                 Button {
@@ -152,7 +190,7 @@ Rectangle {
                     height: 52
                     text: "DEMO RESET"
                     visible: root.demoOverrideEnabled
-                    enabled: root.waterPumpDevice.stateText === "FAULT"
+                    enabled: root.waterPumpDevice.fault
                     onClicked: root.resetService.demoResetPump1()
                 }
 
@@ -176,7 +214,7 @@ Rectangle {
                     width: (parent.width - 136) / 2
                     height: 52
                     text: "SET FAULT"
-                    enabled: root.mixerDevice.stateText !== "FAULT"
+                    enabled: !root.mixerDevice.fault
                     onClicked: root.mixerDevice.setFault()
                 }
                 Button {
@@ -184,7 +222,7 @@ Rectangle {
                     height: 52
                     text: "DEMO RESET"
                     visible: root.demoOverrideEnabled
-                    enabled: root.mixerDevice.stateText === "FAULT"
+                    enabled: root.mixerDevice.fault
                     onClicked: root.resetService.demoResetMixer()
                 }
 

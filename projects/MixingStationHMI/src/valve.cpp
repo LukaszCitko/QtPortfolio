@@ -59,6 +59,10 @@ bool Valve::isOpen() const
     return m_state == State::Open;
 }
 
+bool Valve::hasFault() const
+{
+    return m_state == State::Fault;
+}
 Valve::State Valve::state() const
 {
     return m_state;

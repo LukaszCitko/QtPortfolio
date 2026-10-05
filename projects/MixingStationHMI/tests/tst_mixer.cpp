@@ -8,6 +8,7 @@ class TestMixer : public QObject
 
 private slots:
     void disconnectsOnlyWhenStopped();
+    void exposesRunningAndFaultProperties();
 };
 
 void TestMixer::disconnectsOnlyWhenStopped()
@@ -35,6 +36,33 @@ void TestMixer::disconnectsOnlyWhenStopped()
 
     mixer.start();
     QVERIFY(!mixer.isRunning());
+}
+void TestMixer::exposesRunningAndFaultProperties()
+{
+    Mixer mixer;
+
+    QVERIFY(!mixer.isRunning());
+    QVERIFY(!mixer.hasFault());
+    QVERIFY(!mixer.property("running").toBool());
+    QVERIFY(!mixer.property("fault").toBool());
+
+    mixer.connect();
+    mixer.start();
+
+    QVERIFY(mixer.isRunning());
+    QVERIFY(mixer.property("running").toBool());
+    QVERIFY(!mixer.hasFault());
+
+    mixer.setFault();
+
+    QVERIFY(!mixer.isRunning());
+    QVERIFY(mixer.hasFault());
+    QVERIFY(mixer.property("fault").toBool());
+
+    mixer.resetFault();
+
+    QVERIFY(!mixer.isRunning());
+    QVERIFY(!mixer.hasFault());
 }
 
 QTEST_GUILESS_MAIN(TestMixer)

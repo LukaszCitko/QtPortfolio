@@ -60,6 +60,7 @@ target_link_libraries(test_batchcontroller
     PRIVATE
         Qt6::Test
         Qt6::Core
+        Qt6::Qml
 )
 
 add_executable(test_eventmanager

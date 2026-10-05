@@ -75,6 +75,11 @@ bool Pump::isRunning() const
     return m_state == State::Running;
 }
 
+bool Pump::hasFault() const
+{
+    return m_state == State::Fault;
+}
+
 Pump::State Pump::state() const
 {
     return m_state;

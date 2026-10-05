@@ -26,6 +26,11 @@ bool Mixer::isRunning() const
     return m_state == State::Running;
 }
 
+bool Mixer::hasFault() const
+{
+    return m_state == State::Fault;
+}
+
 QString Mixer::stateText() const
 {
     switch (m_state)

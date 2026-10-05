@@ -14,11 +14,11 @@ Rectangle {
     signal rpmRequested(var device, string tag)
 
     readonly property bool fault:
-        pumpDevice.stateText === "FAULT"
-        || valveDevice.stateText === "FAULT"
+        root.pumpDevice.fault
+        || root.valveDevice.fault
 
     readonly property bool highlighted:
-        pumpDevice.stateText === "RUNNING" || fault
+        root.pumpDevice.running || root.fault
 
     height: highlighted ? 132 : 104
     color: highlighted ? "#f6f7f7" : "#e9ebec"
@@ -81,7 +81,7 @@ Rectangle {
                width: pumpImage.width
                height: pumpImage.height
                radius: 4
-               color: root.pumpDevice.stateText === "RUNNING"
+               color: root.pumpDevice.running
                       ? "#f7f8f8" : "#c5cace"
                border.color: "#929b9f"
            }
@@ -93,7 +93,7 @@ Rectangle {
                width: valveImage.width
                height: valveImage.height
                radius: 4
-               color: root.valveDevice.stateText === "OPEN"
+               color: root.valveDevice.open
                       ? "#f7f8f8" : "#c5cace"
                border.color: "#929b9f"
            }
@@ -106,13 +106,15 @@ Rectangle {
                width: 60
                height: 60
                anchors.verticalCenter: parent.verticalCenter
-               source: root.pumpDevice.stateText === "RUNNING"
-                       ? "assets/pump.png" : "assets/pump_gray.png"
+               source: root.pumpDevice.running
+                       ? "assets/pump.png"
+                       : "assets/pump_gray.png"
                fillMode: Image.PreserveAspectFit
                mirror: root.flowArrow === "←"
                MouseArea {
                    anchors.fill: parent
                    enabled: root.rpmControlEnabled
+                            && !root.pumpDevice.fault
                    cursorShape: Qt.PointingHandCursor
                    onClicked: root.rpmRequested(root.pumpDevice, root.pumpTag)
                }
@@ -125,8 +127,9 @@ Rectangle {
                width: 48
                height: 48
                anchors.verticalCenter: parent.verticalCenter
-               source: root.valveDevice.stateText === "OPEN"
-                       ? "assets/valve.png" : "assets/valve_gray.png"
+               source: root.valveDevice.open
+                       ? "assets/valve.png"
+                       : "assets/valve_gray.png"
                fillMode: Image.PreserveAspectFit
            }
 

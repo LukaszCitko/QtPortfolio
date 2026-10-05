@@ -19,11 +19,12 @@ BatchController::BatchController(
     m_pump2(pump2), m_valve2(valve2),
     m_pump3(pump3), m_valve3(valve3),
     m_valve4(valve4),
-    m_mixer(mixer), m_mixingTank(mixingTank),
+    m_mixingTank(mixingTank),
+    m_mixer(mixer),
+    m_mixingElapsedSeconds(0.0),
     m_state(State::Idle),
     m_previousState(State::Idle),
-    m_stopReason(StopReason::None),
-    m_mixingElapsedSeconds(0.0)
+    m_stopReason(StopReason::None)
 {
     Q_ASSERT(m_pump1);
     Q_ASSERT(m_valve1);

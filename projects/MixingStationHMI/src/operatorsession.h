@@ -15,6 +15,7 @@ class OperatorSession : public QObject
     Q_PROPERTY(bool canControlBatch READ canControlBatch NOTIFY operatorChanged)
     Q_PROPERTY(bool canResetFault READ canResetFault NOTIFY operatorChanged)
     Q_PROPERTY(bool canManageUsers READ canManageUsers NOTIFY operatorChanged)
+    Q_PROPERTY(bool canApproveDrain READ canApproveDrain NOTIFY operatorChanged)
 
 public:
     explicit OperatorSession(const QSqlDatabase &database, QObject *parent = nullptr);

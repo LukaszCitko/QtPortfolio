@@ -62,8 +62,8 @@ ApplicationWindow {
                       ? operatorSession.operatorName + "\n" + operatorSession.operatorRole
                       : "LOGIN"
 
-                enabled: batchController.stateText === "IDLE"
-                         || batchController.stateText === "COMPLETE"
+                enabled: batchController.state === BatchController.Idle
+                         || batchController.state === BatchController.Complete
 
                 onClicked: operatorDialog.open()
 
@@ -241,6 +241,7 @@ ApplicationWindow {
                 batchDevice: batchController
                 demoOverrideEnabled: operatorSession.operatorRole === "OPERATOR"
                 resetService: faultResetService
+                drainRequestService: drainService
 
             }
             TrendPanel {

@@ -20,6 +20,7 @@ void TestValve::initialState()
 
     QCOMPARE(valve.state(), Valve::State::Closed);
     QVERIFY(!valve.isOpen());
+    QVERIFY(!valve.hasFault());
 }
 
 void TestValve::openValve()
@@ -30,6 +31,8 @@ void TestValve::openValve()
 
     QCOMPARE(valve.state(), Valve::State::Open);
     QVERIFY(valve.isOpen());
+    QVERIFY(valve.property("open").toBool());
+    QVERIFY(!valve.hasFault());
 }
 
 void TestValve::closeValve()
@@ -51,6 +54,9 @@ void TestValve::faultValve()
     valve.setFault();
 
     QCOMPARE(valve.state(), Valve::State::Fault);
+    QVERIFY(valve.hasFault());
+    QVERIFY(valve.property("fault").toBool());
+    QVERIFY(!valve.isOpen());
 
     valve.open();
     QCOMPARE(valve.state(), Valve::State::Fault);
@@ -68,6 +74,7 @@ void TestValve::resetFault()
 
     QCOMPARE(valve.state(), Valve::State::Closed);
     QVERIFY(!valve.isOpen());
+    QVERIFY(!valve.hasFault());
 }
 
 QTEST_APPLESS_MAIN(TestValve)

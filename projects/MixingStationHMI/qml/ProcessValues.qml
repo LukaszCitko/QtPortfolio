@@ -110,7 +110,7 @@ Rectangle {
         PreCheckPanel {
             width: parent.width
             height: 184
-            visible: root.controller.stateText === "IDLE"
+            visible: root.controller.state === BatchController.Idle
 
             controller: root.controller
             operatorSelected: root.operatorSelected
@@ -121,14 +121,14 @@ Rectangle {
             height: 184
             controller: root.controller
             hasActiveFault: root.hasActiveFault
-            visible: root.controller.stateText !== "IDLE"
-                     && root.controller.stateText !== "COMPLETE"
+            visible: root.controller.state !== BatchController.Idle
+                     && root.controller.state !== BatchController.Complete
         }
         Button {
             id: nextBatchButton
             width: parent.width
             height: 56
-            visible: root.controller.stateText === "COMPLETE"
+            visible: root.controller.state === BatchController.Complete
             text: "PREPARE NEXT BATCH"
 
             onClicked: root.controller.prepareNextBatch()

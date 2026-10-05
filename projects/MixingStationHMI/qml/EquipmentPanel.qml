@@ -27,9 +27,10 @@ Rectangle {
     readonly property bool drainAvailable:
         root.operatorSelected
         && root.tankDevice.volume > 0
-        && root.tankDevice.stateText !== "FAULT"
-        && root.drainValveDevice.stateText === "CLOSED"
-        && root.batchDevice.stateText !== "DRAINING"
+        && !root.tankDevice.fault
+        && !root.drainValveDevice.open
+        && !root.drainValveDevice.fault
+        && root.batchDevice.state !== BatchController.Draining
 
     readonly property var devices: [
         {
@@ -78,6 +79,11 @@ Rectangle {
             device: root.drainValveDevice
         }
     ]
+    readonly property bool valveCard:
+        modelData.tag === "V1"
+        || modelData.tag === "V2"
+        || modelData.tag === "V3"
+        || modelData.tag === "V4"
 
     color: "#eceeef"
     border.color: "#a5aaad"
@@ -116,7 +122,7 @@ Rectangle {
             Rectangle {
                 id: equipmentCard
                 readonly property string deviceState: modelData.device.stateText
-                readonly property bool fault: deviceState === "FAULT"
+                readonly property bool fault: modelData.device.fault
 
                 readonly property bool pumpCard:
                     modelData.tag === "P1"
@@ -124,11 +130,15 @@ Rectangle {
                     || modelData.tag === "P3"
 
                 readonly property bool active:
-                    deviceState === "RUNNING"
-                    || deviceState === "OPEN"
-                    || deviceState === "FILLING"
-                    || deviceState === "MIXING"
-                    || deviceState === "TRANSFERRING"
+                    pumpCard
+                        ? modelData.device.running
+                        : valveCard
+                          ? modelData.device.open
+                          : modelData.tag === "M1"
+                            ? modelData.device.running
+                            : modelData.tag === "TK1"
+                              ? modelData.device.active
+                              : false
 
                 width: (equipmentGrid.width - 24) / 3
                 height: (equipmentGrid.height - 24) / 3
@@ -184,7 +194,7 @@ Rectangle {
                                                        : "DISCONNECTED")
                               : modelData.tag === "TK1"
                                   ? "VOLUME " + modelData.device.volume.toFixed(1) + " L"
-                              : modelData.tag === "V4" ? (root.batchDevice.stateText === "DRAINING"
+                              : modelData.tag === "V4" ? (root.batchDevice.state === BatchController.Draining
                                                        ? "DRAIN IN PROGRESS"
                                                        : root.drainAvailable
                                                        ? "DRAIN TK1 · TAP TO CONFIRM"

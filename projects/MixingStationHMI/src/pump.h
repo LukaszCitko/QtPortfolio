@@ -8,13 +8,12 @@
     private:
         Q_OBJECT
         Q_PROPERTY(double maxRpm READ maxRpm CONSTANT)
-        Q_PROPERTY(double targetRpm
-                        READ targetRpm WRITE setTargetRpm NOTIFY targetRpmChanged)
-        Q_PROPERTY(double actualRpm
-                        READ actualRpm NOTIFY actualRpmChanged)
-        Q_PROPERTY(double temperatureFromSensor
-                        READ temperatureFromSensor NOTIFY temperatureFromSensorChanged)
+        Q_PROPERTY(double targetRpm READ targetRpm WRITE setTargetRpm NOTIFY targetRpmChanged)
+        Q_PROPERTY(double actualRpm READ actualRpm NOTIFY actualRpmChanged)
+        Q_PROPERTY(double temperatureFromSensor READ temperatureFromSensor NOTIFY temperatureFromSensorChanged)
         Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
+        Q_PROPERTY(bool running READ isRunning NOTIFY stateChanged)
+        Q_PROPERTY(bool fault READ hasFault NOTIFY stateChanged)
 
     public:
 
@@ -31,6 +30,7 @@
 
         int id() const;
         bool isRunning() const;
+        bool hasFault() const;
         State state() const;
 
         void setActualRpm(double rpm);
