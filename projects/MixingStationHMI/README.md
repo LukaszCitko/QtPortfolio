@@ -83,6 +83,7 @@ Process I/O interface
     +-- ModbusBackend
             |
             +-- PLC, remote I/O or microcontroller
+```
 
 ## Scope of this version
 
