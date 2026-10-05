@@ -30,3 +30,9 @@ A touch-oriented HMI simulation for a batch mixing station. The application guid
 This is a portfolio simulation. It does not control physical equipment or authenticate users.
 
 **Planned next phase:** an ARM-based Embedded Linux deployment with a replaceable simulation/Modbus process I/O backend. See the [Embedded Linux roadmap](projects/MixingStationHMI/README.md#roadmap-embedded-linux).
+
+## License
+
+The original code and documentation in this repository are available under the
+[MIT License](LICENSE). Third-party frameworks and dependencies retain their
+own licenses.

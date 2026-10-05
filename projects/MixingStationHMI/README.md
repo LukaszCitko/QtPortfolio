@@ -87,3 +87,10 @@ Process I/O interface
 ## Scope of this version
 
 This is a portfolio **simulation**, not a controller for physical equipment. Demo login has no card, chip or password authentication. No hardware I/O, physical interlocks or production safety validation are implemented. The **DEMO RESET** and **DEMO DRAIN TK1** paths are intentionally limited to the simulator and should not be treated as an equipment permission.
+
+
+## License
+
+This project is licensed under the [MIT License](../../LICENSE). Qt remains
+subject to its applicable licensing terms.
+
