@@ -1,5 +1,7 @@
 # MixingStationHMI
 
+[![MixingStationHMI CI](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml/badge.svg?branch=main)](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml)
+
 A touch-oriented batch mixing station HMI built with Qt 6.8, C++ and QML. This portfolio project simulates process equipment and uses a 1280 × 800 interface inspired by high-performance HMI principles: neutral equipment graphics, clear process values and colour reserved for conditions that need attention.
 
 ![Mixing stage in the process view](docs/screenshots/cropped/mixing.png)
