@@ -8,7 +8,7 @@ set(QT_QML_GENERATE_QMLLS_INI ON)
 
 include(GNUInstallDirs)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Sql)
+find_package(Qt6 REQUIRED COMPONENTS Quick Sql SerialBus)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -60,6 +60,8 @@ qt_add_library(mixingstation_core STATIC
     src/valve.cpp
     src/valve.h
 
+    shared/controllerprotocol.h
+
     src/database/databaseschema.cpp
     src/database/databaseschema.h
     src/database/demouserseeder.cpp
@@ -86,6 +88,7 @@ qt_add_library(mixingstation_core STATIC
 target_include_directories(mixingstation_core
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/shared
 )
 
 target_link_libraries(mixingstation_core
@@ -95,6 +98,51 @@ target_link_libraries(mixingstation_core
 )
 
 enable_project_warnings(mixingstation_core)
+
+qt_add_executable(appControllerSimulator
+    src/controllersimulator/main.cpp
+)
+
+set_target_properties(appControllerSimulator PROPERTIES
+    MACOSX_BUNDLE FALSE
+    WIN32_EXECUTABLE FALSE
+)
+
+target_include_directories(appControllerSimulator
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/shared
+)
+
+target_link_libraries(appControllerSimulator
+    PRIVATE
+        Qt6::Core
+        Qt6::SerialBus
+)
+
+enable_project_warnings(appControllerSimulator)
+
+qt_add_executable(appModbusClientProbe
+    src/clientprobe/main.cpp
+)
+
+set_target_properties(appModbusClientProbe PROPERTIES
+    MACOSX_BUNDLE FALSE
+    WIN32_EXECUTABLE FALSE
+)
+
+target_include_directories(appModbusClientProbe
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/shared
+)
+
+target_link_libraries(appModbusClientProbe
+    PRIVATE
+        Qt6::Core
+        Qt6::SerialBus
+)
+
+enable_project_warnings(appModbusClientProbe)
+
 
 qt_add_executable(appMixingStationHMI
     src/main.cpp
