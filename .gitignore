@@ -18,3 +18,7 @@ cmake-build-*/
 # CTest generated output
 Testing/
 
+# ESP-IDF generated configuration
+sdkconfig
+sdkconfig.old
+
