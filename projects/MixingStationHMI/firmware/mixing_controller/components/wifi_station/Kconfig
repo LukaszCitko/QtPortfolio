@@ -1,0 +1,22 @@
+menu "Mixing Station Wi-Fi"
+
+    config MIXING_WIFI_SSID
+        string "Wi-Fi network name"
+        default ""
+        help
+            SSID of the Wi-Fi network used by the controller.
+
+    config MIXING_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default ""
+        help
+            Password of the Wi-Fi network used by the controller.
+
+    config MIXING_WIFI_MAXIMUM_RETRY
+        int "Maximum connection retries"
+        default 10
+        range 1 100
+        help
+            Maximum number of connection attempts before reporting failure.
+
+endmenu

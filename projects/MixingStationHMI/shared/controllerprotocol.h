@@ -24,6 +24,16 @@ enum class Command : std::uint16_t
     PrepareNextBatch = 7
 };
 
+// Results reported after processing an HMI command.
+enum class CommandResult : std::uint16_t
+{
+    None = 0,
+    Accepted = 1,
+    DuplicateSequence = 2,
+    InvalidState = 3,
+    UnsupportedCommand = 4
+};
+
 // Process states reported by the controller.
 enum class ProcessState : std::uint16_t
 {
@@ -69,7 +79,8 @@ enum class InputRegister : std::uint16_t
 
     EquipmentStatusMask = 30,
     FaultMask = 31,
-    LastHandledCommandSequence = 32
+    LastHandledCommandSequence = 32,
+    LastCommandResult = 33
 };
 
 // Individual bits stored in EquipmentStatusMask.

@@ -5,4 +5,6 @@ idf_component_register(
         "."
     PRIV_REQUIRES
         controller_core
+	modbus_server
+	wifi_station
 )

@@ -60,6 +60,10 @@ InputRegisterBank makeInputRegisterBank(
         ControllerProtocol::InputRegister::LastHandledCommandSequence)] =
         snapshot.lastHandledCommandSequence;
 
+    registers[ControllerProtocol::address(
+        ControllerProtocol::InputRegister::LastCommandResult)] =
+        static_cast<std::uint16_t>(snapshot.lastCommandResult);
+
     return registers;
 }
 

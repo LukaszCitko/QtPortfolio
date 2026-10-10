@@ -22,3 +22,6 @@ Testing/
 sdkconfig
 sdkconfig.old
 
+# ESP-IDF managed dependencies
+managed_components/
+

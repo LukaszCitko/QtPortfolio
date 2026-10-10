@@ -25,13 +25,16 @@ struct ControllerSnapshot
     std::uint16_t equipmentStatusMask{0};
     std::uint16_t faultMask{0};
     std::uint16_t lastHandledCommandSequence{0};
+
+    ControllerProtocol::CommandResult lastCommandResult{ControllerProtocol::CommandResult::None};
 };
 
 class ControllerCore
 {
 public:
     [[nodiscard]] ControllerSnapshot snapshot() const;
-
+    [[nodiscard]] ControllerProtocol::CommandResult handleCommand(
+    ControllerProtocol::Command command, std::uint16_t sequence);
     void tick();
 
 private:
