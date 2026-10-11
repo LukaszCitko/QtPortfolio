@@ -9,6 +9,11 @@ ModbusServer::ModbusServer()
 {
     m_holdingRegisters.fill(0);
     m_inputRegisters.fill(0);
+    const ControllerSetpoints defaultSetpoints;
+
+    m_holdingRegisters[ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump1TargetRpm)] = defaultSetpoints.pump1TargetRpm;
+    m_holdingRegisters[ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump2TargetRpm)] = defaultSetpoints.pump2TargetRpm;
+    m_holdingRegisters[ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump3TargetRpm)] = defaultSetpoints.pump3TargetRpm;
 }
 
 ModbusServer::~ModbusServer()
@@ -118,6 +123,28 @@ void ModbusServer::publishSnapshot(const ControllerSnapshot &snapshot)
         m_inputRegisters = newRegisters;
         mbc_slave_unlock(m_handle);
     }
+}
+
+std::optional<ControllerSetpoints> ModbusServer::readSetpoints()
+{
+    const bool registerBankIsShared = m_handle != nullptr;
+
+    if (registerBankIsShared && mbc_slave_lock(m_handle) != ESP_OK)
+    {
+        return std::nullopt;
+    }
+
+    ControllerSetpoints setpoints;
+    setpoints.pump1TargetRpm = m_holdingRegisters[ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump1TargetRpm)];
+    setpoints.pump2TargetRpm = m_holdingRegisters[ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump2TargetRpm)];
+    setpoints.pump3TargetRpm = m_holdingRegisters[ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump3TargetRpm)];
+
+    if (registerBankIsShared)
+    {
+        mbc_slave_unlock(m_handle);
+    }
+
+    return setpoints;
 }
 
 std::optional<CommandRequest> ModbusServer::takeCommandRequest()

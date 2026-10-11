@@ -43,10 +43,13 @@ TEST_CASE( "Process inputs are included in controller snapshot", "[controller_co
 TEST_CASE( "Start batch command changes controller state", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
+    auto setpoints = controller.setpoints();
+    controller.updateSetpoints(setpoints);
 
     const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
     const auto snapshot = controller.snapshot();
 
+    TEST_ASSERT_EQUAL_UINT16(725, snapshot.pump1ActualRpm);
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(result));
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::FillingWater), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(1, snapshot.lastHandledCommandSequence);
@@ -99,16 +102,29 @@ TEST_CASE("Water filling finishes after reaching 70 litres", "[controller_core]"
     const auto snapshot = controller.snapshot();
     const auto pump1Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump1Running);
     const auto valve1Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve1Open);
-    const auto pump2Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump2Running);
-    const auto valve2Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve2Open);
 
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::DosingConcentrate), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.pump1ActualRpm);
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & pump1Mask);
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & valve1Mask);
-    TEST_ASSERT_EQUAL_UINT16(400, snapshot.pump2ActualRpm);
-    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & pump2Mask);
-    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & valve2Mask);
 
+}
+
+TEST_CASE("Pump setpoints are limited to maximum RPM", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+
+    MixingStation::Firmware::ControllerSetpoints setpoints;
+    setpoints.pump1TargetRpm = 1200;
+    setpoints.pump2TargetRpm = 800;
+    setpoints.pump3TargetRpm = 65535;
+
+    controller.updateSetpoints(setpoints);
+
+    const auto acceptedSetpoints = controller.setpoints();
+
+    TEST_ASSERT_EQUAL_UINT16(ControllerProtocol::MaximumPumpRpm, acceptedSetpoints.pump1TargetRpm);
+    TEST_ASSERT_EQUAL_UINT16(800, acceptedSetpoints.pump2TargetRpm);
+    TEST_ASSERT_EQUAL_UINT16(ControllerProtocol::MaximumPumpRpm, acceptedSetpoints.pump3TargetRpm);
 }
 

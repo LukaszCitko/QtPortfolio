@@ -42,6 +42,13 @@ void controllerTask(void *argument)
 
     while (true)
     {
+        const auto setpoints = context->modbusServer.readSetpoints();
+
+        if (setpoints.has_value())
+        {
+            context->controller.updateSetpoints(*setpoints);
+        }
+
         const auto commandRequest = context->modbusServer.takeCommandRequest();
 
         if (commandRequest.has_value())

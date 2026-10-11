@@ -14,14 +14,11 @@
 namespace MixingStation::Firmware
 {
 
-using HoldingRegisterBank =
-    std::array<std::uint16_t, ControllerProtocol::RegisterCount>;
+using HoldingRegisterBank =  std::array<std::uint16_t, ControllerProtocol::RegisterCount>;
 
 struct CommandRequest
 {
-    ControllerProtocol::Command command{
-        ControllerProtocol::Command::None
-    };
+    ControllerProtocol::Command command{ControllerProtocol::Command::None};
 
     std::uint16_t sequence{0};
 };
@@ -43,8 +40,9 @@ public:
     [[nodiscard]] const InputRegisterBank &inputRegisters() const;
     [[nodiscard]] const HoldingRegisterBank &holdingRegisters() const;
     [[nodiscard]] bool isRunning() const;
-    
+
     [[nodiscard]] std::optional<CommandRequest> takeCommandRequest();
+    [[nodiscard]] std::optional<ControllerSetpoints> readSetpoints();
 
 private:
     void *m_handle{nullptr};

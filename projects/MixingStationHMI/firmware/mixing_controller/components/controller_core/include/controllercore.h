@@ -14,6 +14,13 @@ struct ProcessInputs
     std::uint16_t faultMask{0};
 };
 
+struct ControllerSetpoints
+{
+    std::uint16_t pump1TargetRpm{600};
+    std::uint16_t pump2TargetRpm{400};
+    std::uint16_t pump3TargetRpm{600};
+};
+
 struct ControllerSnapshot
 {
     std::uint16_t heartbeat{0};
@@ -39,13 +46,16 @@ class ControllerCore
 {
 public:
     void updateInputs(const ProcessInputs &inputs);
+    void updateSetpoints(const ControllerSetpoints &setpoints);
 
+    [[nodiscard]] ControllerSetpoints setpoints() const;
     [[nodiscard]] ControllerSnapshot snapshot() const;
     [[nodiscard]] ControllerProtocol::CommandResult handleCommand(ControllerProtocol::Command command, std::uint16_t sequence);
     void tick();
 
 private:
     ControllerSnapshot m_snapshot;
+    ControllerSetpoints m_setpoints;
 };
 
 } // namespace MixingStation::Firmware

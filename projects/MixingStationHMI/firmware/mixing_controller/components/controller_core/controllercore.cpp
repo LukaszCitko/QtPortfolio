@@ -1,9 +1,8 @@
-
+#include <algorithm>
 #include "controllercore.h"
 
 namespace
 {
-constexpr std::uint16_t WaterFillingPumpRpm = 600;
 constexpr std::uint16_t WaterTargetVolumeDecilitres = 700;
 constexpr std::uint16_t WaterFillingEquipmentMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump1Running)
                                                   | static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve1Open);
@@ -11,6 +10,17 @@ constexpr std::uint16_t WaterFillingEquipmentMask = static_cast<std::uint16_t>(C
 
 namespace MixingStation::Firmware
 {
+   void ControllerCore::updateSetpoints(const ControllerSetpoints &setpoints)
+{
+    m_setpoints.pump1TargetRpm = std::min(setpoints.pump1TargetRpm, ControllerProtocol::MaximumPumpRpm);
+    m_setpoints.pump2TargetRpm = std::min(setpoints.pump2TargetRpm, ControllerProtocol::MaximumPumpRpm);
+    m_setpoints.pump3TargetRpm = std::min(setpoints.pump3TargetRpm, ControllerProtocol::MaximumPumpRpm);
+}
+
+ControllerSetpoints ControllerCore::setpoints() const
+{
+    return m_setpoints;
+}
 
 void ControllerCore::updateInputs(const ProcessInputs &inputs)
 {
@@ -44,7 +54,7 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(
 
         m_snapshot.processState = ControllerProtocol::ProcessState::FillingWater;
         m_snapshot.stageProgressPermille = 0;
-        m_snapshot.pump1ActualRpm = WaterFillingPumpRpm;
+        m_snapshot.pump1ActualRpm = m_setpoints.pump1TargetRpm;
 
         m_snapshot.equipmentStatusMask |= WaterFillingEquipmentMask;
         result = ControllerProtocol::CommandResult::Accepted;

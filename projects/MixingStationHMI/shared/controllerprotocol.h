@@ -10,6 +10,7 @@ inline constexpr std::uint16_t TcpPort = 1502;
 inline constexpr std::uint8_t ServerAddress = 1;
 inline constexpr std::uint16_t ProtocolVersion = 1;
 inline constexpr std::uint16_t RegisterCount = 64;
+inline constexpr std::uint16_t MaximumPumpRpm = 1000;
 
 // Commands sent from the HMI to the process controller.
 enum class Command : std::uint16_t
