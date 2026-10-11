@@ -99,6 +99,27 @@ target_link_libraries(mixingstation_core
 
 enable_project_warnings(mixingstation_core)
 
+qt_add_library(mixingstation_communication STATIC
+    src/communication/modbuscontrollerclient.cpp
+    src/communication/modbuscontrollerclient.h
+
+    shared/controllerprotocol.h
+)
+
+target_include_directories(mixingstation_communication
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/communication
+        ${CMAKE_CURRENT_SOURCE_DIR}/shared
+)
+
+target_link_libraries(mixingstation_communication
+    PUBLIC
+        Qt6::Core
+        Qt6::SerialBus
+)
+
+enable_project_warnings(mixingstation_communication)
+
 qt_add_executable(appControllerSimulator
     src/controllersimulator/main.cpp
 )
@@ -130,16 +151,11 @@ set_target_properties(appModbusClientProbe PROPERTIES
     WIN32_EXECUTABLE FALSE
 )
 
-target_include_directories(appModbusClientProbe
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/shared
-)
-
 target_link_libraries(appModbusClientProbe
     PRIVATE
-        Qt6::Core
-        Qt6::SerialBus
+        mixingstation_communication
 )
+
 
 enable_project_warnings(appModbusClientProbe)
 

@@ -1,3 +1,4 @@
+
 # Qt / CMake build directories
 build/
 cmake-build-*/
@@ -25,3 +26,5 @@ sdkconfig.old
 # ESP-IDF managed dependencies
 managed_components/
 
+#VS Code
+.vscode/

@@ -1,139 +1,101 @@
 #include "controllerprotocol.h"
+#include "modbuscontrollerclient.h"
 
 #include <QCoreApplication>
 #include <QDebug>
-#include <QModbusDataUnit>
-#include <QModbusReply>
-#include <QModbusTcpClient>
-#include <QTimer>
-#include <QVariant>
-#include <QList>
 
 int main(int argc, char *argv[])
 {
     QCoreApplication application(argc, argv);
 
-    QModbusTcpClient client;
-    QTimer pollingTimer;
+    const QStringList arguments = application.arguments();
 
-    pollingTimer.setInterval(1000);
+    const QString controllerHost = arguments.size() > 1
+            ? arguments.at(1) : QStringLiteral("127.0.0.1");
 
-    client.setConnectionParameter(
-        QModbusDevice::NetworkAddressParameter,
-        QStringLiteral("127.0.0.1"));
+    ModbusControllerClient controllerClient;
 
-    client.setConnectionParameter(
-        QModbusDevice::NetworkPortParameter,
-        ControllerProtocol::TcpPort);
+    bool commandSent = false;
 
-    QObject::connect(
-        &pollingTimer,
-        &QTimer::timeout,
-        &application,
-        [&client, &application]() {
-            const QModbusDataUnit request(
-                QModbusDataUnit::InputRegisters,
-                ControllerProtocol::address(
-                    ControllerProtocol::InputRegister::ProtocolVersion),
-                2);
-
-            QModbusReply *reply = client.sendReadRequest(
-                request,
-                ControllerProtocol::ServerAddress);
-
-            if (!reply) {
-                qWarning() << "Failed to send Modbus read request:"
-                           << client.errorString();
+    QObject::connect(&controllerClient, &ModbusControllerClient::connectionChanged, &application, [&controllerClient]()
+        {
+            if (controllerClient.isConnected())
+            {
+                qInfo() << "Connected to controller.";
                 return;
             }
 
-            QObject::connect(
-                reply,
-                &QModbusReply::finished,
-                &application,
-                [reply]() {
-                    if (reply->error() != QModbusDevice::NoError) {
-                        qWarning() << "Modbus reply error:"
-                                   << reply->errorString();
-                        reply->deleteLater();
-                        return;
-                    }
-
-                    const QModbusDataUnit result = reply->result();
-
-                    const quint16 protocolVersion = result.value(0);
-                    const quint16 heartbeat = result.value(1);
-
-                    qInfo() << "Protocol version:" << protocolVersion
-                            << "| Heartbeat:" << heartbeat;
-
-                    reply->deleteLater();
-                });
+            qInfo() << "Disconnected from controller.";
         });
 
-    QObject::connect(
-        &client,
-        &QModbusDevice::stateChanged,
-        &application,
-        [&client, &pollingTimer, &application](
-            QModbusDevice::State state) {
-            if (state == QModbusDevice::ConnectedState) {
-                qInfo() << "Connected to controller simulator.";
+    QObject::connect(&controllerClient, &ModbusControllerClient::lastErrorChanged, &application, [&controllerClient]()
+        {
+            if (controllerClient.lastError().isEmpty())
+            {
+                return;
+            }
 
-                const QList<quint16> commandValues {
-                    static_cast<quint16>(
-                        ControllerProtocol::Command::StartBatch),
-                    1
-                };
+            qWarning() << "Controller communication error:"  << controllerClient.lastError();
+        });
+    QObject::connect(&controllerClient, &ModbusControllerClient::commandPendingChanged, &application, [&controllerClient]()
+        {
+            if (controllerClient.commandPending())
+            {
+                qInfo() << "Waiting for controller command acknowledgement.";
+                return;
+            }
 
-                const QModbusDataUnit commandRequest(
-                    QModbusDataUnit::HoldingRegisters,
-                    ControllerProtocol::address(
-                        ControllerProtocol::HoldingRegister::CommandCode),
-                    commandValues);
+            qInfo() << "Controller handled sequence:" << controllerClient.lastHandledCommandSequence()
+                    << "| Result:" << controllerClient.lastCommandResult();
+        });
 
-                QModbusReply *reply = client.sendWriteRequest(
-                    commandRequest,
-                    ControllerProtocol::ServerAddress);
+    QObject::connect(&controllerClient, &ModbusControllerClient::snapshotChanged, &application, [&controllerClient, &commandSent]()
+        {
+            if (!controllerClient.snapshotValid())
+            {
+                qWarning() << "Controller snapshot is not valid.";
+                return;
+            }
+            qInfo()
+                << "Protocol:" << controllerClient.protocolVersion()
+                << "| Heartbeat:" << controllerClient.heartbeat()
+                << "| State:"  << controllerClient.processState()
+                << "| Progress:" << controllerClient.stageProgress()
+                << "| Volume:"  << controllerClient.mixtureVolumeLitres() << "L"
+                << "| Temperature:" << controllerClient.temperatureCelsius() << "C"
+                << "| P1:" << controllerClient.pump1ActualRpm() << "RPM"
+                << "| P2:" << controllerClient.pump2ActualRpm() << "RPM"
+                << "| P3:" << controllerClient.pump3ActualRpm() << "RPM"
+                << "| M1:" << controllerClient.mixerActualRpm() << "RPM"
+                << "| Equipment mask:" << controllerClient.equipmentStatusMask()
+                << "| Fault mask:"  << controllerClient.faultMask()
+                << "| Command sequence:" << controllerClient.lastHandledCommandSequence()
+                << "| Command result:" << controllerClient.lastCommandResult();
 
-                if (!reply) {
-                    qWarning() << "Failed to send test command:"
-                               << client.errorString();
-                } else {
-                    QObject::connect(
-                        reply,
-                        &QModbusReply::finished,
-                        &application,
-                        [reply]() {
-                            if (reply->error() == QModbusDevice::NoError) {
-                                qInfo() << "Test command write confirmed.";
-                            } else {
-                                qWarning() << "Test command write failed:"
-                                           << reply->errorString();
-                            }
+            if (!commandSent)
+            {
+                commandSent = controllerClient.startBatch();
 
-                            reply->deleteLater();
-                        });
+                if (commandSent)
+                {
+                    qInfo() << "StartBatch command sent.";
                 }
-
-                pollingTimer.start();
-                return;
-            }
-
-
-            if (state == QModbusDevice::UnconnectedState) {
-                pollingTimer.stop();
-                qInfo() << "Disconnected from controller simulator.";
+                else
+                {
+                    qWarning() << "StartBatch command could not be sent:" << controllerClient.lastError();
+                }
             }
         });
 
-    if (!client.connectDevice()) {
-        qCritical() << "Failed to connect to controller simulator:"
-                    << client.errorString();
+    if (!controllerClient.connectToController(controllerHost))
+    {
+        qCritical() << "Could not start controller connection:" << controllerClient.lastError();
         return 1;
     }
 
-    qInfo() << "Connecting to controller simulator...";
+    qInfo()
+        << "Connecting to controller at" << controllerHost
+        << "on port" << ControllerProtocol::TcpPort << "...";
 
     return application.exec();
 }

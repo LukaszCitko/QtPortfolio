@@ -7,6 +7,12 @@
 
 namespace MixingStation::Firmware
 {
+struct ProcessInputs
+{
+    std::uint16_t mixtureVolumeDecilitres{0};
+    std::uint16_t temperatureTenthsCelsius{250};
+    std::uint16_t faultMask{0};
+};
 
 struct ControllerSnapshot
 {
@@ -32,9 +38,10 @@ struct ControllerSnapshot
 class ControllerCore
 {
 public:
+    void updateInputs(const ProcessInputs &inputs);
+
     [[nodiscard]] ControllerSnapshot snapshot() const;
-    [[nodiscard]] ControllerProtocol::CommandResult handleCommand(
-    ControllerProtocol::Command command, std::uint16_t sequence);
+    [[nodiscard]] ControllerProtocol::CommandResult handleCommand(ControllerProtocol::Command command, std::uint16_t sequence);
     void tick();
 
 private:
