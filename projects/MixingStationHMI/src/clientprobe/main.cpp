@@ -15,7 +15,8 @@ int main(int argc, char *argv[])
 
     ModbusControllerClient controllerClient;
 
-    bool commandSent = false;
+    bool rpmWriteRequested = false;
+
 
     QObject::connect(&controllerClient, &ModbusControllerClient::connectionChanged, &application, [&controllerClient]()
         {
@@ -48,8 +49,28 @@ int main(int argc, char *argv[])
             qInfo() << "Controller handled sequence:" << controllerClient.lastHandledCommandSequence()
                     << "| Result:" << controllerClient.lastCommandResult();
         });
+    QObject::connect(&controllerClient, &ModbusControllerClient::pumpTargetRpmWriteFinished, &application, [&controllerClient](int pumpNumber, int requestedRpm, bool success)
+        {
+             qInfo() << "Pump target RPM write finished. Pump:" << pumpNumber << "| RPM:" << requestedRpm << "| Success:" << success;
 
-    QObject::connect(&controllerClient, &ModbusControllerClient::snapshotChanged, &application, [&controllerClient, &commandSent]()
+             if (!success || pumpNumber != 1)
+             {
+                 return;
+             }
+
+             const bool startCommandSent = controllerClient.startBatch();
+
+             if (startCommandSent)
+             {
+                 qInfo() << "StartBatch command sent after RPM confirmation.";
+             }
+             else
+             {
+                 qWarning() << "StartBatch command could not be sent:" << controllerClient.lastError();
+             }
+        });
+
+    QObject::connect(&controllerClient, &ModbusControllerClient::snapshotChanged, &application, [&controllerClient, &rpmWriteRequested]()
         {
             if (!controllerClient.snapshotValid())
             {
@@ -72,17 +93,17 @@ int main(int argc, char *argv[])
                 << "| Command sequence:" << controllerClient.lastHandledCommandSequence()
                 << "| Command result:" << controllerClient.lastCommandResult();
 
-            if (!commandSent)
+            if (!rpmWriteRequested)
             {
-                commandSent = controllerClient.startBatch();
+                rpmWriteRequested = true;
 
-                if (commandSent)
+                if (controllerClient.setPumpTargetRpm(1, 725))
                 {
-                    qInfo() << "StartBatch command sent.";
+                    qInfo() << "P1 target RPM write requested.";
                 }
                 else
                 {
-                    qWarning() << "StartBatch command could not be sent:" << controllerClient.lastError();
+                    qWarning() << "P1 target RPM could not be written:" << controllerClient.lastError();
                 }
             }
         });

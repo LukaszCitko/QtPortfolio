@@ -68,12 +68,14 @@ public:
     Q_INVOKABLE bool resetFaults();
     Q_INVOKABLE bool startDrain();
     Q_INVOKABLE bool prepareNextBatch();
+    Q_INVOKABLE bool setPumpTargetRpm(int pumpNumber, int rpm);
 
 signals:
     void connectionChanged();
     void lastErrorChanged();
     void snapshotChanged();
     void commandPendingChanged();
+    void pumpTargetRpmWriteFinished(int pumpNumber, int requestedRpm, bool success);
 
 private:
     bool sendCommand(quint16 commandCode);
@@ -109,6 +111,7 @@ private:
     quint16 m_lastHandledCommandSequence = 0;
     int m_lastCommandResult = 0;
     bool m_commandPending = false;
+    bool writePumpTargetRpm(int pumpNumber, quint16 registerAddress, int rpm);
     quint16 m_nextCommandSequence = 1;
     quint16 m_pendingCommandSequence = 0;
 };

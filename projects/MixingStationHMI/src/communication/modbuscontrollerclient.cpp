@@ -182,6 +182,76 @@ void ModbusControllerClient::disconnectFromController()
     m_client.disconnectDevice();
 }
 
+bool ModbusControllerClient::setPumpTargetRpm(int pumpNumber, int rpm)
+{
+    switch (pumpNumber)
+    {
+    case 1:
+        return writePumpTargetRpm(pumpNumber, ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump1TargetRpm), rpm);
+
+    case 2:
+        return writePumpTargetRpm(pumpNumber, ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump2TargetRpm), rpm);
+
+    case 3:
+        return writePumpTargetRpm(pumpNumber, ControllerProtocol::address(ControllerProtocol::HoldingRegister::Pump3TargetRpm), rpm);
+
+    default:
+        setLastError(QStringLiteral("Pump number must be between 1 and 3."));
+        return false;
+    }
+}
+
+bool ModbusControllerClient::writePumpTargetRpm(int pumpNumber, quint16 registerAddress, int rpm)
+{
+    if (!isConnected())
+    {
+        setLastError(QStringLiteral("Cannot write pump RPM while disconnected."));
+        return false;
+    }
+
+    if (rpm < 0 || rpm > static_cast<int>(ControllerProtocol::MaximumPumpRpm))
+    {
+        setLastError(QStringLiteral("Pump RPM must be between 0 and %1.").arg(ControllerProtocol::MaximumPumpRpm));
+        return false;
+    }
+
+    const QList<quint16> values{static_cast<quint16>(rpm)};
+    const QModbusDataUnit request(QModbusDataUnit::HoldingRegisters, registerAddress, values);
+    QModbusReply *reply = m_client.sendWriteRequest(request, ControllerProtocol::ServerAddress);
+
+    if (reply == nullptr)
+    {
+        setLastError(m_client.errorString());
+        return false;
+    }
+
+    const auto handleReply = [this, reply, pumpNumber, rpm]()
+    {
+        const bool success = reply->error() == QModbusDevice::NoError;
+
+        if (success)
+        {
+            setLastError({});
+        }
+        else
+        {
+            setLastError(reply->errorString());
+        }
+
+        emit pumpTargetRpmWriteFinished(pumpNumber, rpm, success);
+        reply->deleteLater();
+    };
+
+    if (reply->isFinished())
+    {
+        handleReply();
+        return true;
+    }
+
+    connect(reply, &QModbusReply::finished, this, handleReply);
+    return true;
+}
+
 bool ModbusControllerClient::startBatch()
 {
     return sendCommand(static_cast<quint16>(ControllerProtocol::Command::StartBatch));
