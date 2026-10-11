@@ -3,7 +3,6 @@
 
 namespace
 {
-constexpr std::uint16_t WaterTargetVolumeDecilitres = 700;
 constexpr std::uint16_t WaterFillingEquipmentMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump1Running)
                                                   | static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve1Open);
 } // namespace
@@ -86,9 +85,9 @@ void ControllerCore::tick()
         return;
     }
 
-    if (m_snapshot.mixtureVolumeDecilitres < WaterTargetVolumeDecilitres)
+    if (m_snapshot.mixtureVolumeDecilitres < ProcessConfiguration::WaterTargetDecilitres)
     {
-        m_snapshot.stageProgressPermille = static_cast<std::uint16_t>((static_cast<std::uint32_t>(m_snapshot.mixtureVolumeDecilitres) * 1000U) / WaterTargetVolumeDecilitres);
+        m_snapshot.stageProgressPermille = static_cast<std::uint16_t>((static_cast<std::uint32_t>(m_snapshot.mixtureVolumeDecilitres) * 1000U) / ProcessConfiguration::WaterTargetDecilitres);
         return;
     }
 

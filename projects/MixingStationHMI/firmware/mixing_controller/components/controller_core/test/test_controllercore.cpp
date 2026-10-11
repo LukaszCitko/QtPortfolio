@@ -49,7 +49,7 @@ TEST_CASE( "Start batch command changes controller state", "[controller_core]")
     const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
     const auto snapshot = controller.snapshot();
 
-    TEST_ASSERT_EQUAL_UINT16(725, snapshot.pump1ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::Pump1DefaultRpm, snapshot.pump1ActualRpm);
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(result));
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::FillingWater), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(1, snapshot.lastHandledCommandSequence);

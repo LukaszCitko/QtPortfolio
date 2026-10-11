@@ -2,6 +2,7 @@
 #define CONTROLLERCORE_H
 
 #include "controllerprotocol.h"
+#include "processconfiguration.h"
 
 #include <cstdint>
 
@@ -16,9 +17,9 @@ struct ProcessInputs
 
 struct ControllerSetpoints
 {
-    std::uint16_t pump1TargetRpm{600};
-    std::uint16_t pump2TargetRpm{400};
-    std::uint16_t pump3TargetRpm{600};
+    std::uint16_t pump1TargetRpm{ProcessConfiguration::Pump1DefaultRpm};
+    std::uint16_t pump2TargetRpm{ProcessConfiguration::Pump2DefaultRpm};
+    std::uint16_t pump3TargetRpm{ProcessConfiguration::Pump3DefaultRpm};
 };
 
 struct ControllerSnapshot

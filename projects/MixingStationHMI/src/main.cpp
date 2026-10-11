@@ -17,6 +17,7 @@
 #include "mixer.h"
 #include "mixingtank.h"
 #include "operatorsession.h"
+#include "processconfiguration.h"
 #include "processeventcoordinator.h"
 #include "processsimulator.h"
 #include "pump.h"
@@ -146,6 +147,10 @@ int main(int argc, char *argv[])
     Valve valve4(4); // Emergency drain
     Mixer mixer;
     MixingTank mixingTank;
+
+    pump1.setTargetRpm(ProcessConfiguration::Pump1DefaultRpm);
+    pump2.setTargetRpm(ProcessConfiguration::Pump2DefaultRpm);
+    pump3.setTargetRpm(ProcessConfiguration::Pump3DefaultRpm);
 
     EventManager eventManager;
 

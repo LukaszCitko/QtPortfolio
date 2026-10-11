@@ -61,6 +61,7 @@ qt_add_library(mixingstation_core STATIC
     src/valve.h
 
     shared/controllerprotocol.h
+    shared/processconfiguration.h
 
     src/database/databaseschema.cpp
     src/database/databaseschema.h

@@ -8,6 +8,7 @@ set(
 set(
     TEST_COMPONENTS
     "controller_core"
+    "process_simulation"
     CACHE STRING
     "Components included in the firmware test application"
 )

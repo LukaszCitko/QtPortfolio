@@ -1,9 +1,10 @@
 #include "controllercore.h"
 #include "hardwareoutputs.h"
 #include "controllerprotocol.h"
+#include "processconfiguration.h"
+#include "simulatedprocessinputs.h"
 #include "modbusserver.h"
 #include "wifistation.h"
-#include "simulatedprocessinputs.h"
 
 #include "esp_err.h"
 #include "esp_log.h"
@@ -17,7 +18,7 @@ namespace
 constexpr char LogTag[] = "MixingController";
 constexpr std::uint32_t ControllerTaskStackSize = 4096;
 constexpr UBaseType_t ControllerTaskPriority = 5;
-constexpr std::uint32_t ControllerCycleMilliseconds = 1000;
+constexpr std::uint32_t HeartbeatLogIntervalCycles = 1000U / ProcessConfiguration::SimulationStepMilliseconds;
 
 struct ControllerTaskContext
 {
@@ -62,7 +63,7 @@ void controllerTask(void *argument)
                 static_cast<unsigned>(result));
         }
         const auto controllerOutputs = context->controller.snapshot();
-        context->simulatedInputs.tick(controllerOutputs.equipmentStatusMask);
+        context->simulatedInputs.tick(controllerOutputs, ProcessConfiguration::SimulationStepMilliseconds);
         context->controller.updateInputs(context->simulatedInputs.inputs());
         context->controller.tick();
 
@@ -75,8 +76,11 @@ void controllerTask(void *argument)
             ESP_LOGE(LogTag, "Unable to update hardware outputs: %s", esp_err_to_name(outputResult));
         }
 
-        ESP_LOGI(LogTag, "Controller heartbeat: %u", static_cast<unsigned>(currentSnapshot.heartbeat));
-        xTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(ControllerCycleMilliseconds));
+        if ((currentSnapshot.heartbeat % HeartbeatLogIntervalCycles) == 0U)
+        {
+            ESP_LOGI(LogTag, "Controller heartbeat: %u", static_cast<unsigned>(currentSnapshot.heartbeat));
+        }
+        xTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(ProcessConfiguration::SimulationStepMilliseconds));
     }
 }
 

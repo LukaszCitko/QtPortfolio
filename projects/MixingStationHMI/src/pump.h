@@ -1,6 +1,7 @@
     #ifndef PUMP_H
     #define PUMP_H
 
+    #include "controllerprotocol.h"
     #include <QObject>
 
     class Pump : public QObject
@@ -17,7 +18,7 @@
 
     public:
 
-        static constexpr double MaxRpm = 1800.0;
+        static constexpr double MaxRpm = static_cast<double>(ControllerProtocol::MaximumPumpRpm);
 
         enum class State
         {

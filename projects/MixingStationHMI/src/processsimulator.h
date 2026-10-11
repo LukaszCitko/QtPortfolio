@@ -45,11 +45,6 @@ private:
 
     QTimer m_timer;
 
-    static constexpr double RpmChangePerSecond = 500.0;
-    static constexpr double WaterFlowPerSecond = 1.0;
-    static constexpr double ConcentrateFlowPerSecond = 1.0;
-    static constexpr double ProductFlowPerSecond = 2.0;
-    static constexpr double NominalRpm = 1500.0;
 };
 
 #endif

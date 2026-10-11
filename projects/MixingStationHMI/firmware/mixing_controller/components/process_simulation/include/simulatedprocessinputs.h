@@ -11,11 +11,12 @@ namespace MixingStation::Firmware
 class SimulatedProcessInputs final
 {
 public:
-    void tick(std::uint16_t equipmentStatusMask);
+    void tick(const ControllerSnapshot &snapshot, std::uint32_t elapsedMilliseconds);
     [[nodiscard]] ProcessInputs inputs() const;
 
 private:
     ProcessInputs m_inputs;
+    std::uint32_t m_volumeRemainder{0};
 };
 
 } // namespace MixingStation::Firmware
