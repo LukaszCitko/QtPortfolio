@@ -3,13 +3,22 @@
 
 namespace
 {
+
 constexpr std::uint16_t WaterFillingEquipmentMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump1Running)
                                                   | static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve1Open);
+
+constexpr std::uint16_t ConcentrateFlowEquipmentMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump2Running)
+                                                     | static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve2Open);
+
+constexpr std::uint16_t MixerEquipmentMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerRunning)
+                                           | static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
+
 } // namespace
 
 namespace MixingStation::Firmware
 {
-   void ControllerCore::updateSetpoints(const ControllerSetpoints &setpoints)
+
+    void ControllerCore::updateSetpoints(const ControllerSetpoints &setpoints)
 {
     m_setpoints.pump1TargetRpm = std::min(setpoints.pump1TargetRpm, ControllerProtocol::MaximumPumpRpm);
     m_setpoints.pump2TargetRpm = std::min(setpoints.pump2TargetRpm, ControllerProtocol::MaximumPumpRpm);
@@ -80,21 +89,42 @@ void ControllerCore::tick()
 {
     ++m_snapshot.heartbeat;
 
-    if (m_snapshot.processState != ControllerProtocol::ProcessState::FillingWater)
+    if (m_snapshot.processState == ControllerProtocol::ProcessState::FillingWater)
+    {
+        if (m_snapshot.mixtureVolumeDecilitres < ProcessConfiguration::WaterTargetDecilitres)
+        {
+            m_snapshot.stageProgressPermille = static_cast<std::uint16_t>((static_cast<std::uint32_t>(m_snapshot.mixtureVolumeDecilitres) * 1000U) / ProcessConfiguration::WaterTargetDecilitres);
+            return;
+        }
+
+        m_snapshot.processState = ControllerProtocol::ProcessState::DosingConcentrate;
+        m_snapshot.stageProgressPermille = 0;
+
+        m_snapshot.pump1ActualRpm = 0;
+        m_snapshot.pump2ActualRpm = m_setpoints.pump2TargetRpm;
+        m_snapshot.mixerActualRpm = ProcessConfiguration::DosingMixerRpm;
+
+        m_snapshot.equipmentStatusMask &= static_cast<std::uint16_t>(~WaterFillingEquipmentMask);
+        m_snapshot.equipmentStatusMask |= ConcentrateFlowEquipmentMask;
+        m_snapshot.equipmentStatusMask |= MixerEquipmentMask;
+        return;
+    }
+
+    if (m_snapshot.processState != ControllerProtocol::ProcessState::DosingConcentrate)
     {
         return;
     }
 
-    if (m_snapshot.mixtureVolumeDecilitres < ProcessConfiguration::WaterTargetDecilitres)
+    if (m_snapshot.mixtureVolumeDecilitres < ProcessConfiguration::MixtureTargetDecilitres)
     {
-        m_snapshot.stageProgressPermille = static_cast<std::uint16_t>((static_cast<std::uint32_t>(m_snapshot.mixtureVolumeDecilitres) * 1000U) / ProcessConfiguration::WaterTargetDecilitres);
+        const std::uint16_t concentrateVolumeDecilitres = m_snapshot.mixtureVolumeDecilitres > ProcessConfiguration::WaterTargetDecilitres ? m_snapshot.mixtureVolumeDecilitres - ProcessConfiguration::WaterTargetDecilitres : 0;
+        m_snapshot.stageProgressPermille = static_cast<std::uint16_t>((static_cast<std::uint32_t>(concentrateVolumeDecilitres) * 1000U) / ProcessConfiguration::ConcentrateTargetDecilitres);
         return;
     }
 
-    m_snapshot.processState = ControllerProtocol::ProcessState::DosingConcentrate;
+    m_snapshot.processState = ControllerProtocol::ProcessState::TemperatureCheck;
     m_snapshot.stageProgressPermille = 0;
-    m_snapshot.pump1ActualRpm = 0;
-    m_snapshot.equipmentStatusMask &= static_cast<std::uint16_t>(~WaterFillingEquipmentMask);  // turning bits for WaterFillingEquipmentMask
+    m_snapshot.pump2ActualRpm = 0;
+    m_snapshot.equipmentStatusMask &= static_cast<std::uint16_t>(~ConcentrateFlowEquipmentMask);
 }
-
 } // namespace MixingStation::Firmware

@@ -13,8 +13,7 @@ class HardwareOutputs final
 public:
     [[nodiscard]] esp_err_t initialize();
 
-    [[nodiscard]] esp_err_t applyEquipmentStatus(
-        std::uint16_t equipmentStatusMask);
+    [[nodiscard]] esp_err_t applyEquipmentStatus(std::uint16_t equipmentStatusMask);
 
 private:
     bool m_initialized{false};

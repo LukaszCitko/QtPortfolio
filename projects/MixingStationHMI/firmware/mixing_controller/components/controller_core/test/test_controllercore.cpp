@@ -102,11 +102,21 @@ TEST_CASE("Water filling finishes after reaching 70 litres", "[controller_core]"
     const auto snapshot = controller.snapshot();
     const auto pump1Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump1Running);
     const auto valve1Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve1Open);
+    const auto pump2Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump2Running);
+    const auto valve2Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve2Open);
+    const auto mixerRunningMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerRunning);
+    const auto mixerConnectedMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
 
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::DosingConcentrate), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.pump1ActualRpm);
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & pump1Mask);
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & valve1Mask);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::Pump2DefaultRpm, snapshot.pump2ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::DosingMixerRpm, snapshot.mixerActualRpm);
+    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & pump2Mask);
+    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & valve2Mask);
+    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & mixerRunningMask);
+    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & mixerConnectedMask);
 
 }
 
@@ -128,3 +138,42 @@ TEST_CASE("Pump setpoints are limited to maximum RPM", "[controller_core]")
     TEST_ASSERT_EQUAL_UINT16(ControllerProtocol::MaximumPumpRpm, acceptedSetpoints.pump3TargetRpm);
 }
 
+TEST_CASE("Concentrate dosing finishes after reaching 100 litres", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::WaterTargetDecilitres;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::DosingConcentrate), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    inputs.mixtureVolumeDecilitres = 780;
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    TEST_ASSERT_EQUAL_UINT16(266, controller.snapshot().stageProgressPermille);
+
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    const MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+    const std::uint16_t pump2Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump2Running);
+    const std::uint16_t valve2Mask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve2Open);
+    const std::uint16_t mixerRunningMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerRunning);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::TemperatureCheck), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.stageProgressPermille);
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.pump2ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::DosingMixerRpm, snapshot.mixerActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & pump2Mask);
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & valve2Mask);
+    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & mixerRunningMask);
+}
