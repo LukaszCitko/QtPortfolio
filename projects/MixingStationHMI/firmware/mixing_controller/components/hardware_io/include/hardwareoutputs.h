@@ -12,7 +12,7 @@ class HardwareOutputs final
 {
 public:
     [[nodiscard]] esp_err_t initialize();
-
+    [[nodiscard]] esp_err_t applyFaultStatus(std::uint16_t faultMask);
     [[nodiscard]] esp_err_t applyEquipmentStatus(std::uint16_t equipmentStatusMask);
 
 private:

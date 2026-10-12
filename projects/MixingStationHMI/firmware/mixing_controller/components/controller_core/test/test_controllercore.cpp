@@ -1,6 +1,18 @@
 #include "controllercore.h"
 #include "unity.h"
 
+namespace
+{
+
+void setMixerConnected(MixingStation::Firmware::ControllerCore &controller)
+{
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    controller.updateInputs(inputs);
+}
+
+} // namespace
+
 TEST_CASE("Controller starts in idle state", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
@@ -31,6 +43,7 @@ TEST_CASE( "Process inputs are included in controller snapshot", "[controller_co
     MixingStation::Firmware::ProcessInputs inputs;
     inputs.mixtureVolumeDecilitres = 425;
     inputs.temperatureTenthsCelsius = 603;
+    inputs.mixerConnected = true;
     inputs.faultMask = static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump1);
 
     controller.updateInputs(inputs);
@@ -39,13 +52,15 @@ TEST_CASE( "Process inputs are included in controller snapshot", "[controller_co
     TEST_ASSERT_EQUAL_UINT16(425, snapshot.mixtureVolumeDecilitres);
     TEST_ASSERT_EQUAL_UINT16(603, snapshot.temperatureTenthsCelsius);
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump1), snapshot.faultMask);
+    const std::uint16_t mixerConnectedMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
+    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & mixerConnectedMask);
 }
 TEST_CASE( "Start batch command changes controller state", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
     auto setpoints = controller.setpoints();
     controller.updateSetpoints(setpoints);
-
+    setMixerConnected(controller);
     const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
     const auto snapshot = controller.snapshot();
 
@@ -59,7 +74,7 @@ TEST_CASE( "Start batch command changes controller state", "[controller_core]")
 TEST_CASE("Start batch is rejected outside idle state", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
-
+    setMixerConnected(controller);
     const ControllerProtocol::CommandResult initialResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
 
 TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(initialResult));
@@ -75,6 +90,7 @@ TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandR
 TEST_CASE("Duplicate command sequence is rejected", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
+    setMixerConnected(controller);
     const ControllerProtocol::CommandResult initialResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 10);
 
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(initialResult));
@@ -90,12 +106,13 @@ TEST_CASE("Duplicate command sequence is rejected", "[controller_core]")
 TEST_CASE("Water filling finishes after reaching 70 litres", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
-
+    setMixerConnected(controller);
     const auto startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
 
     MixingStation::Firmware::ProcessInputs inputs;
     inputs.mixtureVolumeDecilitres = 700;
+    inputs.mixerConnected = true;
     controller.updateInputs(inputs);
     controller.tick();
 
@@ -141,7 +158,7 @@ TEST_CASE("Pump setpoints are limited to maximum RPM", "[controller_core]")
 TEST_CASE("Concentrate dosing finishes after reaching 100 litres", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
-
+    setMixerConnected(controller);
     const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
 
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
@@ -155,6 +172,7 @@ TEST_CASE("Concentrate dosing finishes after reaching 100 litres", "[controller_
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::DosingConcentrate), static_cast<std::uint16_t>(controller.snapshot().processState));
 
     inputs.mixtureVolumeDecilitres = 780;
+    inputs.mixerConnected = true;
     controller.updateInputs(inputs);
     controller.tick();
 
@@ -176,4 +194,17 @@ TEST_CASE("Concentrate dosing finishes after reaching 100 litres", "[controller_
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & pump2Mask);
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.equipmentStatusMask & valve2Mask);
     TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & mixerRunningMask);
+}
+
+TEST_CASE("Start batch is rejected when mixer is disconnected", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+    const MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Idle), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.pump1ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(1, snapshot.lastHandledCommandSequence);
 }

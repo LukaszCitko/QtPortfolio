@@ -10,15 +10,15 @@ constexpr std::uint16_t WaterFillingEquipmentMask = static_cast<std::uint16_t>(C
 constexpr std::uint16_t ConcentrateFlowEquipmentMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Pump2Running)
                                                      | static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::Valve2Open);
 
-constexpr std::uint16_t MixerEquipmentMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerRunning)
-                                           | static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
+constexpr std::uint16_t MixerRunningMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerRunning);
+constexpr std::uint16_t MixerConnectedMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
 
 } // namespace
 
 namespace MixingStation::Firmware
 {
 
-    void ControllerCore::updateSetpoints(const ControllerSetpoints &setpoints)
+void ControllerCore::updateSetpoints(const ControllerSetpoints &setpoints)
 {
     m_setpoints.pump1TargetRpm = std::min(setpoints.pump1TargetRpm, ControllerProtocol::MaximumPumpRpm);
     m_setpoints.pump2TargetRpm = std::min(setpoints.pump2TargetRpm, ControllerProtocol::MaximumPumpRpm);
@@ -35,6 +35,15 @@ void ControllerCore::updateInputs(const ProcessInputs &inputs)
     m_snapshot.mixtureVolumeDecilitres = inputs.mixtureVolumeDecilitres;
     m_snapshot.temperatureTenthsCelsius = inputs.temperatureTenthsCelsius;
     m_snapshot.faultMask = inputs.faultMask;
+
+    if (inputs.mixerConnected)
+    {
+        m_snapshot.equipmentStatusMask |= MixerConnectedMask;
+    }
+    else
+    {
+        m_snapshot.equipmentStatusMask &= static_cast<std::uint16_t>(~MixerConnectedMask);
+    }
 }
 
 ControllerSnapshot ControllerCore::snapshot() const
@@ -42,9 +51,7 @@ ControllerSnapshot ControllerCore::snapshot() const
     return m_snapshot;
 }
 
-ControllerProtocol::CommandResult ControllerCore::handleCommand(
-    ControllerProtocol::Command command,
-    std::uint16_t sequence)
+ControllerProtocol::CommandResult ControllerCore::handleCommand(ControllerProtocol::Command command, std::uint16_t sequence)
 {
     if (sequence == m_snapshot.lastHandledCommandSequence) {
         m_snapshot.lastCommandResult = ControllerProtocol::CommandResult::DuplicateSequence;
@@ -56,6 +63,11 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(
     switch (command) {
     case ControllerProtocol::Command::StartBatch:
         if (m_snapshot.processState != ControllerProtocol::ProcessState::Idle) {
+            result = ControllerProtocol::CommandResult::InvalidState;
+            break;
+        }
+        if ((m_snapshot.equipmentStatusMask & MixerConnectedMask) == 0U)
+        {
             result = ControllerProtocol::CommandResult::InvalidState;
             break;
         }
@@ -106,7 +118,7 @@ void ControllerCore::tick()
 
         m_snapshot.equipmentStatusMask &= static_cast<std::uint16_t>(~WaterFillingEquipmentMask);
         m_snapshot.equipmentStatusMask |= ConcentrateFlowEquipmentMask;
-        m_snapshot.equipmentStatusMask |= MixerEquipmentMask;
+        m_snapshot.equipmentStatusMask |= MixerRunningMask;
         return;
     }
 

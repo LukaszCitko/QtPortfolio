@@ -13,6 +13,7 @@ struct ProcessInputs
     std::uint16_t mixtureVolumeDecilitres{0};
     std::uint16_t temperatureTenthsCelsius{250};
     std::uint16_t faultMask{0};
+    bool mixerConnected{false};
 };
 
 struct ControllerSetpoints
