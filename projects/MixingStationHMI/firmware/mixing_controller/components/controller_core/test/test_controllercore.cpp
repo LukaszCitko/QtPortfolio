@@ -11,6 +11,29 @@ void setMixerConnected(MixingStation::Firmware::ControllerCore &controller)
     controller.updateInputs(inputs);
 }
 
+void advanceToTemperatureCheck(MixingStation::Firmware::ControllerCore &controller)
+{
+    setMixerConnected(controller);
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::WaterTargetDecilitres;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::TemperatureCheck), static_cast<std::uint16_t>(controller.snapshot().processState));
+}
+
 } // namespace
 
 TEST_CASE("Controller starts in idle state", "[controller_core]")
@@ -165,6 +188,7 @@ TEST_CASE("Concentrate dosing finishes after reaching 100 litres", "[controller_
 
     MixingStation::Firmware::ProcessInputs inputs;
     inputs.mixtureVolumeDecilitres = ProcessConfiguration::WaterTargetDecilitres;
+    inputs.mixerConnected = true;
 
     controller.updateInputs(inputs);
     controller.tick();
@@ -207,4 +231,187 @@ TEST_CASE("Start batch is rejected when mixer is disconnected", "[controller_cor
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Idle), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.pump1ActualRpm);
     TEST_ASSERT_EQUAL_UINT16(1, snapshot.lastHandledCommandSequence);
+}
+
+TEST_CASE("Temperature check accepts values from 30 to 36 degrees", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 299;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::TemperatureCheck), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    inputs.temperatureTenthsCelsius = 361;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::TemperatureCheck), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    const MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+    const std::uint16_t mixerRunningMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerRunning);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Mixing), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::MixingMixerRpm, snapshot.mixerActualRpm);
+    TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & mixerRunningMask);
+}
+
+TEST_CASE("Mixing finishes after fifteen seconds", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    controller.tick(ProcessConfiguration::MixingDurationMilliseconds - 100U);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Mixing), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    controller.tick(100U);
+
+    const MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(1000, snapshot.stageProgressPermille);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::DosingMixerRpm, snapshot.mixerActualRpm);
+}
+
+TEST_CASE("Mixing timer stops while batch is paused", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+    controller.tick(5000U);
+
+    const ControllerProtocol::CommandResult pauseResult = controller.handleCommand(ControllerProtocol::Command::PauseBatch, 2);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(pauseResult));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Paused), static_cast<std::uint16_t>(controller.snapshot().processState));
+    TEST_ASSERT_EQUAL_UINT16(0, controller.snapshot().mixerActualRpm);
+
+    controller.tick(20000U);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Paused), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    const ControllerProtocol::CommandResult resumeResult = controller.handleCommand(ControllerProtocol::Command::ResumeBatch, 3);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(resumeResult));
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::MixingMixerRpm, controller.snapshot().mixerActualRpm);
+
+    controller.tick(9999U);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Mixing), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    controller.tick(1U);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+}
+
+TEST_CASE("Relevant fault pauses batch and remains latched until reset", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    setMixerConnected(controller);
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::WaterTargetDecilitres;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::DosingConcentrate), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    const std::uint16_t pump2FaultMask = static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump2);
+
+    inputs.faultMask = pump2FaultMask;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Paused), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(pump2FaultMask, snapshot.faultMask);
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.pump2ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.mixerActualRpm);
+
+    inputs.faultMask = 0;
+
+    controller.updateInputs(inputs);
+
+    TEST_ASSERT_EQUAL_UINT16(pump2FaultMask, controller.snapshot().faultMask);
+
+    const ControllerProtocol::CommandResult resetResult = controller.handleCommand(ControllerProtocol::Command::ResetFaults, 2);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(resetResult));
+    TEST_ASSERT_EQUAL_UINT16(0, controller.snapshot().faultMask);
+
+    const ControllerProtocol::CommandResult resumeResult = controller.handleCommand(ControllerProtocol::Command::ResumeBatch, 3);
+
+    snapshot = controller.snapshot();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(resumeResult));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::DosingConcentrate), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::Pump2DefaultRpm, snapshot.pump2ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::DosingMixerRpm, snapshot.mixerActualRpm);
+}
+
+TEST_CASE("Completed pump fault is reported without stopping current stage", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    setMixerConnected(controller);
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::WaterTargetDecilitres;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    const std::uint16_t pump1FaultMask = static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump1);
+
+    inputs.faultMask = pump1FaultMask;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    const MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::DosingConcentrate), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(pump1FaultMask, snapshot.faultMask);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::Pump2DefaultRpm, snapshot.pump2ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::DosingMixerRpm, snapshot.mixerActualRpm);
 }

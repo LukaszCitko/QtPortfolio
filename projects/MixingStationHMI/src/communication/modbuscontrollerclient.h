@@ -69,6 +69,7 @@ public:
     Q_INVOKABLE bool startDrain();
     Q_INVOKABLE bool prepareNextBatch();
     Q_INVOKABLE bool setPumpTargetRpm(int pumpNumber, int rpm);
+    Q_INVOKABLE bool setSimulatedFaultMask(quint16 faultMask);
 
 signals:
     void connectionChanged();
@@ -76,6 +77,7 @@ signals:
     void snapshotChanged();
     void commandPendingChanged();
     void pumpTargetRpmWriteFinished(int pumpNumber, int requestedRpm, bool success);
+    void simulatedFaultMaskWriteFinished(quint16 faultMask, bool success);
 
 private:
     bool sendCommand(quint16 commandCode);

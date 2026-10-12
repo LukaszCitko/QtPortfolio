@@ -8,7 +8,7 @@ namespace ControllerProtocol {
 // Development server uses a non-privileged TCP port.
 inline constexpr std::uint16_t TcpPort = 1502;
 inline constexpr std::uint8_t ServerAddress = 1;
-inline constexpr std::uint16_t ProtocolVersion = 1;
+inline constexpr std::uint16_t ProtocolVersion = 2;
 inline constexpr std::uint16_t RegisterCount = 64;
 inline constexpr std::uint16_t MaximumPumpRpm = 1000;
 
@@ -59,7 +59,8 @@ enum class HoldingRegister : std::uint16_t
     Pump1TargetRpm = 10,
     Pump2TargetRpm = 11,
     Pump3TargetRpm = 12,
-    MixerTargetRpm = 13
+    MixerTargetRpm = 13,
+    SimulatedFaultMask = 20
 };
 
 // Input registers are read by the HMI.
@@ -110,6 +111,15 @@ enum class FaultBit : std::uint16_t
     Mixer = 1U << 6,
     TemperatureHigh = 1U << 7
 };
+
+inline constexpr std::uint16_t DefinedFaultMask = static_cast<std::uint16_t>(FaultBit::Pump1)
+                                                | static_cast<std::uint16_t>(FaultBit::Valve1)
+                                                | static_cast<std::uint16_t>(FaultBit::Pump2)
+                                                | static_cast<std::uint16_t>(FaultBit::Valve2)
+                                                | static_cast<std::uint16_t>(FaultBit::Pump3)
+                                                | static_cast<std::uint16_t>(FaultBit::Valve3)
+                                                | static_cast<std::uint16_t>(FaultBit::Mixer)
+                                                | static_cast<std::uint16_t>(FaultBit::TemperatureHigh);
 
 constexpr std::uint16_t address(HoldingRegister registerId)
 {

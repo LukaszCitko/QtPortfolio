@@ -49,15 +49,25 @@ class ControllerCore
 public:
     void updateInputs(const ProcessInputs &inputs);
     void updateSetpoints(const ControllerSetpoints &setpoints);
+    void tick(std::uint32_t elapsedMilliseconds = ProcessConfiguration::SimulationStepMilliseconds);
 
     [[nodiscard]] ControllerSetpoints setpoints() const;
     [[nodiscard]] ControllerSnapshot snapshot() const;
     [[nodiscard]] ControllerProtocol::CommandResult handleCommand(ControllerProtocol::Command command, std::uint16_t sequence);
-    void tick();
+    [[nodiscard]] static std::uint16_t faultMaskForState(ControllerProtocol::ProcessState state);
 
 private:
+    void transitionTo(ControllerProtocol::ProcessState state);
+    void applyOutputsForState(ControllerProtocol::ProcessState state);
+
+    [[nodiscard]] static bool stateCanBePaused(ControllerProtocol::ProcessState state);
+    [[nodiscard]] static bool stateRequiresMixer(ControllerProtocol::ProcessState state);
+
     ControllerSnapshot m_snapshot;
     ControllerSetpoints m_setpoints;
+    ControllerProtocol::ProcessState m_stateBeforePause{ControllerProtocol::ProcessState::Idle};
+    std::uint32_t m_mixingElapsedMilliseconds{0};
+    std::uint16_t m_activeInputFaultMask{0};
 };
 
 } // namespace MixingStation::Firmware

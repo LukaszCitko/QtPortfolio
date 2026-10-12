@@ -18,6 +18,7 @@ private:
     ProcessInputs m_inputs;
     std::uint32_t m_waterVolumeRemainder{0};
     std::uint32_t m_concentrateVolumeRemainder{0};
+    std::uint32_t m_outflowVolumeRemainder{0};
 };
 
 } // namespace MixingStation::Firmware

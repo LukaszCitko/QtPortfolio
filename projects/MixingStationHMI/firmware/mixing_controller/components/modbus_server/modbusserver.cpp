@@ -147,6 +147,25 @@ std::optional<ControllerSetpoints> ModbusServer::readSetpoints()
     return setpoints;
 }
 
+std::optional<std::uint16_t> ModbusServer::readSimulatedFaultMask()
+{
+    const bool registerBankIsShared = m_handle != nullptr;
+
+    if (registerBankIsShared && mbc_slave_lock(m_handle) != ESP_OK)
+    {
+        return std::nullopt;
+    }
+
+    const std::uint16_t faultMask = m_holdingRegisters[ControllerProtocol::address(ControllerProtocol::HoldingRegister::SimulatedFaultMask)] & ControllerProtocol::DefinedFaultMask;
+
+    if (registerBankIsShared)
+    {
+        mbc_slave_unlock(m_handle);
+    }
+
+    return faultMask;
+}
+
 std::optional<CommandRequest> ModbusServer::takeCommandRequest()
 {
     if (m_handle == nullptr) {

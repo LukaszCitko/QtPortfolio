@@ -49,6 +49,7 @@ struct ControllerTaskContext
     MixingStation::Firmware::SimulatedProcessInputs &simulatedInputs;
     QueueHandle_t temperatureQueue;
     std::uint16_t latestTemperatureTenthsCelsius{250};
+    std::uint16_t latestSimulatedFaultMask{0};
     bool lastReportedMixerConnected{false};
 };
 
@@ -130,19 +131,15 @@ void controllerTask(void *argument)
             context->controller.updateSetpoints(*setpoints);
         }
 
-        const auto commandRequest = context->modbusServer.takeCommandRequest();
+        const auto simulatedFaultMask = context->modbusServer.readSimulatedFaultMask();
 
-        if (commandRequest.has_value())
+        if (simulatedFaultMask.has_value())
         {
-            const ControllerProtocol::CommandResult result =
-                context->controller.handleCommand(commandRequest->command, commandRequest->sequence);
-
-            ESP_LOGI(LogTag, "Handled command %u with sequence %u, result %u.",
-                static_cast<unsigned>(commandRequest->command),
-                static_cast<unsigned>(commandRequest->sequence),
-                static_cast<unsigned>(result));
+            context->latestSimulatedFaultMask = *simulatedFaultMask;
         }
+
         const auto controllerOutputs = context->controller.snapshot();
+
         context->simulatedInputs.tick(controllerOutputs, ProcessConfiguration::SimulationStepMilliseconds);
 
         std::uint16_t measuredTemperatureTenthsCelsius = 0;
@@ -153,13 +150,26 @@ void controllerTask(void *argument)
         }
 
         auto processInputs = context->simulatedInputs.inputs();
+
         processInputs.temperatureTenthsCelsius = context->latestTemperatureTenthsCelsius;
+        processInputs.faultMask = context->latestSimulatedFaultMask;
         processInputs.mixerConnected = mixerConnected;
 
         context->controller.updateInputs(processInputs);
-        context->controller.tick();
+
+        const auto commandRequest = context->modbusServer.takeCommandRequest();
+
+        if (commandRequest.has_value())
+        {
+            const ControllerProtocol::CommandResult result = context->controller.handleCommand(commandRequest->command, commandRequest->sequence);
+
+            ESP_LOGI(LogTag, "Handled command %u with sequence %u, result %u.", static_cast<unsigned>(commandRequest->command), static_cast<unsigned>(commandRequest->sequence), static_cast<unsigned>(result));
+        }
+
+        context->controller.tick(ProcessConfiguration::SimulationStepMilliseconds);
 
         const auto currentSnapshot = context->controller.snapshot();
+
         context->modbusServer.publishSnapshot(currentSnapshot);
 
         const esp_err_t outputResult = context->hardwareOutputs.applyEquipmentStatus(currentSnapshot.equipmentStatusMask);
@@ -180,6 +190,7 @@ void controllerTask(void *argument)
         {
             ESP_LOGI(LogTag, "Controller heartbeat: %u", static_cast<unsigned>(currentSnapshot.heartbeat));
         }
+
         xTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(ProcessConfiguration::SimulationStepMilliseconds));
     }
 }

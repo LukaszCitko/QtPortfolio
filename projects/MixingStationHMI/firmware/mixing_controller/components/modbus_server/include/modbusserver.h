@@ -43,6 +43,7 @@ public:
 
     [[nodiscard]] std::optional<CommandRequest> takeCommandRequest();
     [[nodiscard]] std::optional<ControllerSetpoints> readSetpoints();
+    [[nodiscard]] std::optional<std::uint16_t> readSimulatedFaultMask();
 
 private:
     void *m_handle{nullptr};

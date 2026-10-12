@@ -201,6 +201,59 @@ bool ModbusControllerClient::setPumpTargetRpm(int pumpNumber, int rpm)
     }
 }
 
+bool ModbusControllerClient::setSimulatedFaultMask(quint16 faultMask)
+{
+    if (!isConnected())
+    {
+        setLastError(QStringLiteral("Cannot write simulated faults while disconnected."));
+        return false;
+    }
+
+    const quint16 undefinedFaultBits = faultMask & static_cast<quint16>(~ControllerProtocol::DefinedFaultMask);
+
+    if (undefinedFaultBits != 0U)
+    {
+        setLastError(QStringLiteral("Simulated fault mask contains unsupported bits."));
+        return false;
+    }
+
+    const QList<quint16> values{faultMask};
+    const QModbusDataUnit request(QModbusDataUnit::HoldingRegisters, ControllerProtocol::address(ControllerProtocol::HoldingRegister::SimulatedFaultMask), values);
+    QModbusReply *reply = m_client.sendWriteRequest(request, ControllerProtocol::ServerAddress);
+
+    if (reply == nullptr)
+    {
+        setLastError(m_client.errorString());
+        return false;
+    }
+
+    const auto handleReply = [this, reply, faultMask]()
+    {
+        const bool success = reply->error() == QModbusDevice::NoError;
+
+        if (success)
+        {
+            setLastError({});
+        }
+        else
+        {
+            setLastError(reply->errorString());
+        }
+
+        emit simulatedFaultMaskWriteFinished(faultMask, success);
+        reply->deleteLater();
+    };
+
+    if (reply->isFinished())
+    {
+        handleReply();
+        return true;
+    }
+
+    connect(reply, &QModbusReply::finished, this, handleReply);
+    return true;
+}
+
 bool ModbusControllerClient::writePumpTargetRpm(int pumpNumber, quint16 registerAddress, int rpm)
 {
     if (!isConnected())
