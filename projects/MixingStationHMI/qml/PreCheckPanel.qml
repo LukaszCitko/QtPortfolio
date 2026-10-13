@@ -7,6 +7,9 @@ Item {
     required property bool operatorSelected
     required property string operatorName
     required property var controller
+    required property bool hardwareMode
+    required property bool recoveryAllowed
+    readonly property bool recoveryRequired: root.hardwareMode && root.controller.recoveryRequired
 
     readonly property bool tankEmpty: root.controller.tankEmpty
     readonly property bool devicesHealthy: root.controller.devicesHealthy
@@ -24,6 +27,7 @@ Item {
     Column {
         anchors.fill: parent
         spacing: 4
+        visible: !root.recoveryRequired
 
         Text {
             text: "START CONDITIONS  "
@@ -59,7 +63,7 @@ Item {
             }
         }
 
-        Button {
+        HmiButton {
             id: startButton
             width: root.width
             height: 42
@@ -82,6 +86,66 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
+        }
+    }
+    Column {
+        anchors.fill: parent
+        spacing: 10
+        visible: root.recoveryRequired
+
+        Text {
+            width: parent.width
+            text: "RECOVERY REQUIRED"
+            color: "#8f2222"
+            font.pixelSize: 17
+            font.bold: true
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        Text {
+            width: parent.width
+            text: "Controller restarted during an active run. Tank state is unknown. Starting a new batch is blocked."
+            color: "#252a2d"
+            font.pixelSize: 13
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        HmiButton {
+            id: completeRecoveryButton
+            width: parent.width
+            height: 48
+            text: "TANK EMPTIED MECHANICALLY · COMPLETE RECOVERY"
+            enabled: root.recoveryAllowed                                    //TODO: enabled: root.recoveryAllowed && root.controller.connected
+            onClicked: root.controller.completeMechanicalRecovery()
+
+            background: Rectangle {
+                color: completeRecoveryButton.enabled ? "#f7f8f8" : "#d7dadd"
+                border.color: completeRecoveryButton.enabled ? "#9d2424" : "#858e92"
+                border.width: 1
+                radius: 4
+            }
+
+            contentItem: Text {
+                text: completeRecoveryButton.text
+                color: completeRecoveryButton.enabled ? "#8f2222" : "#858e92"
+                font.pixelSize: 15
+                font.bold: true
+                fontSizeMode: Text.Fit
+                minimumPixelSize: 11
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: root.recoveryAllowed ? "Confirm only after TK1 has been physically emptied." : "TECHNICIAN OR ADMIN AUTHORIZATION REQUIRED"
+            color: root.recoveryAllowed ? "#596368" : "#8f2222"
+            font.pixelSize: 12
+            font.bold: !root.recoveryAllowed
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 }

@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "modbusserver.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        controller_core
+        espressif__esp-modbus
+        esp_netif
+)

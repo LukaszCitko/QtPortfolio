@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "drainservice.h"
 
 #include "accesspolicy.h"
@@ -66,6 +68,17 @@ bool DrainService::startDrain()
         return false;
     }
 
+    if (m_remoteDrainRequest)
+    {
+        if (!m_remoteDrainRequest())
+        {
+            m_events.addWarning("V4", "Hardware drain request could not be sent");
+            return false;
+        }
+
+        return true;
+    }
+
     m_controller.emergencyDrain();
 
     if (m_controller.state() != BatchController::State::Draining) {
@@ -74,4 +87,9 @@ bool DrainService::startDrain()
     }
 
     return true;
+}
+
+void DrainService::setRemoteDrainRequest(std::function<bool()> request)
+{
+    m_remoteDrainRequest = std::move(request);
 }

@@ -12,6 +12,7 @@ Rectangle {
     property bool rpmControlEnabled: false
 
     signal rpmRequested(var device, string tag)
+    signal faultRequested(string tag)
 
     readonly property bool fault:
         root.pumpDevice.fault
@@ -159,5 +160,17 @@ Rectangle {
         color: root.fault ? "#b63838" : "#252a2d"
         font.pixelSize: 12
         elide: Text.ElideRight
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        z: 20
+        enabled: root.fault
+        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+
+        onClicked: {
+            const tag = root.pumpDevice !== null && root.pumpDevice.fault ? root.pumpTag : root.valveTag
+            root.faultRequested(tag)
+        }
     }
 }

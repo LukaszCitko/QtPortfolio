@@ -1,4 +1,5 @@
 
+#include "processconfiguration.h"
 #include "processsimulator.h"
 
 #include "mixingtank.h"
@@ -32,11 +33,26 @@ ProcessSimulator::ProcessSimulator(
     Q_ASSERT(m_valve3);
     Q_ASSERT(m_mixingTank);
 
-    m_timer.setInterval(100);
+    m_timer.setInterval(ProcessConfiguration::SimulationStepMilliseconds);
 
     connect(&m_timer, &QTimer::timeout, this, &ProcessSimulator::updateSimulation);
 
     m_timer.start();
+}
+
+void ProcessSimulator::setEnabled(bool enabled)
+{
+    if (enabled)
+    {
+        if (!m_timer.isActive())
+        {
+            m_timer.start();
+        }
+
+        return;
+    }
+
+    m_timer.stop();
 }
 
 void ProcessSimulator::updateSimulation()
@@ -71,10 +87,9 @@ void ProcessSimulator::updateSimulation()
     // Simulate pump 1 RPM.
 
     auto updateActualRpm = [elapsedSeconds](Pump *pump) {
-        const double requestedRpm =
-            pump->isRunning() ? pump->targetRpm() : 0.0;
+        const double requestedRpm = pump->isRunning() ? pump->targetRpm() : 0.0;
 
-        const double maxChange = RpmChangePerSecond * elapsedSeconds;
+        const double maxChange = static_cast<double>(ProcessConfiguration::PumpRpmChangePerSecond) * elapsedSeconds;
         const double difference = requestedRpm - pump->actualRpm();
         const double change = std::clamp(difference, -maxChange, maxChange);
 
@@ -89,31 +104,36 @@ void ProcessSimulator::updateSimulation()
     // from the beginning of this step.
     if (waterFlowActive)
     {
-        const double waterAmount =
-            WaterFlowPerSecond * elapsedSeconds
-            * m_pump1->actualRpm() / NominalRpm;
+        const double waterFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::WaterFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+        const double waterAmount = waterFlowLitresPerSecond * elapsedSeconds * m_pump1->actualRpm() / Pump::MaxRpm;
 
-        m_mixingTank->addWater(waterAmount);
+        const double waterTargetLitres = static_cast<double>(ProcessConfiguration::WaterTargetDecilitres) / 10.0;
+        const double remainingWaterLitres = std::max(0.0, waterTargetLitres - m_mixingTank->waterVolume());
+        const double acceptedWaterAmount = std::min(waterAmount, remainingWaterLitres);
+
+        m_mixingTank->addWater(acceptedWaterAmount);
     }
 
     // Apply concentrate flow using the conditions
     // from the beginning of this step.
     if (concentrateFlowActive)
     {
-        const double concentrateAmount =
-            ConcentrateFlowPerSecond * elapsedSeconds
-            * m_pump2->actualRpm() / NominalRpm;
+        const double concentrateFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::ConcentrateFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+        const double concentrateAmount = concentrateFlowLitresPerSecond * elapsedSeconds * m_pump2->actualRpm() / Pump::MaxRpm;
 
-        m_mixingTank->addConcentrate(concentrateAmount);
+        const double concentrateTargetLitres = static_cast<double>(ProcessConfiguration::ConcentrateTargetDecilitres) / 10.0;
+        const double remainingConcentrateLitres = std::max(0.0, concentrateTargetLitres - m_mixingTank->concentrateVolume());
+        const double acceptedConcentrateAmount = std::min(concentrateAmount, remainingConcentrateLitres);
+
+        m_mixingTank->addConcentrate(acceptedConcentrateAmount);
     }
     // Simulate pump 2 RPM.
     const bool productFlowActive = m_pump3->isRunning() && m_valve3->isOpen();
 
     if (productFlowActive)
     {
-        const double productAmount =
-            ProductFlowPerSecond * elapsedSeconds
-            * m_pump3->actualRpm() / NominalRpm;
+        const double productFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::ProductFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+        const double productAmount = productFlowLitresPerSecond * elapsedSeconds * m_pump3->actualRpm() / Pump::MaxRpm;
 
         m_mixingTank->removeProduct(productAmount);
     }

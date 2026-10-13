@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cmath>
+
 #include "mixingtank.h"
 
 MixingTank::MixingTank(QObject *parent)
@@ -215,4 +218,46 @@ bool MixingTank::resetAfterDrain()
     setState(State::Empty);
 
     return true;
+}
+
+void MixingTank::synchronizeFromController(double waterVolume, double concentrateVolume, double temperature, State state)
+{
+    if (!std::isfinite(waterVolume) || !std::isfinite(concentrateVolume) || !std::isfinite(temperature))
+    {
+        return;
+    }
+
+    const double boundedWaterVolume = std::clamp(waterVolume, 0.0, Capacity);
+    const double boundedConcentrateVolume = std::clamp(concentrateVolume, 0.0, Capacity - boundedWaterVolume);
+    const double totalVolume = boundedWaterVolume + boundedConcentrateVolume;
+    const bool volumeHasChanged = !qFuzzyCompare(m_volume + 1.0, totalVolume + 1.0);
+    const bool compositionHasChanged = !qFuzzyCompare(m_waterVolume + 1.0, boundedWaterVolume + 1.0) || !qFuzzyCompare(m_concentrateVolume + 1.0, boundedConcentrateVolume + 1.0);
+    const bool temperatureHasChanged = !qFuzzyCompare(m_temperature + 1.0, temperature + 1.0);
+    const bool stateHasChanged = m_state != state;
+
+    m_volume = totalVolume;
+    m_waterVolume = boundedWaterVolume;
+    m_concentrateVolume = boundedConcentrateVolume;
+    m_temperature = temperature;
+    m_state = state;
+
+    if (volumeHasChanged)
+    {
+        emit volumeChanged();
+    }
+
+    if (compositionHasChanged)
+    {
+        emit compositionChanged();
+    }
+
+    if (temperatureHasChanged)
+    {
+        emit temperatureChanged();
+    }
+
+    if (stateHasChanged)
+    {
+        emit stateChanged();
+    }
 }

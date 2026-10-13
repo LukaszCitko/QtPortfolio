@@ -1,14 +1,17 @@
-#include "processeventcoordinator.h"
 
 #include <QObject>
 
+#include "batchcontroller.h"
 #include "eventmanager.h"
+#include "mixer.h"
 #include "mixingtank.h"
+#include "operatorsession.h"
+#include "processconfiguration.h"
+#include "processeventcoordinator.h"
 #include "pump.h"
 #include "valve.h"
-#include "mixer.h"
-#include "operatorsession.h"
-#include "batchcontroller.h"
+#include "communication/remoteprocesscontroller.h"
+#include "controllerprotocol.h"
 
 ProcessEventCoordinator::ProcessEventCoordinator(EventManager &events)
     : m_events(events)
@@ -18,23 +21,28 @@ ProcessEventCoordinator::ProcessEventCoordinator(EventManager &events)
 void ProcessEventCoordinator::watchTemperature(MixingTank &tank)
 {
     EventManager *events = &m_events;
+    const double minimumTemperature = static_cast<double>(ProcessConfiguration::MinimumProcessTemperatureTenthsCelsius) / 10.0;
+    const double maximumTemperature = static_cast<double>(ProcessConfiguration::MaximumProcessTemperatureTenthsCelsius) / 10.0;
 
     QObject::connect(&tank, &MixingTank::temperatureChanged, events,
-        [&tank, events, previousTemperature = tank.temperature()]() mutable
-        {
-            const double temperature = tank.temperature();
+                     [&tank, events, minimumTemperature, maximumTemperature, previousTemperature = tank.temperature()]() mutable
+                     {
+                         const double temperature = tank.temperature();
 
-            if (previousTemperature < 90.0 && temperature >= 90.0) {
-                events->addWarning("TK1", "Temperature reached 90 °C");
-            } else if (previousTemperature > 25.0
-                       && temperature <= 25.0) {
-                events->addInfo("TK1", "TEMP too low. TK1 in heating mode (simulated)");
-            }
+                         if (previousTemperature <= maximumTemperature && temperature > maximumTemperature)
+                         {
+                             events->addWarning("TK1", QString("Temperature above process limit: %1 °C").arg(temperature, 0, 'f', 1));
+                         }
+                         else if (previousTemperature >= minimumTemperature && temperature < minimumTemperature)
+                         {
+                             events->addInfo("TK1", "Temperature too low. TK1 heating mode activated");
+                         }
 
-            previousTemperature = temperature;
-        }
+                         previousTemperature = temperature;
+                     }
     );
 }
+
 void ProcessEventCoordinator::watchFaults(
     Pump &pump1, Valve &valve1,
     Pump &pump2, Valve &valve2,
@@ -196,7 +204,7 @@ void ProcessEventCoordinator::watchBatchState(BatchController &controller, Mixin
 
             if (oldState == State::Idle
                 && currentState == State::FillingWater) {
-                events->addInfo( "BATCH", "Batch started by " + sessionPtr->operatorName());
+                events->addInfo("BATCH", "Batch " + controllerPtr->batchId() + " started by " + sessionPtr->operatorName());
             } else if (currentState == State::Draining) {
                 const bool resumedDrain =
                     oldState == State::Paused
@@ -228,9 +236,7 @@ void ProcessEventCoordinator::watchBatchId(BatchController &controller)
     BatchController *controllerPtr = &controller;
     EventManager *events = &m_events;
 
-    QObject::connect(controllerPtr, &BatchController::batchIdChanged, events,
-        [controllerPtr, events]() { events->setBatchId(controllerPtr->batchId()); }
-    );
+    QObject::connect(controllerPtr, &BatchController::batchIdChanged, events, [controllerPtr, events]() { events->setBatchId(controllerPtr->batchId()); });
 }
 void ProcessEventCoordinator::watchMixerConnection(Mixer &mixer)
 {
@@ -243,8 +249,162 @@ void ProcessEventCoordinator::watchMixerConnection(Mixer &mixer)
                          events->addInfo(
                              "M1",
                              mixerPtr->isConnected()
-                                 ? "Mixer connection detected (simulated)"
-                                 : "Mixer connection lost (simulated)");
+                                 ? "Mixer connection detected"
+                                 : "Mixer connection lost");
                      }
+    );
+}
+void ProcessEventCoordinator::watchBatchId(RemoteProcessController &controller)
+{
+    RemoteProcessController *controllerPtr = &controller;
+    EventManager *events = &m_events;
+
+    QObject::connect(controllerPtr, &RemoteProcessController::batchIdChanged, events, [controllerPtr, events]()
+                    {
+                        events->setBatchId(controllerPtr->batchId());
+                    }
+    );
+}
+
+void ProcessEventCoordinator::watchBatchState(RemoteProcessController &controller, OperatorSession &session)
+{
+    RemoteProcessController *controllerPtr = &controller;
+    OperatorSession *sessionPtr = &session;
+    EventManager *events = &m_events;
+
+    QObject::connect(controllerPtr, &RemoteProcessController::stateChanged, events, [controllerPtr, sessionPtr, events, previousState = controllerPtr->state()]() mutable
+                    {
+                        const int currentState = controllerPtr->state();
+                        const int oldState = previousState;
+
+                        if (currentState == oldState)
+                        {
+                            return;
+                        }
+
+                        previousState = currentState;
+
+                        const int idleState = static_cast<int>(ControllerProtocol::ProcessState::Idle);
+                        const int fillingState = static_cast<int>(ControllerProtocol::ProcessState::FillingWater);
+                        const int pausedState = static_cast<int>(ControllerProtocol::ProcessState::Paused);
+                        const int drainingState = static_cast<int>(ControllerProtocol::ProcessState::Draining);
+                        const int completeState = static_cast<int>(ControllerProtocol::ProcessState::Complete);
+
+                        if (oldState == idleState && currentState == fillingState)
+                        {
+                            events->addInfo("BATCH", "Batch " + controllerPtr->batchId() + " started by " + sessionPtr->operatorName());
+                        }
+                        else if (currentState == drainingState)
+                        {
+                            events->addWarning("V4", "Hardware drain started by " + sessionPtr->operatorName());
+                        }
+                        else if (oldState == drainingState && currentState == completeState)
+                        {
+                            events->addWarning("V4", "Drain " + controllerPtr->batchId() + " started by " + sessionPtr->operatorName());
+                        }
+                        else if (currentState == pausedState)
+                        {
+                            events->addWarning("BATCH", "Hardware batch paused");
+                        }
+                        else if (oldState == pausedState)
+                        {
+                            events->addInfo("BATCH", "Hardware batch resumed by " + sessionPtr->operatorName());
+                        }
+                    }
+    );
+}
+
+void ProcessEventCoordinator::watchStageCompletion(RemoteProcessController &controller)
+{
+    RemoteProcessController *controllerPtr = &controller;
+    EventManager *events = &m_events;
+
+    QObject::connect(controllerPtr, &RemoteProcessController::stateChanged, events, [controllerPtr, events, previousState = controllerPtr->state()]() mutable
+                     {
+                        const int currentState = controllerPtr->state();
+                        const int oldState = previousState;
+
+                        if (currentState == oldState)
+                        {
+                            return;
+                        }
+
+                        previousState = currentState;
+
+                        using State = ControllerProtocol::ProcessState;
+
+                        if (oldState == static_cast<int>(State::FillingWater) && currentState == static_cast<int>(State::DosingConcentrate))
+                        {
+                            events->addInfo("BATCH", "Water filling completed. Next: concentrate dosing");
+                        }
+                        else if (oldState == static_cast<int>(State::DosingConcentrate) && currentState == static_cast<int>(State::TemperatureCheck))
+                        {
+                            events->addInfo("BATCH", "Concentrate dosing completed. Next: temperature check");
+                        }
+                        else if (oldState == static_cast<int>(State::TemperatureCheck) && currentState == static_cast<int>(State::Mixing))
+                        {
+                            events->addInfo("BATCH", "Temperature check passed. Next: mixing");
+                        }
+                        else if (oldState == static_cast<int>(State::Mixing) && currentState == static_cast<int>(State::ReadyForTransfer))
+                        {
+                            events->addInfo("BATCH", "Mixing completed. Ready for transfer");
+                        }
+                        else if (oldState == static_cast<int>(State::Transferring) && currentState == static_cast<int>(State::Complete))
+                        {
+                            events->addInfo("BATCH", "Transfer completed. Batch complete");
+                        }
+                    }
+    );
+}
+
+void ProcessEventCoordinator::watchConnection(RemoteProcessController &controller)
+{
+    RemoteProcessController *controllerPtr = &controller;
+    EventManager *events = &m_events;
+
+    QObject::connect(controllerPtr, &RemoteProcessController::initialSnapshotReceived, events, [controllerPtr, events]()
+                    {
+                        const QString runId = controllerPtr->batchId();
+                        const QString message = runId.isEmpty()
+                                                    ? QStringLiteral("HMI connected to controller")
+                                                    : QStringLiteral("HMI connected · active run %1 recovered").arg(runId);
+
+                        events->addInfo(QStringLiteral("CONTROLLER"), message);
+                    }
+    );
+
+    QObject::connect(controllerPtr, &RemoteProcessController::connectionRestored, events, [controllerPtr, events]()
+                    {
+                        const QString runId = controllerPtr->batchId();
+                        const QString message = runId.isEmpty()
+                                                    ? QStringLiteral("Controller connection restored")
+                                                    : QStringLiteral("Controller connection restored · active run %1").arg(runId);
+
+                        events->addInfo(QStringLiteral("CONTROLLER"), message);
+                    }
+    );
+}
+
+void ProcessEventCoordinator::watchRecovery(RemoteProcessController &controller, OperatorSession &session)
+{
+    RemoteProcessController *controllerPtr = &controller;
+    OperatorSession *sessionPtr = &session;
+    EventManager *events = &m_events;
+
+    QObject::connect(controllerPtr, &RemoteProcessController::recoveryRequiredChanged, events, [controllerPtr, sessionPtr, events]()
+                    {
+                        if (controllerPtr->recoveryRequired())
+                        {
+                            const QString runId = controllerPtr->batchId();
+                            const QString message = runId.isEmpty()
+                                                        ? QStringLiteral("Active run interrupted by controller restart. Tank state is unknown")
+                                                        : QStringLiteral("Run %1 interrupted by controller restart. Tank state is unknown").arg(runId);
+                            events->addAlarm(QStringLiteral("RECOVERY"), message);
+                            return;
+                        }
+
+                        const QString operatorName = sessionPtr->selected() ? sessionPtr->operatorName() : QStringLiteral("unknown user");
+                        events->addInfo(QStringLiteral("RECOVERY"), QStringLiteral("Tank mechanically emptied. Recovery completed by %1").arg(operatorName));
+                    }
     );
 }

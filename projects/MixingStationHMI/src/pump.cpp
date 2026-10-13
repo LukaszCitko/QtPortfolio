@@ -1,4 +1,5 @@
 #include "pump.h"
+#include "processconfiguration.h"
 #include <algorithm>
 #include <cmath>
 
@@ -8,7 +9,7 @@ Pump::Pump(int id, QObject *parent)
     : QObject{parent}
     , m_id(id)
     , m_state(State::Stopped)
-    , m_targetRpm(1500.0)
+    , m_targetRpm(ProcessConfiguration::Pump1DefaultRpm)
     , m_actualRpm(0.0)
     , m_temperatureFromSensor(25.0)
 {

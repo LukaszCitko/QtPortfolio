@@ -15,18 +15,10 @@ class ProcessSimulator : public QObject
     Q_OBJECT
 
 public:
-    explicit ProcessSimulator(
-        Pump *pump1,
-        Valve *valve1,
-        Pump *pump2,
-        Valve *valve2,
-        Pump *pump3,
-        Valve *valve3,
-
-        MixingTank *mixingTank,
-        QObject *parent = nullptr);
+    explicit ProcessSimulator(Pump *pump1, Valve *valve1, Pump *pump2, Valve *valve2, Pump *pump3, Valve *valve3, MixingTank *mixingTank, QObject *parent = nullptr);
 
     void simulateStep(double elapsedSeconds);
+    void setEnabled(bool enabled);
 
 private slots:
     void updateSimulation();
@@ -45,11 +37,6 @@ private:
 
     QTimer m_timer;
 
-    static constexpr double RpmChangePerSecond = 500.0;
-    static constexpr double WaterFlowPerSecond = 1.0;
-    static constexpr double ConcentrateFlowPerSecond = 1.0;
-    static constexpr double ProductFlowPerSecond = 2.0;
-    static constexpr double NominalRpm = 1500.0;
 };
 
 #endif

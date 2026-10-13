@@ -2,6 +2,7 @@
 #include <QtTest>
 
 #include "../src/mixingtank.h"
+#include "processconfiguration.h"
 #include "../src/processsimulator.h"
 #include "../src/pump.h"
 #include "../src/valve.h"
@@ -35,14 +36,7 @@ void TestProcessSimulator::stoppedPumpDoesNotFillTank()
 
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
     valve1.open();
 
@@ -64,14 +58,7 @@ void TestProcessSimulator::closedValveBlocksWaterFlow()
 
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
     pump1.start();
 
@@ -93,14 +80,7 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
 
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
     valve1.open();
     pump1.start();
@@ -124,14 +104,7 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
 
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
     valve2.open();
     pump2.start();
@@ -142,135 +115,128 @@ void TestProcessSimulator::runningPumpWithOpenValveFillsTank()
     QCOMPARE(tank.waterVolume(), 0.0);
 }
 
-    void TestProcessSimulator::waterAndConcentrateCanBeAdded()
+void TestProcessSimulator::waterAndConcentrateCanBeAdded()
 {
     Pump pump1(1);
     Valve valve1(1);
-
     Pump pump2(2);
     Valve valve2(2);
-
     Pump pump3(3);
     Valve valve3(3);
-
-
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
-
-    // 70 L water at 1 L/s.
-//QTest::qWait(7000);
-
-
+    pump1.setTargetRpm(ProcessConfiguration::Pump1DefaultRpm);
     valve1.open();
     pump1.start();
-    simulator.simulateStep(70.0);
 
-    QCOMPARE(tank.waterVolume(), 70.0);
+    const double waterTargetLitres = static_cast<double>(ProcessConfiguration::WaterTargetDecilitres) / 10.0;
+    const double waterMaximumFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::WaterFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+    const double waterFlowLitresPerSecond = waterMaximumFlowLitresPerSecond * pump1.targetRpm() / Pump::MaxRpm;
+    const double waterFillingSeconds = waterTargetLitres / waterFlowLitresPerSecond;
+
+    simulator.simulateStep(waterFillingSeconds);
+
+    QCOMPARE(tank.waterVolume(), waterTargetLitres);
 
     pump1.stop();
     valve1.close();
-    // 30 L concentrate at 1 L/s.
-// QTest::qWait(3000);
 
+    pump2.setTargetRpm(ProcessConfiguration::Pump2DefaultRpm);
     valve2.open();
     pump2.start();
-    simulator.simulateStep(30.0);
 
-    QCOMPARE(tank.concentrateVolume(), 30.0);
+    const double concentrateTargetLitres = static_cast<double>(ProcessConfiguration::ConcentrateTargetDecilitres) / 10.0;
+    const double concentrateMaximumFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::ConcentrateFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+    const double concentrateFlowLitresPerSecond = concentrateMaximumFlowLitresPerSecond * pump2.targetRpm() / Pump::MaxRpm;
+    const double concentrateFillingSeconds = concentrateTargetLitres / concentrateFlowLitresPerSecond;
+
+    simulator.simulateStep(concentrateFillingSeconds);
+
+    QCOMPARE(tank.concentrateVolume(), concentrateTargetLitres);
+    QCOMPARE(tank.volume(), waterTargetLitres + concentrateTargetLitres);
 }
 
 
-    void TestProcessSimulator::waterFillingCanBeStoppedBeforeConcentrateDosing()
+void TestProcessSimulator::waterFillingCanBeStoppedBeforeConcentrateDosing()
 {
     Pump pump1(1);
     Valve valve1(1);
-
     Pump pump2(2);
     Valve valve2(2);
-
     Pump pump3(3);
     Valve valve3(3);
-
-
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
-    // Fill the tank with 70 L of water.
+    pump1.setTargetRpm(ProcessConfiguration::Pump1DefaultRpm);
     valve1.open();
     pump1.start();
 
-    simulator.simulateStep(70.0);
+    const double waterTargetLitres = static_cast<double>(ProcessConfiguration::WaterTargetDecilitres) / 10.0;
+    const double waterMaximumFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::WaterFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+    const double waterFlowLitresPerSecond = waterMaximumFlowLitresPerSecond * pump1.targetRpm() / Pump::MaxRpm;
+    const double waterFillingSeconds = waterTargetLitres / waterFlowLitresPerSecond;
 
-    QCOMPARE(tank.waterVolume(), 70.0);
+    simulator.simulateStep(waterFillingSeconds);
+
+    QCOMPARE(tank.waterVolume(), waterTargetLitres);
     QCOMPARE(tank.concentrateVolume(), 0.0);
-    QCOMPARE(tank.volume(), 70.0);
+    QCOMPARE(tank.volume(), waterTargetLitres);
 
-    // Stop water flow.
     pump1.stop();
     valve1.close();
 
-    // Start concentrate dosing.
+    pump2.setTargetRpm(ProcessConfiguration::Pump2DefaultRpm);
     valve2.open();
     pump2.start();
 
-    simulator.simulateStep(30.0);
+    const double concentrateTargetLitres = static_cast<double>(ProcessConfiguration::ConcentrateTargetDecilitres) / 10.0;
+    const double concentrateMaximumFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::ConcentrateFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+    const double concentrateFlowLitresPerSecond = concentrateMaximumFlowLitresPerSecond * pump2.targetRpm() / Pump::MaxRpm;
+    const double concentrateFillingSeconds = concentrateTargetLitres / concentrateFlowLitresPerSecond;
 
-    QCOMPARE(tank.waterVolume(), 70.0);
-    QCOMPARE(tank.concentrateVolume(), 30.0);
-    QCOMPARE(tank.volume(), 100.0);
+    simulator.simulateStep(concentrateFillingSeconds);
+
+    QCOMPARE(tank.waterVolume(), waterTargetLitres);
+    QCOMPARE(tank.concentrateVolume(), concentrateTargetLitres);
+    QCOMPARE(tank.volume(), waterTargetLitres + concentrateTargetLitres);
 }
-
 
 void TestProcessSimulator::pump3WithOpenValve3TransfersProduct()
 {
     Pump pump1(1);
     Valve valve1(1);
-
     Pump pump2(2);
     Valve valve2(2);
-
     Pump pump3(3);
     Valve valve3(3);
-
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
-    tank.addWater(70.0);
-    tank.addConcentrate(30.0);
+    const double mixtureTargetLitres = static_cast<double>(ProcessConfiguration::MixtureTargetDecilitres) / 10.0;
 
-    QCOMPARE(tank.volume(), 100.0);
+    tank.addWater(static_cast<double>(ProcessConfiguration::WaterTargetDecilitres) / 10.0);
+    tank.addConcentrate(static_cast<double>(ProcessConfiguration::ConcentrateTargetDecilitres) / 10.0);
 
+    QCOMPARE(tank.volume(), mixtureTargetLitres);
+
+    pump3.setTargetRpm(ProcessConfiguration::Pump3DefaultRpm);
     pump3.start();
     valve3.open();
 
-    simulator.simulateStep(10.0);
+    const double productMaximumFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::ProductFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+    const double productFlowLitresPerSecond = productMaximumFlowLitresPerSecond * pump3.targetRpm() / Pump::MaxRpm;
+    const double transferSeconds = mixtureTargetLitres / productFlowLitresPerSecond;
 
-    QCOMPARE(tank.volume(), 80.0);
+    QVERIFY(transferSeconds <= 10.0); // Ten seconds is acceptable for the demo version.
+
+    simulator.simulateStep(transferSeconds);
+
+    QCOMPARE(tank.volume(), 0.0);
 }
 
 void TestProcessSimulator::closedValve3BlocksProductTransfer()
@@ -286,15 +252,7 @@ void TestProcessSimulator::closedValve3BlocksProductTransfer()
 
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1,
-        &valve1,
-        &pump2,
-        &valve2,
-        &pump3,
-        &valve3,
-        &tank);
-
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
     tank.addWater(70.0);
     tank.addConcentrate(30.0);
 
@@ -305,6 +263,7 @@ void TestProcessSimulator::closedValve3BlocksProductTransfer()
 
     QCOMPARE(tank.volume(), 100.0);
 }
+
 void TestProcessSimulator::lowerTargetRpmReducesFlow()
 {
     Pump pump1(1);
@@ -315,35 +274,31 @@ void TestProcessSimulator::lowerTargetRpmReducesFlow()
     Valve valve3(3);
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1, &valve1,
-        &pump2, &valve2,
-        &pump3, &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
-    pump1.setTargetRpm(750.0);
+    pump1.setTargetRpm(500.0);
     valve1.open();
     pump1.start();
-    simulator.simulateStep(10.0);
-    QCOMPARE(tank.waterVolume(), 5.0);
 
-    pump1.stop();
-    valve1.close();
+    simulator.simulateStep(0.5);
 
-    pump2.setTargetRpm(750.0);
-    valve2.open();
-    pump2.start();
-    simulator.simulateStep(10.0);
-    QCOMPARE(tank.concentrateVolume(), 5.0);
+    const double volumeAtHalfRpm = tank.waterVolume();
 
-    pump2.stop();
-    valve2.close();
+    const double maximumWaterFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::WaterFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+    const double expectedVolumeAtHalfRpm = maximumWaterFlowLitresPerSecond * 0.5 * 500.0 / Pump::MaxRpm;
 
-    pump3.setTargetRpm(750.0);
-    valve3.open();
-    pump3.start();
-    simulator.simulateStep(2.0);
-    QCOMPARE(tank.volume(), 8.0);
+    QCOMPARE(volumeAtHalfRpm, expectedVolumeAtHalfRpm);
+
+    pump1.setTargetRpm(Pump::MaxRpm);
+
+    simulator.simulateStep(0.5);
+
+    const double volumeAtMaximumRpm = tank.waterVolume() - volumeAtHalfRpm;
+
+    const double expectedVolumeAtMaximumRpm = maximumWaterFlowLitresPerSecond * 0.5;
+
+    QCOMPARE(volumeAtMaximumRpm, expectedVolumeAtMaximumRpm);
+    QCOMPARE(volumeAtMaximumRpm, volumeAtHalfRpm * 2.0);
 }
 
 void TestProcessSimulator::actualRpmTracksPumpState()
@@ -356,28 +311,36 @@ void TestProcessSimulator::actualRpmTracksPumpState()
     Valve valve3(3);
     MixingTank tank;
 
-    ProcessSimulator simulator(
-        &pump1, &valve1,
-        &pump2, &valve2,
-        &pump3, &valve3,
-        &tank);
+    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &tank);
 
-    pump1.setTargetRpm(1000.0);
+    pump1.setTargetRpm(Pump::MaxRpm);
     pump1.start();
 
-    simulator.simulateStep(1.0);
-    QCOMPARE(pump1.actualRpm(), 500.0);
+    const double halfRampSeconds = (Pump::MaxRpm / 2.0) / static_cast<double>(ProcessConfiguration::PumpRpmChangePerSecond);
 
-    simulator.simulateStep(1.0);
-    QCOMPARE(pump1.actualRpm(), 1000.0);
+    simulator.simulateStep(halfRampSeconds);
+
+    QCOMPARE(pump1.actualRpm(), Pump::MaxRpm / 2.0);
+
+    simulator.simulateStep(halfRampSeconds);
+
+    QCOMPARE(pump1.actualRpm(), Pump::MaxRpm);
 
     pump1.stop();
-    simulator.simulateStep(2.0);
+
+    const double fullRampSeconds = Pump::MaxRpm / static_cast<double>(ProcessConfiguration::PumpRpmChangePerSecond);
+
+    simulator.simulateStep(fullRampSeconds);
+
     QCOMPARE(pump1.actualRpm(), 0.0);
 
     pump3.setTargetRpm(750.0);
     pump3.start();
-    simulator.simulateStep(2.0);
+
+    const double pump3RampSeconds = pump3.targetRpm() / static_cast<double>(ProcessConfiguration::PumpRpmChangePerSecond);
+
+    simulator.simulateStep(pump3RampSeconds);
+
     QCOMPARE(pump3.actualRpm(), 750.0);
 }
 

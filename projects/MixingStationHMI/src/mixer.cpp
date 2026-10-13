@@ -143,6 +143,24 @@ void Mixer::setTargetRpm(double rpm)
     emit targetRpmChanged();
 }
 
+void Mixer::setActualRpm(double rpm)
+{
+    if (!std::isfinite(rpm))
+    {
+        return;
+    }
+
+    const double boundedRpm = std::clamp(rpm, 0.0, MaxRpm);
+
+    if (qFuzzyCompare(m_actualRpm + 1.0, boundedRpm + 1.0))
+    {
+        return;
+    }
+
+    m_actualRpm = boundedRpm;
+    emit actualRpmChanged();
+}
+
 void Mixer::simulateStep(double elapsedSeconds)
 {
     if (!isRunning() || elapsedSeconds <= 0.0)

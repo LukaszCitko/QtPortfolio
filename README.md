@@ -1,38 +1,47 @@
-# Łukasz Citko | C++ and Qt Portfolio
+# Lukasz Citko | C++ / Qt / Embedded Systems Portfolio
 
-This repository presents my work with C++, Qt/QML and software for industrial processes. Each project has its own documentation, source code and tests.
+This repository presents software projects focused on C++, Qt/QML, embedded controllers, industrial process interfaces, and testable application architecture. Each project contains its own source code, build instructions, tests, and technical documentation.
 
-## Projects
+## Featured project
 
 ### [MixingStationHMI](projects/MixingStationHMI/)
 
 [![MixingStationHMI CI](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml/badge.svg?branch=main)](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml)
 
-A touch-oriented HMI simulation for a batch mixing station. The application guides a batch through pre-start checks, water filling, concentrate dosing, temperature validation, mixing and transfer. Equipment faults can pause the process, while events and trend samples are saved for later review.
+<img src="projects/MixingStationHMI/docs/screenshots/hero.jpg" alt="MixingStationHMI controlling an ESP32-S3 hardware prototype" width="900">
 
-**Technologies:** C++, Qt 6.8, QML, SQLite, CMake and Qt Test.
+MixingStationHMI is a distributed batch-control prototype with a Qt/QML operator interface and an ESP32-S3 process controller. The HMI communicates with the controller over Modbus TCP through Wi-Fi, stores run history and trends in SQLite, and presents process state, equipment status, alarms, and recovery information on a 1280 x 800 touch-oriented interface.
+
+The project can also run without hardware using its desktop simulation mode.
+
+**Technology stack:** C++17, Qt 6, QML, Qt SerialBus, SQLite, CMake, ESP-IDF 6.1, FreeRTOS, Modbus TCP, GPIO, DS18B20, Qt Test, Unity, and GitHub Actions.
 
 **What the project demonstrates:**
 
-- A C++ batch controller with process states and fault recovery.
-- A 1280 × 800 touch interface built with Qt Quick.
-- SQLite persistence for users, runs, events and historical trends.
-- Automated tests for process behaviour, permissions and database operations.
+- A process state machine shared through an explicit 16-bit Modbus register protocol.
+- A Qt client that polls controller snapshots, sends sequenced commands, reconnects, and detects controller restarts.
+- ESP32-S3 firmware with FreeRTOS tasks, Wi-Fi, Modbus TCP, GPIO outputs, a physical mixer-presence input, and a DS18B20 temperature sensor.
+- A touch-oriented HMI based on high-performance HMI principles, with restrained colour and prominent abnormal-state indication.
+- SQLite persistence for operators, runs, events, and historical trend samples.
+- Role-aware batch control, fault reset, drain control, and demo user management.
+- Automated Qt and firmware builds in CI, host-side Qt tests, and ESP-IDF Unity component tests.
 
-![MixingStationHMI process screen during mixing](projects/MixingStationHMI/docs/screenshots/cropped/mixing.png)
+```mermaid
+flowchart LR
+    Operator[Operator] --> HMI[Qt/QML HMI]
+    HMI <--> DB[(SQLite)]
+    HMI <-->|Modbus TCP / Wi-Fi| ESP[ESP32-S3 controller]
+    ESP --> OUT[Pump and mixer output indicators]
+    SENSOR[DS18B20 temperature] --> ESP
+    INPUT[Mixer connection input] --> ESP
+```
 
-[Project overview and build instructions](projects/MixingStationHMI/README.md) ·
-[C++ source](projects/MixingStationHMI/src/) ·
-[QML interface](projects/MixingStationHMI/qml/) ·
-[Tests](projects/MixingStationHMI/tests/) ·
-[Illustrated guide](projects/MixingStationHMI/docs/MixingStationHMI-Guide.pdf)
+[Project overview and build instructions](projects/MixingStationHMI/README.md) | [Illustrated system guide](projects/MixingStationHMI/docs/MixingStationHMI-Guide.pdf) | [Qt/C++ source](projects/MixingStationHMI/src/) | [ESP32 firmware](projects/MixingStationHMI/firmware/mixing_controller/) | [Tests](projects/MixingStationHMI/tests/)
 
-This is a portfolio simulation. It does not control physical equipment or authenticate users.
+## Project status
 
-**Planned next phase:** an ARM-based Embedded Linux deployment with a replaceable simulation/Modbus process I/O backend. See the [Embedded Linux roadmap](projects/MixingStationHMI/README.md#roadmap-embedded-linux).
+The hardware prototype has been exercised with an ESP32-S3, physical temperature input, GPIO status indicators, fault indication, Modbus TCP communication, reconnect handling, and run persistence. It remains a portfolio and learning system: its LEDs represent actuator commands, process volume is currently simulated in firmware, and it has not undergone production safety validation.
 
 ## License
 
-The original code and documentation in this repository are available under the
-[MIT License](LICENSE). Third-party frameworks and dependencies retain their
-own licenses.
+The original code and documentation in this repository are available under the [MIT License](LICENSE). Third-party frameworks, ESP-IDF components, and Qt remain subject to their own licences.

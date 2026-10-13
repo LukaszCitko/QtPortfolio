@@ -54,6 +54,7 @@ public:
 
     void setTemperature(double newTemperature);
     void setState(State newState);
+    void synchronizeFromController(double waterVolume, double concentrateVolume, double temperature, State state);
 
 
 signals:

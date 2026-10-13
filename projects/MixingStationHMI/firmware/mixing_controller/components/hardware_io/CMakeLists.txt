@@ -1,0 +1,9 @@
+idf_component_register(
+    SRCS
+        "hardwareoutputs.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        controller_core
+        esp_driver_gpio
+)

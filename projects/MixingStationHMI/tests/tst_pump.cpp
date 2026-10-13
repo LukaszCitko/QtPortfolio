@@ -1,5 +1,7 @@
 #include<QtTest>
 #include "../src/pump.h"
+#include "processconfiguration.h"
+
 class TestPump : public QObject
 {
     Q_OBJECT
@@ -99,7 +101,7 @@ void TestPump::rpmValues()
 {
     Pump pump(1);
 
-    QCOMPARE(pump.targetRpm(), 1500.0);
+    QCOMPARE(pump.targetRpm(), static_cast<double>(ProcessConfiguration::Pump1DefaultRpm));
     QCOMPARE(pump.actualRpm(), 0.0);
 
     pump.setTargetRpm(900.0);

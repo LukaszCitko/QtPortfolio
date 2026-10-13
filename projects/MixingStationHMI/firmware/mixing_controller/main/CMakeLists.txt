@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "main.cpp"
+    INCLUDE_DIRS
+        "."
+    PRIV_REQUIRES
+        controller_core
+        hardware_inputs
+        hardware_io
+        modbus_server
+        process_simulation
+        temperature_sensor
+        wifi_station
+)
