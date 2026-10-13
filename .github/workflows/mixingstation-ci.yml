@@ -11,6 +11,13 @@ on:
       - ".github/workflows/mixingstation-ci.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: mixingstation-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   qt-build-and-test:
     name: Build and test Qt application
