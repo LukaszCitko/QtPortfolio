@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
 
-Dialog {
+HmiDialog {
     id: root
 
     required property var usersModel
@@ -49,7 +49,7 @@ Dialog {
                 model: ["OPERATOR", "TECHNICIAN", "ADMIN"]
             }
 
-            Button {
+            HmiButton {
                 id: addUserButton
                 width: 140
                 height: parent.height
@@ -129,7 +129,7 @@ Dialog {
                         enabled: userCard.userId !== root.currentUserId
                     }
 
-                    Button {
+                    HmiButton {
                         id: saveRoleButton
                         width: 90
                         height: parent.height
@@ -140,7 +140,7 @@ Dialog {
                         onClicked: root.managementService.changeRole(
                                        userCard.userId, roleSelector.currentText)
                     }
-                    Button {
+                    HmiButton {
                         id: removeUserButton
                         width: 90
                         height: parent.height
@@ -157,7 +157,7 @@ Dialog {
             }
         }
     }
-    Dialog {
+    HmiDialog {
         id: removeDialog
 
         property string targetUserId: ""

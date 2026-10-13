@@ -96,3 +96,31 @@ bool RunRepository::beginDrain(const QString &runId, qint64 startedAtMs, QString
 
     return true;
 }
+
+bool RunRepository::runExists(const QString &runId, bool *exists, QString *errorMessage)
+{
+    if (runId.isEmpty())
+    {
+        *errorMessage = "Run ID is required";
+        return false;
+    }
+
+    QSqlQuery query(m_database);
+
+    if (!query.prepare("SELECT 1 FROM runs WHERE run_id = :run_id LIMIT 1"))
+    {
+        *errorMessage = query.lastError().text();
+        return false;
+    }
+
+    query.bindValue(":run_id", runId);
+
+    if (!query.exec())
+    {
+        *errorMessage = query.lastError().text();
+        return false;
+    }
+
+    *exists = query.next();
+    return true;
+}

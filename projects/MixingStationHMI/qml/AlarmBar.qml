@@ -5,6 +5,7 @@ Rectangle {
 
     required property var eventSource
     required property var monitoredDevices
+    signal faultRequested(string tag)
 
     readonly property var faults: root.monitoredDevices
         .filter(function(item) {
@@ -55,5 +56,13 @@ Rectangle {
         text: root.faults.length + " ACTIVE"
         color: root.hasFault ? "#8f2222" : "#252a2d"
         font.pixelSize: 16
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        z: 5
+        enabled: root.faults.length > 0
+        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: root.faultRequested(root.faults[0])
     }
 }

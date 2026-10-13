@@ -29,11 +29,17 @@ constexpr std::uint16_t ControlledEquipmentMask = WaterFillingEquipmentMask
 namespace MixingStation::Firmware
 {
 
+void ControllerCore::setControllerSessionId(std::uint16_t sessionId)
+{
+    m_snapshot.controllerSessionId = sessionId == 0U ? 1U : sessionId;
+}
+
 void ControllerCore::updateSetpoints(const ControllerSetpoints &setpoints)
 {
     m_setpoints.pump1TargetRpm = std::min(setpoints.pump1TargetRpm, ControllerProtocol::MaximumPumpRpm);
     m_setpoints.pump2TargetRpm = std::min(setpoints.pump2TargetRpm, ControllerProtocol::MaximumPumpRpm);
     m_setpoints.pump3TargetRpm = std::min(setpoints.pump3TargetRpm, ControllerProtocol::MaximumPumpRpm);
+    applyOutputsForState(m_snapshot.processState);
 }
 
 ControllerSetpoints ControllerCore::setpoints() const
@@ -44,6 +50,8 @@ ControllerSetpoints ControllerCore::setpoints() const
 void ControllerCore::updateInputs(const ProcessInputs &inputs)
 {
     m_snapshot.mixtureVolumeDecilitres = inputs.mixtureVolumeDecilitres;
+    m_snapshot.waterVolumeDecilitres = inputs.waterVolumeDecilitres;
+    m_snapshot.concentrateVolumeDecilitres = inputs.concentrateVolumeDecilitres;
     m_snapshot.temperatureTenthsCelsius = inputs.temperatureTenthsCelsius;
     m_activeInputFaultMask = inputs.faultMask & ControllerProtocol::DefinedFaultMask;
     m_snapshot.faultMask |= m_activeInputFaultMask;
@@ -83,7 +91,7 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(ControllerProtoc
             result = ControllerProtocol::CommandResult::InvalidState;
             break;
         }
-
+        beginRun(ControllerProtocol::RunKind::Batch);
         transitionTo(ControllerProtocol::ProcessState::FillingWater);
         result = ControllerProtocol::CommandResult::Accepted;
         break;
@@ -139,6 +147,15 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(ControllerProtoc
             break;
         }
 
+        if (m_snapshot.processState == ControllerProtocol::ProcessState::Idle)
+        {
+            beginRun(ControllerProtocol::RunKind::Drain);
+        }
+        else
+        {
+            m_snapshot.runKind = ControllerProtocol::RunKind::Drain;
+        }
+
         transitionTo(ControllerProtocol::ProcessState::Draining);
         result = ControllerProtocol::CommandResult::Accepted;
         break;
@@ -151,6 +168,7 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(ControllerProtoc
         }
 
         transitionTo(ControllerProtocol::ProcessState::Idle);
+        m_snapshot.runKind = ControllerProtocol::RunKind::None;
         result = ControllerProtocol::CommandResult::Accepted;
         break;
 
@@ -271,6 +289,18 @@ void ControllerCore::tick(std::uint32_t elapsedMilliseconds)
     case ControllerProtocol::ProcessState::Complete:
         return;
     }
+}
+
+void ControllerCore::beginRun(ControllerProtocol::RunKind runKind)
+{
+    ++m_snapshot.runSequence;
+
+    if (m_snapshot.runSequence == 0U)
+    {
+        m_snapshot.runSequence = 1U;
+    }
+
+    m_snapshot.runKind = runKind;
 }
 
 void ControllerCore::transitionTo(ControllerProtocol::ProcessState state)

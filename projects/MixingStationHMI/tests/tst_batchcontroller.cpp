@@ -19,6 +19,7 @@ namespace
 constexpr double WaterFlowLitresPerSecond = (static_cast<double>(ProcessConfiguration::WaterFlowAtMaximumRpmDecilitresPerSecond) / 10.0) * ProcessConfiguration::Pump1DefaultRpm / ControllerProtocol::MaximumPumpRpm;
 constexpr double ConcentrateFlowLitresPerSecond = (static_cast<double>(ProcessConfiguration::ConcentrateFlowAtMaximumRpmDecilitresPerSecond) / 10.0) * ProcessConfiguration::Pump2DefaultRpm / ControllerProtocol::MaximumPumpRpm;
 constexpr double ProductFlowLitresPerSecond = (static_cast<double>(ProcessConfiguration::ProductFlowAtMaximumRpmDecilitresPerSecond) / 10.0) * ProcessConfiguration::Pump3DefaultRpm / ControllerProtocol::MaximumPumpRpm;
+constexpr double DrainFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::DrainFlowDecilitresPerSecond) / 10.0;
 
 constexpr double waterSecondsForLitres(double litres)
 {
@@ -35,7 +36,12 @@ constexpr double productSecondsForLitres(double litres)
     return litres / ProductFlowLitresPerSecond;
 }
 
+constexpr double drainSecondsForLitres(double litres)
+{
+    return litres / DrainFlowLitresPerSecond;
 }
+
+} // namespace
 
 //MACRO to add devices to tests...
 #define TEST_DEVICES \
@@ -260,7 +266,7 @@ void TestBatchController::correctTemperatureStartsMixing()
 
     QCOMPARE(tank.volume(), 100.0);
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE(controller.stateText(), QString("MIXING"));
 }
@@ -302,19 +308,19 @@ void TestBatchController::mixingFinishesAfterFifteenSeconds()
 
     QCOMPARE(controller.stateText(), QString("TEMPERATURE CHECK"));
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE( controller.stateText(), QString("MIXING"));
 
-    controller.simulateStep(7.0);
+    controller.simulateStep(2.0);
 
     QCOMPARE( controller.stateText(), QString("MIXING"));
 
-    controller.simulateStep(7.9);
+    controller.simulateStep(5.8);
 
     QCOMPARE( controller.stateText(), QString("MIXING"));
 
-    controller.simulateStep(0.1);
+    controller.simulateStep(0.2);
 
     QCOMPARE(controller.stateText(), QString("READY FOR TRANSFER"));
 }
@@ -329,7 +335,7 @@ void TestBatchController::readyForTransferStartsTransferring()
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     controller.simulateStep(60.0);
 
@@ -360,7 +366,7 @@ void TestBatchController::transferringAutomaticallyFinishesBatch()
 
     QCOMPARE(controller.stateText(), QString("TEMPERATURE CHECK"));
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE(controller.stateText(), QString("MIXING"));
 
@@ -625,7 +631,7 @@ void TestBatchController::pauseDuringMixing()
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE(controller.state(), BatchController::State::Mixing);
 
@@ -656,7 +662,7 @@ void TestBatchController::resumeAfterMixingPause()
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE(controller.state(), BatchController::State::Mixing);
 
@@ -676,7 +682,7 @@ void TestBatchController::resumeAfterMixingPause()
 
     QVERIFY(mixer.isRunning());
 
-    controller.simulateStep(9.0);
+    controller.simulateStep(2.0);
 
     QCOMPARE(controller.state(), BatchController::State::Mixing);
 
@@ -699,7 +705,7 @@ void TestBatchController::pauseDuringTransferring()
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     controller.simulateStep(60.0);
 
@@ -741,7 +747,7 @@ void TestBatchController::resumeAfterTransferringPause()
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
 
-    tank.setTemperature(60.0);
+     tank.setTemperature(32.0);
 
     controller.simulateStep(60.0);
 
@@ -831,7 +837,7 @@ void TestBatchController::resumeAfterTemperatureCheckPause()
 
     QVERIFY(mixer.isRunning());
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE(
         controller.state(),
@@ -849,7 +855,7 @@ void TestBatchController::pauseWhenReadyForTransferDoesNothing()
 
     tank.addWater(70.0);
     tank.addConcentrate(30.0);
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE(
         controller.state(),
@@ -882,7 +888,7 @@ void TestBatchController::pauseWhenCompleteDoesNothing()
 
     tank.addWater(70.0);
     tank.addConcentrate(30.0);
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
 
     QCOMPARE(
         controller.state(),
@@ -1221,7 +1227,7 @@ void TestBatchController::pump3FaultDuringTransfer()
     controller.startBatch();
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     controller.simulateStep(60.0);
     controller.startTransfer();
 
@@ -1245,7 +1251,7 @@ void TestBatchController::resumeWhilePump3FaultActive()
     controller.startBatch();
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     controller.simulateStep(60.0);
     controller.startTransfer();
     pump3.setFault();
@@ -1265,7 +1271,7 @@ void TestBatchController::resumeAfterPump3Fault()
     controller.startBatch();
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     controller.simulateStep(60.0);
     controller.startTransfer();
     pump3.setFault();
@@ -1288,7 +1294,7 @@ void TestBatchController::startTransferWhilePump3FaultActive()
     controller.startBatch();
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     controller.simulateStep(60.0);
 
     QCOMPARE(controller.state(),
@@ -1346,7 +1352,7 @@ void TestBatchController::startTransferAfterPump3FaultReset()
     controller.startBatch();
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     controller.simulateStep(60.0);
 
     QCOMPARE(controller.state(),
@@ -1418,7 +1424,7 @@ void TestBatchController::temperatureSetBeforeCheckStartsMixing()
     TEST_DEVICES
 
     mixer.connect();
-    tank.setTemperature(60.0);
+    tank.setTemperature(31.0);
 
     QVERIFY(controller.tryStartBatch("Operator 01"));
 
@@ -1441,7 +1447,7 @@ void TestBatchController::completedBatchCanReturnToPrecheck()
 
     simulator.simulateStep(waterSecondsForLitres(70.0));
     simulator.simulateStep(concentrateSecondsForLitres(30.1));
-    tank.setTemperature(60.0);
+    tank.setTemperature(31.0);
     controller.simulateStep(15.0);
 
     QCOMPARE(controller.state(), BatchController::State::ReadyForTransfer);
@@ -1500,7 +1506,7 @@ void TestBatchController::completedStagesAreReportedInOrder()
     TEST_DEVICES
 
     mixer.connect();
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     controller.startBatch();
 
     QSignalSpy stageSpy(&controller, &BatchController::stageCompleted);
@@ -1546,12 +1552,12 @@ void TestBatchController::emergencyDrainEmptiesTankAndClosesValve()
     QCOMPARE(tank.state(), MixingTank::State::Draining);
     QVERIFY(valve4.isOpen());
 
-    controller.simulateStep(2.0);
+    controller.simulateStep(drainSecondsForLitres(10.0));
 
     QCOMPARE(tank.volume(), 10.0);
     QCOMPARE(controller.state(), BatchController::State::Draining);
 
-    controller.simulateStep(2.0);
+    controller.simulateStep(drainSecondsForLitres(10.0));
 
     QCOMPARE(tank.volume(), 0.0);
     QCOMPARE(tank.waterVolume(), 0.0);
@@ -1718,7 +1724,7 @@ void TestBatchController::mixerRpmFollowsBatchStages()
     QCOMPARE(controller.state(), BatchController::State::TemperatureCheck);
     QCOMPARE(mixer.targetRpm(), 200.0);
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     QCOMPARE(controller.state(), BatchController::State::Mixing);
     QCOMPARE(mixer.targetRpm(), 800.0);
 
@@ -1758,7 +1764,7 @@ void TestBatchController::mixerRpmRecoversAfterFaultDuringTemperatureCheck()
     QVERIFY(mixer.isRunning());
     QCOMPARE(mixer.targetRpm(), 200.0);
 
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     QCOMPARE(controller.state(), BatchController::State::Mixing);
     QCOMPARE(mixer.targetRpm(), 800.0);
 }
@@ -1768,7 +1774,7 @@ void TestBatchController::transferRequiresValidTemperatureAfterMixing()
     TEST_DEVICES
 
     mixer.connect();
-    tank.setTemperature(60.0);
+    tank.setTemperature(32.0);
     controller.startBatch();
 
     simulator.simulateStep(waterSecondsForLitres(70.0));
@@ -1786,7 +1792,7 @@ void TestBatchController::transferRequiresValidTemperatureAfterMixing()
     QVERIFY(!pump3.isRunning());
     QVERIFY(!valve3.isOpen());
 
-    tank.setTemperature(60.0);
+     tank.setTemperature(32.0);
     QVERIFY(controller.transferAllowed());
 
     controller.startTransfer();

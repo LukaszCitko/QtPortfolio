@@ -1,5 +1,70 @@
 name: MixingStationHMI CI
+name: MixingStationHMI CI
 
+on:
+  push:
+    paths:
+      - "projects/MixingStationHMI/**"
+      - ".github/workflows/mixingstation-ci.yml"
+  pull_request:
+    paths:
+      - "projects/MixingStationHMI/**"
+      - ".github/workflows/mixingstation-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  qt-build-and-test:
+    name: Build and test Qt application
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    defaults:
+      run:
+        working-directory: projects/MixingStationHMI
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          modules: "qtserialbus qtserialport"
+          install-deps: true
+          cache: true
+
+      - name: Configure
+        run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build/ci --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build/ci --parallel --output-on-failure
+
+  firmware-build:
+    name: Build ESP32-S3 firmware and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build firmware and firmware tests
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.1
+          target: esp32s3
+          path: projects/MixingStationHMI/firmware/mixing_controller
+          command: idf.py build && idf.py -C test build
 on:
   push:
     branches:

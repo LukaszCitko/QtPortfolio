@@ -2,6 +2,7 @@
 #define DRAINSERVICE_H
 
 #include <QObject>
+#include <functional>
 
 class OperatorSession;
 class BatchController;
@@ -24,6 +25,8 @@ public:
     Q_INVOKABLE bool requestDrain();
     Q_INVOKABLE bool demoRequestDrain();
 
+    void setRemoteDrainRequest(std::function<bool()> request);
+
 private:
 
     bool startDrain();
@@ -33,6 +36,8 @@ private:
     MixingTank &m_tank;
     Valve &m_drainValve;
     EventManager &m_events;
+
+    std::function<bool()> m_remoteDrainRequest;
 };
 
 #endif

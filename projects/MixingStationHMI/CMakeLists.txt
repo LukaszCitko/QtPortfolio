@@ -103,6 +103,8 @@ enable_project_warnings(mixingstation_core)
 qt_add_library(mixingstation_communication STATIC
     src/communication/modbuscontrollerclient.cpp
     src/communication/modbuscontrollerclient.h
+    src/communication/remoteprocesscontroller.cpp
+    src/communication/remoteprocesscontroller.h
 
     shared/controllerprotocol.h
 )
@@ -123,6 +125,7 @@ enable_project_warnings(mixingstation_communication)
 
 qt_add_executable(appControllerSimulator
     src/controllersimulator/main.cpp
+
 )
 
 set_target_properties(appControllerSimulator PROPERTIES
@@ -170,6 +173,8 @@ qt_add_executable(appMixingStationHMI
     src/drainservice.h
     src/processeventcoordinator.cpp
     src/processeventcoordinator.h
+    src/remoteprocesssynchronizer.cpp
+    src/remoteprocesssynchronizer.h
 
     src/database/runpersistencecoordinator.cpp
     src/database/runpersistencecoordinator.h
@@ -192,6 +197,8 @@ qt_add_qml_module(appMixingStationHMI
         qml/TrendChart.qml
         qml/TrendPanel.qml
         qml/UserManagementDialog.qml
+        qml/HmiButton.qml
+        qml/HmiDialog.qml
 
     RESOURCES
         qml/assets/pump.png
@@ -216,6 +223,7 @@ set_target_properties(appMixingStationHMI PROPERTIES
 target_link_libraries(appMixingStationHMI
     PRIVATE
         mixingstation_core
+        mixingstation_communication
         Qt6::Quick
         Qt6::Sql
 )

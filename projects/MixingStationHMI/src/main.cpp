@@ -1,3 +1,5 @@
+#include <QCommandLineOption>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -21,6 +23,7 @@
 #include "processeventcoordinator.h"
 #include "processsimulator.h"
 #include "pump.h"
+#include "remoteprocesssynchronizer.h"
 #include "trendrecorder.h"
 #include "usermanagementservice.h"
 #include "valve.h"
@@ -37,9 +40,24 @@
 #include "database/userlistmodel.h"
 #include "database/userrepository.h"
 
+#include "communication/modbuscontrollerclient.h"
+#include "communication/remoteprocesscontroller.h"
+
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    QCommandLineParser commandLineParser;
+    commandLineParser.setApplicationDescription(QStringLiteral("Mixing Station HMI"));
+    commandLineParser.addHelpOption();
+
+    QCommandLineOption controllerHostOption(QStringLiteral("controller-host"), QStringLiteral("Connect the HMI to a Modbus TCP process controller."), QStringLiteral("address"));
+    commandLineParser.addOption(controllerHostOption);
+    commandLineParser.process(app);
+
+    const QString controllerHost = commandLineParser.value(controllerHostOption).trimmed();
+    const bool hardwareMode = !controllerHost.isEmpty();
+
 
     const QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 
@@ -135,8 +153,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    QQmlApplicationEngine engine;
-
 
     Pump pump1(1); // Water supply
     Valve valve1(1);
@@ -181,6 +197,8 @@ int main(int argc, char *argv[])
     processEventCoordinator.watchMixerConnection(mixer);
 
     ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &mixingTank);
+    simulator.setEnabled(!hardwareMode);
+
     BatchController batchController(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
     TrendRecorder trendRecorder(&mixingTank);
 
@@ -205,7 +223,10 @@ int main(int argc, char *argv[])
                      }
     );
 
-    batchTimer.start();
+    if (!hardwareMode)
+    {
+        batchTimer.start();
+    }
 
     OperatorSession operatorSession(database);
     UserManagementService userManagementService(operatorSession, userRepository, userListModel, eventManager);
@@ -221,6 +242,85 @@ int main(int argc, char *argv[])
     processEventCoordinator.watchBatchId(batchController);
     runPersistenceCoordinator.watchBatchFinish(batchController);
 
+    ModbusControllerClient modbusControllerClient;
+    RemoteProcessController remoteProcessController(&modbusControllerClient);
+    RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
+
+
+
+
+    if (hardwareMode)
+    {
+        drainService.setRemoteDrainRequest([&modbusControllerClient]()
+                                           {
+                                               return modbusControllerClient.startDrain();
+                                           });
+
+        runPersistenceCoordinator.watchBatchStart(remoteProcessController, operatorSession);
+        runPersistenceCoordinator.watchBatchFinish(remoteProcessController);
+        runPersistenceCoordinator.watchControllerRecovery(remoteProcessController);
+        runPersistenceCoordinator.watchTrendRecording(remoteProcessController, trendRecorder);
+        processEventCoordinator.watchBatchId(remoteProcessController);
+        processEventCoordinator.watchBatchState(remoteProcessController, operatorSession);
+        processEventCoordinator.watchStageCompletion(remoteProcessController);
+        processEventCoordinator.watchConnection(remoteProcessController);
+        processEventCoordinator.watchRecovery(remoteProcessController, operatorSession);
+    }
+
+    QObject::connect(&modbusControllerClient, &ModbusControllerClient::pumpTargetRpmWriteFinished, &eventManager, [&pump1, &pump2, &pump3, &eventManager, &modbusControllerClient](int pumpNumber, int requestedRpm, bool success)
+                    {
+                        Pump *pump = nullptr;
+
+                        if (pumpNumber == 1)
+                        {
+                            pump = &pump1;
+                        }
+                        else if (pumpNumber == 2)
+                        {
+                            pump = &pump2;
+                        }
+                        else if (pumpNumber == 3)
+                        {
+                            pump = &pump3;
+                        }
+
+                        if (pump == nullptr)
+                        {
+                            eventManager.addWarning("COMMUNICATION", "RPM confirmation contains an unknown pump number");
+                            return;
+                        }
+
+                        if (!success)
+                        {
+                            eventManager.addWarning(QString("P%1").arg(pumpNumber), "Target RPM write failed: " + modbusControllerClient.lastError());
+                            return;
+                        }
+
+                        pump->setTargetRpm(static_cast<double>(requestedRpm));
+                    }
+    );
+
+    QObject::connect(&modbusControllerClient, &ModbusControllerClient::simulatedFaultMaskWriteFinished, &modbusControllerClient, [&modbusControllerClient, hardwareMode](quint16 faultMask, bool success)
+                     {
+                        if (!hardwareMode || !success || faultMask != 0U)
+                        {
+                            return;
+                        }
+
+                        QTimer::singleShot(250, &modbusControllerClient, [&modbusControllerClient]()
+                                            {
+                                                if (!modbusControllerClient.commandPending())
+                                                {
+                                                    modbusControllerClient.resetFaults();
+                                                }
+                                            }
+                        );
+                     }
+    );
+    QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcessController) : static_cast<QObject *>(&batchController);
+
+    QQmlApplicationEngine engine;
+
     engine.rootContext()->setContextProperty("pump1", &pump1);
     engine.rootContext()->setContextProperty("valve1", &valve1);
     engine.rootContext()->setContextProperty("pump2", &pump2);
@@ -230,7 +330,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("valve4", &valve4);
     engine.rootContext()->setContextProperty("mixingTank", &mixingTank);
     engine.rootContext()->setContextProperty("mixer", &mixer);
-    engine.rootContext()->setContextProperty("batchController", &batchController);
+
+    engine.rootContext()->setContextProperty("batchController", activeBatchController);
+    engine.rootContext()->setContextProperty("controllerClient", &modbusControllerClient);
+    engine.rootContext()->setContextProperty("hardwareMode", hardwareMode);
+
     engine.rootContext()->setContextProperty("operatorSession", &operatorSession);
     engine.rootContext()->setContextProperty("eventManager", &eventManager);
     engine.rootContext()->setContextProperty("trendRecorder", &trendRecorder);
@@ -242,15 +346,24 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("drainService", &drainService);
     engine.rootContext()->setContextProperty("userManagementService", &userManagementService);
 
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        &app,
-        []()
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []()
         {
             QCoreApplication::exit(-1);
         },
-        Qt::QueuedConnection);
+        Qt::QueuedConnection
+    );
+
+    if (hardwareMode)
+    {
+        if (!modbusControllerClient.connectToController(controllerHost))
+        {
+            qWarning() << "Cannot start controller connection:" << modbusControllerClient.lastError();
+        }
+        else
+        {
+            qInfo() << "Connecting to process controller at" << controllerHost << "on port" << ControllerProtocol::TcpPort;
+        }
+    }
 
     engine.loadFromModule("MixingStationHMI", "HMIScreen");
 

@@ -20,7 +20,9 @@ TEST_CASE("Water simulation follows pump RPM and elapsed time", "[process_simula
 
     const MixingStation::Firmware::ProcessInputs inputs = simulator.inputs();
 
-    TEST_ASSERT_EQUAL_UINT16(120, inputs.mixtureVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(99, inputs.mixtureVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(99, inputs.waterVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(0, inputs.concentrateVolumeDecilitres);
 }
 
 TEST_CASE("Concentrate simulation follows pump RPM and stops at mixture target", "[process_simulation]")
@@ -49,7 +51,9 @@ TEST_CASE("Concentrate simulation follows pump RPM and stops at mixture target",
         simulator.tick(snapshot, ProcessConfiguration::SimulationStepMilliseconds);
     }
 
-    TEST_ASSERT_EQUAL_UINT16(780, simulator.inputs().mixtureVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(766, simulator.inputs().mixtureVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::WaterTargetDecilitres, simulator.inputs().waterVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(66, simulator.inputs().concentrateVolumeDecilitres);
 
     for (std::uint16_t cycle = 0; cycle < 100U && simulator.inputs().mixtureVolumeDecilitres < ProcessConfiguration::MixtureTargetDecilitres; ++cycle)
     {
@@ -57,6 +61,8 @@ TEST_CASE("Concentrate simulation follows pump RPM and stops at mixture target",
     }
 
     TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::MixtureTargetDecilitres, simulator.inputs().mixtureVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::WaterTargetDecilitres, simulator.inputs().waterVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::ConcentrateTargetDecilitres, simulator.inputs().concentrateVolumeDecilitres);
 }
 
 TEST_CASE("Complete simulated batch reaches ready, transfers and returns to idle", "[process_simulation]")
@@ -93,6 +99,8 @@ TEST_CASE("Complete simulated batch reaches ready, transfers and returns to idle
     TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::MixtureTargetDecilitres, snapshot.mixtureVolumeDecilitres);
     TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::DosingMixerRpm, snapshot.mixerActualRpm);
     TEST_ASSERT_NOT_EQUAL(0, snapshot.equipmentStatusMask & mixerRunningMask);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::WaterTargetDecilitres, snapshot.waterVolumeDecilitres);
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::ConcentrateTargetDecilitres, snapshot.concentrateVolumeDecilitres);
 
     const ControllerProtocol::CommandResult transferResult = controller.handleCommand(ControllerProtocol::Command::StartTransfer, 2);
 

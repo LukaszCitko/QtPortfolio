@@ -13,6 +13,8 @@ struct ProcessInputs
     std::uint16_t mixtureVolumeDecilitres{0};
     std::uint16_t temperatureTenthsCelsius{250};
     std::uint16_t faultMask{0};
+    std::uint16_t waterVolumeDecilitres{0};
+    std::uint16_t concentrateVolumeDecilitres{0};
     bool mixerConnected{false};
 };
 
@@ -26,11 +28,17 @@ struct ControllerSetpoints
 struct ControllerSnapshot
 {
     std::uint16_t heartbeat{0};
+    std::uint16_t controllerSessionId{0};
+    std::uint16_t runSequence{0};
+
+    ControllerProtocol::RunKind runKind{ControllerProtocol::RunKind::None};
 
     ControllerProtocol::ProcessState processState{ControllerProtocol::ProcessState::Idle};
     std::uint16_t stageProgressPermille{0};
     std::uint16_t mixtureVolumeDecilitres{0};
     std::uint16_t temperatureTenthsCelsius{0};
+    std::uint16_t waterVolumeDecilitres{0};
+    std::uint16_t concentrateVolumeDecilitres{0};
 
     std::uint16_t pump1ActualRpm{0};
     std::uint16_t pump2ActualRpm{0};
@@ -47,6 +55,7 @@ struct ControllerSnapshot
 class ControllerCore
 {
 public:
+    void setControllerSessionId(std::uint16_t sessionId);
     void updateInputs(const ProcessInputs &inputs);
     void updateSetpoints(const ControllerSetpoints &setpoints);
     void tick(std::uint32_t elapsedMilliseconds = ProcessConfiguration::SimulationStepMilliseconds);
@@ -59,6 +68,7 @@ public:
 private:
     void transitionTo(ControllerProtocol::ProcessState state);
     void applyOutputsForState(ControllerProtocol::ProcessState state);
+    void beginRun(ControllerProtocol::RunKind runKind);
 
     [[nodiscard]] static bool stateCanBePaused(ControllerProtocol::ProcessState state);
     [[nodiscard]] static bool stateRequiresMixer(ControllerProtocol::ProcessState state);

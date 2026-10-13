@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
                  faultSourceCleared = true;
              }
         });
-QObject::connect(&controllerClient, &ModbusControllerClient::snapshotChanged, &application, [&application, &controllerClient, &rpmWriteRequested, &transferRequested, &nextBatchRequested, &faultInjectionRequested, &faultSourceActive, &faultClearScheduled, &faultSourceCleared, &faultResetRequested, &resumeRequested]()
+    QObject::connect(&controllerClient, &ModbusControllerClient::snapshotChanged, &application, [&application, &controllerClient, &rpmWriteRequested, &transferRequested, &nextBatchRequested, &faultInjectionRequested, &faultSourceActive, &faultClearScheduled, &faultSourceCleared, &faultResetRequested, &resumeRequested]()
         {
             if (!controllerClient.snapshotValid())
             {
@@ -112,6 +112,8 @@ QObject::connect(&controllerClient, &ModbusControllerClient::snapshotChanged, &a
                 << "| State:"  << controllerClient.processState()
                 << "| Progress:" << controllerClient.stageProgress()
                 << "| Volume:"  << controllerClient.mixtureVolumeLitres() << "L"
+                << "| Water:" << controllerClient.waterVolumeLitres() << "L"
+                << "| Concentrate:" << controllerClient.concentrateVolumeLitres() << "L"
                 << "| Temperature:" << controllerClient.temperatureCelsius() << "C"
                 << "| P1:" << controllerClient.pump1ActualRpm() << "RPM"
                 << "| P2:" << controllerClient.pump2ActualRpm() << "RPM"

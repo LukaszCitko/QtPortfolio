@@ -11,6 +11,8 @@ Rectangle {
     required property bool demoOverrideEnabled
     required property var resetService
     required property var drainRequestService
+    required property bool hardwareMode
+    required property var controllerClient
 
 
     color: "#eceeef"
@@ -58,8 +60,9 @@ Rectangle {
                 width: parent.width
                 height: 52
                 spacing: 12
+                visible: !root.hardwareMode
 
-                Button {
+                HmiButton {
                     id: connectButton
                     width: (parent.width - parent.spacing) / 2
                     height: parent.height
@@ -93,7 +96,7 @@ Rectangle {
                     }
                 }
 
-                Button {
+                HmiButton {
                     id: demoDrainButton
                     width: (parent.width - parent.spacing) / 2
                     height: parent.height
@@ -132,11 +135,11 @@ Rectangle {
             Row {
                 width: parent.width
                 spacing: 8
-
+                visible: !root.hardwareMode
                 Repeater {
-                    model: [25, 60, 90]
+                    model: [25, 32, 50]
 
-                    Button {
+                    HmiButton {
                         id: temperaturePresetButton
                         property int presetTemperature: modelData
 
@@ -178,20 +181,67 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                Button {
+                HmiButton {
+                    id: pump1FaultButton
                     width: (parent.width - 136) / 2
                     height: 52
                     text: "SET FAULT"
-                    enabled: !root.waterPumpDevice.fault
-                    onClicked: root.waterPumpDevice.setFault()
+                    enabled: root.hardwareMode ?
+                            root.controllerClient.snapshotValid && (root.controllerClient.simulatedFaultMask & 1) === 0
+                            : !root.waterPumpDevice.fault
+
+                    onClicked: {
+                        if (root.hardwareMode)
+                            root.controllerClient.setSimulatedFault(1, true)
+                        else
+                            root.waterPumpDevice.setFault()
+                    }
+
+                    background: Rectangle {
+                        radius: 4
+                        color: pump1FaultButton.pressed ? "#d3d6d8" : "#f2f3f3"
+                        border.color: "#858e92"
+                    }
+
+                    contentItem: Text {
+                        text: pump1FaultButton.text
+                        color: pump1FaultButton.enabled ? "#9d2424" : "#858e92"
+                        font.pixelSize: 13
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
-                Button {
+                HmiButton {
+                    id: pump1ResetButton
+
                     width: (parent.width - 136) / 2
                     height: 52
-                    text: "DEMO RESET"
+                    text: root.hardwareMode ? "CLEAR FAULT" : "DEMO RESET"
                     visible: root.demoOverrideEnabled
                     enabled: root.waterPumpDevice.fault
-                    onClicked: root.resetService.demoResetPump1()
+
+                    onClicked: {
+                        if (root.hardwareMode)
+                            root.controllerClient.setSimulatedFault(1, false) // 1U << 0  = 1
+                        else
+                            root.resetService.demoResetPump1()
+                    }
+
+                    background: Rectangle {
+                        radius: 4
+                        color: pump1ResetButton.enabled ? "#f2f3f3" : "#d7dadd"
+                        border.color: "#858e92"
+                    }
+
+                    contentItem: Text {
+                        text: pump1ResetButton.text
+                        color: pump1ResetButton.enabled ? "#252a2d" : "#858e92"
+                        font.pixelSize: 13
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
 
 
@@ -210,26 +260,74 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                Button {
+                HmiButton {
+                    id: mixerFaultButton
                     width: (parent.width - 136) / 2
                     height: 52
                     text: "SET FAULT"
-                    enabled: !root.mixerDevice.fault
-                    onClicked: root.mixerDevice.setFault()
+                    enabled: root.hardwareMode ?
+                            root.controllerClient.snapshotValid && (root.controllerClient.simulatedFaultMask & 64) === 0
+                            : !root.mixerDevice.fault
+
+                    onClicked: {
+                        if (root.hardwareMode)
+                            root.controllerClient.setSimulatedFault(64, true)
+                        else
+                            root.mixerDevice.setFault()
+                    }
+
+                    background: Rectangle {
+                        radius: 4
+                        color: mixerFaultButton.pressed ? "#d3d6d8" : "#f2f3f3"
+                        border.color: "#858e92"
+                    }
+
+                    contentItem: Text {
+                        text: mixerFaultButton.text
+                        color: mixerFaultButton.enabled ? "#9d2424" : "#858e92"
+                        font.pixelSize: 13
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
-                Button {
+                HmiButton {
+                    id: mixerResetButton
                     width: (parent.width - 136) / 2
                     height: 52
-                    text: "DEMO RESET"
+                    text: root.hardwareMode ? "CLEAR FAULT" : "DEMO RESET"
                     visible: root.demoOverrideEnabled
                     enabled: root.mixerDevice.fault
-                    onClicked: root.resetService.demoResetMixer()
+
+                    onClicked: {
+                        if (root.hardwareMode)
+                            root.controllerClient.setSimulatedFault(64, false)  // 1U << 6 = 64
+                        else
+                            root.resetService.demoResetMixer()
+                    }
+
+                    background: Rectangle {
+                        radius: 4
+                        color: mixerResetButton.enabled ? "#f2f3f3" : "#d7dadd"
+                        border.color: "#858e92"
+                    }
+
+                    contentItem: Text {
+                        text: mixerResetButton.text
+                        color: mixerResetButton.enabled ? "#252a2d" : "#858e92"
+                        font.pixelSize: 13
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
 
             }
 
             Text {
-                text: "Demo connection. No physical hardware is controlled."
+                text: root.hardwareMode
+                      ? "Hardware fault injection through Modbus TCP."
+                      : "Demo connection. No physical hardware is controlled."
                 color: "#596368"
                 font.pixelSize: 13
             }

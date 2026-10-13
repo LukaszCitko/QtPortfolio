@@ -167,7 +167,7 @@ Rectangle {
         spacing: 3
 
         Text {
-            text: (root.tank.temperature < 58.0 && root.tank.volume > 0)
+            text: (root.tank.temperature < 30.0 && root.tank.volume > 0)
                   ? "TK1 · HEATING MODE · " + root.tank.stateText
                   : "TK1 · " + root.tank.stateText
             color: "#252a2d"

@@ -8,7 +8,7 @@ namespace ControllerProtocol {
 // Development server uses a non-privileged TCP port.
 inline constexpr std::uint16_t TcpPort = 1502;
 inline constexpr std::uint8_t ServerAddress = 1;
-inline constexpr std::uint16_t ProtocolVersion = 2;
+inline constexpr std::uint16_t ProtocolVersion = 4;
 inline constexpr std::uint16_t RegisterCount = 64;
 inline constexpr std::uint16_t MaximumPumpRpm = 1000;
 
@@ -50,6 +50,14 @@ enum class ProcessState : std::uint16_t
     Complete = 9
 };
 
+// Identifies the type of process associated with the current run sequence.
+enum class RunKind : std::uint16_t
+{
+    None = 0,
+    Batch = 1,
+    Drain = 2
+};
+
 // Holding registers are written by the HMI.
 enum class HoldingRegister : std::uint16_t
 {
@@ -71,8 +79,14 @@ enum class InputRegister : std::uint16_t
     ProcessState = 2,
     StageProgressPermille = 3,
 
+    ControllerSessionId = 4,
+    RunSequence = 5,
+    RunKind = 6,
+
     MixtureVolumeDecilitres = 10,
     TemperatureTenthsCelsius = 11,
+    WaterVolumeDecilitres = 12,
+    ConcentrateVolumeDecilitres = 13,
 
     Pump1ActualRpm = 20,
     Pump2ActualRpm = 21,

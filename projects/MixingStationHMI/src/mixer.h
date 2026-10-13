@@ -29,7 +29,6 @@ public:
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void setFault();
-                void resetFault();
     Q_INVOKABLE void connect();
     Q_INVOKABLE void disconnectDevice();
 
@@ -40,7 +39,9 @@ public:
     double actualRpm() const;
 
     void setTargetRpm(double rpm);
+    void setActualRpm(double rpm);
     void simulateStep(double elapsedSeconds);
+    void resetFault();
 
     bool isConnected() const;
     bool isRunning() const;

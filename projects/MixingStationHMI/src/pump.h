@@ -8,6 +8,7 @@
     {
     private:
         Q_OBJECT
+        Q_PROPERTY(int id READ id CONSTANT)
         Q_PROPERTY(double maxRpm READ maxRpm CONSTANT)
         Q_PROPERTY(double targetRpm READ targetRpm WRITE setTargetRpm NOTIFY targetRpmChanged)
         Q_PROPERTY(double actualRpm READ actualRpm NOTIFY actualRpmChanged)

@@ -35,11 +35,26 @@ Rectangle {
 
                 text: root.historySource.runId === ""
                       ? "PROCESS TRENDS · LATEST RUN"
-                      : "PROCESS TRENDS · RUN "
-                        + root.historySource.runId.substring(0, 8)
+                      : "PROCESS TRENDS · RUN " + root.historySource.runId
             }
 
-            Button {
+            HmiButton {
+                id: liveTrendButton
+
+                background: Rectangle {
+                    color: liveTrendButton.enabled ? "#f7f8f8" : "#d7dadd"
+                    border.color: "#a5aaad"
+                }
+
+                contentItem: Text {
+                    text: liveTrendButton.text
+                    color: liveTrendButton.enabled ? "#252a2d" : "#596368"
+                    font.pixelSize: 15
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
                 width: 180
                 height: parent.height
                 text: "LIVE TREND"

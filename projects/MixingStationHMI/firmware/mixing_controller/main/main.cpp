@@ -11,6 +11,7 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_random.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -208,6 +209,11 @@ extern "C" void app_main()
     static MixingStation::Firmware::ModbusServer modbusServer;
     static MixingStation::Firmware::SimulatedProcessInputs simulatedInputs;
     static MixingStation::Firmware::TemperatureSensor temperatureSensor;
+
+    const std::uint16_t controllerSessionId = static_cast<std::uint16_t>(esp_random() & 0xFFFFU); // 0xFFFFU = 00000000 00000000 11111111 11111111 (esp_random gives 32bit)
+    controller.setControllerSessionId(controllerSessionId);
+
+    ESP_LOGI(LogTag, "Controller session ID: %u", static_cast<unsigned>(controller.snapshot().controllerSessionId));
 
     static QueueHandle_t temperatureQueue = xQueueCreate(TemperatureQueueLength, sizeof(std::uint16_t));
 

@@ -46,6 +46,9 @@ TEST_CASE("Controller starts in idle state", "[controller_core]")
     TEST_ASSERT_EQUAL_UINT16(0,snapshot.heartbeat);
     TEST_ASSERT_EQUAL_UINT16(0,snapshot.lastHandledCommandSequence);
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::None), static_cast<std::uint16_t>(snapshot.lastCommandResult));
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.controllerSessionId);
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.runSequence);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::RunKind::None), static_cast<std::uint16_t>(snapshot.runKind));
 }
 
 TEST_CASE("Controller tick increments heartbeat", "[controller_core]")
@@ -81,6 +84,7 @@ TEST_CASE( "Process inputs are included in controller snapshot", "[controller_co
 TEST_CASE( "Start batch command changes controller state", "[controller_core]")
 {
     MixingStation::Firmware::ControllerCore controller;
+    controller.setControllerSessionId(18472);
     auto setpoints = controller.setpoints();
     controller.updateSetpoints(setpoints);
     setMixerConnected(controller);
@@ -92,6 +96,9 @@ TEST_CASE( "Start batch command changes controller state", "[controller_core]")
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::FillingWater), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(1, snapshot.lastHandledCommandSequence);
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(snapshot.lastCommandResult));
+    TEST_ASSERT_EQUAL_UINT16(18472, snapshot.controllerSessionId);
+    TEST_ASSERT_EQUAL_UINT16(1, snapshot.runSequence);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::RunKind::Batch), static_cast<std::uint16_t>(snapshot.runKind));
 }
 
 TEST_CASE("Start batch is rejected outside idle state", "[controller_core]")
@@ -100,7 +107,7 @@ TEST_CASE("Start batch is rejected outside idle state", "[controller_core]")
     setMixerConnected(controller);
     const ControllerProtocol::CommandResult initialResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
 
-TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(initialResult));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(initialResult));
 
     const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartBatch, 2);
     const auto snapshot = controller.snapshot();
@@ -108,6 +115,7 @@ TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandR
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::FillingWater), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(2, snapshot.lastHandledCommandSequence);
+
 }
 
 TEST_CASE("Duplicate command sequence is rejected", "[controller_core]")
@@ -231,6 +239,8 @@ TEST_CASE("Start batch is rejected when mixer is disconnected", "[controller_cor
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Idle), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(0, snapshot.pump1ActualRpm);
     TEST_ASSERT_EQUAL_UINT16(1, snapshot.lastHandledCommandSequence);
+    TEST_ASSERT_EQUAL_UINT16(0, snapshot.runSequence);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::RunKind::None), static_cast<std::uint16_t>(snapshot.runKind));
 }
 
 TEST_CASE("Temperature check accepts values from 30 to 36 degrees", "[controller_core]")
@@ -323,7 +333,7 @@ TEST_CASE("Mixing timer stops while batch is paused", "[controller_core]")
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(resumeResult));
     TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::MixingMixerRpm, controller.snapshot().mixerActualRpm);
 
-    controller.tick(9999U);
+    controller.tick(ProcessConfiguration::MixingDurationMilliseconds - 5000U - 1U);
 
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Mixing), static_cast<std::uint16_t>(controller.snapshot().processState));
 
@@ -414,4 +424,66 @@ TEST_CASE("Completed pump fault is reported without stopping current stage", "[c
     TEST_ASSERT_EQUAL_UINT16(pump1FaultMask, snapshot.faultMask);
     TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::Pump2DefaultRpm, snapshot.pump2ActualRpm);
     TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::DosingMixerRpm, snapshot.mixerActualRpm);
+}
+
+TEST_CASE("Pump target RPM changes while pump is running", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    setMixerConnected(controller);
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+    TEST_ASSERT_EQUAL_UINT16(ProcessConfiguration::Pump1DefaultRpm, controller.snapshot().pump1ActualRpm);
+
+    MixingStation::Firmware::ControllerSetpoints setpoints = controller.setpoints();
+    setpoints.pump1TargetRpm = 350;
+    controller.updateSetpoints(setpoints);
+
+    TEST_ASSERT_EQUAL_UINT16(350, controller.snapshot().pump1ActualRpm);
+    TEST_ASSERT_EQUAL_UINT16(350, controller.setpoints().pump1TargetRpm);
+}
+
+TEST_CASE("Drain from idle starts a new drain run", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    controller.setControllerSessionId(18472);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixtureVolumeDecilitres = 100;
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartDrain, 1);
+    const MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Draining), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(18472, snapshot.controllerSessionId);
+    TEST_ASSERT_EQUAL_UINT16(1, snapshot.runSequence);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::RunKind::Drain), static_cast<std::uint16_t>(snapshot.runKind));
+}
+
+TEST_CASE("Drain from paused batch keeps the existing run sequence", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    controller.setControllerSessionId(18472);
+    setMixerConnected(controller);
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.mixtureVolumeDecilitres = 100;
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult pauseResult = controller.handleCommand(ControllerProtocol::Command::PauseBatch, 2);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(pauseResult));
+
+    const ControllerProtocol::CommandResult drainResult = controller.handleCommand(ControllerProtocol::Command::StartDrain, 3);
+    const MixingStation::Firmware::ControllerSnapshot snapshot = controller.snapshot();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(drainResult));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Draining), static_cast<std::uint16_t>(snapshot.processState));
+    TEST_ASSERT_EQUAL_UINT16(1, snapshot.runSequence);
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::RunKind::Drain), static_cast<std::uint16_t>(snapshot.runKind));
 }

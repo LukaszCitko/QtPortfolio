@@ -13,6 +13,7 @@ public:
     bool beginBatch(const QString &runId, const QString &operatorId, qint64 startedAtMs, QString *errorMessage);
     bool beginDrain(const QString &runId,  qint64 startedAtMs, QString *errorMessage);
     bool finishRun(const QString &runId, const QString &outcome, qint64 endedAtMs, QString *errorMessage);
+    bool runExists(const QString &runId, bool *exists, QString *errorMessage);
 
 private:
     QSqlDatabase m_database;

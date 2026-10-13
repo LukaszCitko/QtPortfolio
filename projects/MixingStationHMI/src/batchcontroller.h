@@ -5,6 +5,7 @@
 #include <QPointer>
 #include <QString>
 #include <QtQml/qqmlregistration.h>
+#include "processconfiguration.h"
 
 class Pump;
 class Valve;
@@ -124,16 +125,14 @@ private:
     bool canStartPump2() const;
     bool canStartPump3() const;
 
-    static constexpr double DrainFlowPerSecond = 5.0;
-    static constexpr double TargetWaterVolume = 70.0;
-    static constexpr double TargetConcentrateVolume = 30.0;
-
-    static constexpr double MinMixingTemperature = 58.0;
-    static constexpr double MaxMixingTemperature = 62.0;
-
-    static constexpr double MixingDuration = 15.0;
-    static constexpr double DosingMixerRpm = 200.0;
-    static constexpr double MixingMixerRpm = 800.0;
+    static constexpr double DrainFlowPerSecond = static_cast<double>(ProcessConfiguration::DrainFlowDecilitresPerSecond) / 10.0;
+    static constexpr double TargetWaterVolume = static_cast<double>(ProcessConfiguration::WaterTargetDecilitres) / 10.0;
+    static constexpr double TargetConcentrateVolume = static_cast<double>(ProcessConfiguration::ConcentrateTargetDecilitres) / 10.0;
+    static constexpr double MinMixingTemperature = static_cast<double>(ProcessConfiguration::MinimumProcessTemperatureTenthsCelsius) / 10.0;
+    static constexpr double MaxMixingTemperature = static_cast<double>(ProcessConfiguration::MaximumProcessTemperatureTenthsCelsius) / 10.0;
+    static constexpr double MixingDuration = static_cast<double>(ProcessConfiguration::MixingDurationMilliseconds) / 1000.0;
+    static constexpr double DosingMixerRpm = static_cast<double>(ProcessConfiguration::DosingMixerRpm);
+    static constexpr double MixingMixerRpm = static_cast<double>(ProcessConfiguration::MixingMixerRpm);
 
     QPointer<Pump> m_pump1;
     QPointer<Valve> m_valve1;

@@ -40,6 +40,21 @@ ProcessSimulator::ProcessSimulator(
     m_timer.start();
 }
 
+void ProcessSimulator::setEnabled(bool enabled)
+{
+    if (enabled)
+    {
+        if (!m_timer.isActive())
+        {
+            m_timer.start();
+        }
+
+        return;
+    }
+
+    m_timer.stop();
+}
+
 void ProcessSimulator::updateSimulation()
 {
     simulateStep(m_timer.interval() / 1000.0);

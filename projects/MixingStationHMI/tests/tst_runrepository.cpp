@@ -33,6 +33,14 @@ void TestRunRepository::storesBatchLifecycle()
     RunRepository repository(database);
 
     QVERIFY2(repository.beginBatch("batch-1", "operator-1", 1000, &error), qPrintable(error));
+
+    bool exists = false;
+    QVERIFY2(repository.runExists("batch-1", &exists, &error), qPrintable(error));
+    QVERIFY(exists);
+
+    QVERIFY2(repository.runExists("missing-run", &exists, &error), qPrintable(error));
+    QVERIFY(!exists);
+
     QVERIFY2(repository.finishRun("batch-1", "COMPLETED", 2000, &error), qPrintable(error));
 
     QSqlQuery savedRun(database);

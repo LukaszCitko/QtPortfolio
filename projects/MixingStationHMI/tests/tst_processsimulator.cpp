@@ -284,7 +284,10 @@ void TestProcessSimulator::lowerTargetRpmReducesFlow()
 
     const double volumeAtHalfRpm = tank.waterVolume();
 
-    QCOMPARE(volumeAtHalfRpm, 5.0);
+    const double maximumWaterFlowLitresPerSecond = static_cast<double>(ProcessConfiguration::WaterFlowAtMaximumRpmDecilitresPerSecond) / 10.0;
+    const double expectedVolumeAtHalfRpm = maximumWaterFlowLitresPerSecond * 0.5 * 500.0 / Pump::MaxRpm;
+
+    QCOMPARE(volumeAtHalfRpm, expectedVolumeAtHalfRpm);
 
     pump1.setTargetRpm(Pump::MaxRpm);
 
@@ -292,7 +295,9 @@ void TestProcessSimulator::lowerTargetRpmReducesFlow()
 
     const double volumeAtMaximumRpm = tank.waterVolume() - volumeAtHalfRpm;
 
-    QCOMPARE(volumeAtMaximumRpm, 10.0);
+    const double expectedVolumeAtMaximumRpm = maximumWaterFlowLitresPerSecond * 0.5;
+
+    QCOMPARE(volumeAtMaximumRpm, expectedVolumeAtMaximumRpm);
     QCOMPARE(volumeAtMaximumRpm, volumeAtHalfRpm * 2.0);
 }
 

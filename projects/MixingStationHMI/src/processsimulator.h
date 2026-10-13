@@ -15,18 +15,10 @@ class ProcessSimulator : public QObject
     Q_OBJECT
 
 public:
-    explicit ProcessSimulator(
-        Pump *pump1,
-        Valve *valve1,
-        Pump *pump2,
-        Valve *valve2,
-        Pump *pump3,
-        Valve *valve3,
-
-        MixingTank *mixingTank,
-        QObject *parent = nullptr);
+    explicit ProcessSimulator(Pump *pump1, Valve *valve1, Pump *pump2, Valve *valve2, Pump *pump3, Valve *valve3, MixingTank *mixingTank, QObject *parent = nullptr);
 
     void simulateStep(double elapsedSeconds);
+    void setEnabled(bool enabled);
 
 private slots:
     void updateSimulation();

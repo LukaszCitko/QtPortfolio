@@ -3,14 +3,16 @@ import QtQuick.Controls.Basic
 
 ApplicationWindow {
     id: window
+    readonly property bool isHardwareMode: hardwareMode
+    readonly property var processControllerClient: controllerClient
     property string activePage: "PROCESS"
     property string highlightedEquipmentTag: ""
     property var acknowledgedFaults: []
+    readonly property bool controllerReady: !window.isHardwareMode || window.processControllerClient.snapshotValid
     readonly property bool hasUnacknowledgedFault:
-
-    alarmBar.faults.some(function(tag) {
-        return acknowledgedFaults.indexOf(tag) === -1
-    })
+        alarmBar.faults.some(function(tag) {
+            return acknowledgedFaults.indexOf(tag) === -1
+        })
 
     function openPumpRpm(pumpObject, tag) {
         rpmDialog.pumpDevice = pumpObject
@@ -18,11 +20,29 @@ ApplicationWindow {
         rpmSlider.value = pumpObject.targetRpm
         rpmDialog.open()
     }
+
+    function openEquipment(tag) {
+        highlightedEquipmentTag = tag
+        activePage = "EQUIPMENT"
+    }
+
     visible: true
     width: 1280
     height: 800
     title: "Mixing Station HMI - DEMO"
     color: "#dadddf"
+    palette.window: "#eceeef"
+    palette.windowText: "#252a2d"
+    palette.base: "#f6f7f7"
+    palette.alternateBase: "#e8e9ea"
+    palette.text: "#252a2d"
+    palette.button: "#f2f3f3"
+    palette.buttonText: "#252a2d"
+    palette.highlight: "#879195"
+    palette.highlightedText: "#ffffff"
+    palette.light: "#f7f8f8"
+    palette.mid: "#a5aaad"
+    palette.dark: "#596368"
 
     Column {
         anchors.fill: parent
@@ -45,12 +65,12 @@ ApplicationWindow {
 
             Text {
                 anchors.centerIn: parent
-                text: "STATUS: " + batchController.stateText
-                color: "#252a2d"
+                text: window.controllerReady ? "STATUS: " + batchController.stateText : "STATUS: CONTROLLER OFFLINE"
+                color: window.controllerReady ? "#252a2d" : "#b63838"
                 font.pixelSize: 20
             }
 
-            Button {
+            HmiButton {
                 id: loginButton
                 anchors.right: parent.right
                 anchors.rightMargin: 24
@@ -62,7 +82,8 @@ ApplicationWindow {
                       ? operatorSession.operatorName + "\n" + operatorSession.operatorRole
                       : "LOGIN"
 
-                enabled: batchController.state === BatchController.Idle
+                enabled: !operatorSession.selected
+                         || batchController.state === BatchController.Idle
                          || batchController.state === BatchController.Complete
 
                 onClicked: operatorDialog.open()
@@ -83,7 +104,7 @@ ApplicationWindow {
                     verticalAlignment: Text.AlignVCenter
                 }
             }
-            Button {
+            HmiButton {
                 id: manageUsersButton
                 anchors.right: loginButton.left
                 anchors.rightMargin: 12
@@ -153,10 +174,13 @@ ApplicationWindow {
                             pumpTag: "P1"
                             valveTag: "V1"
                             flowArrow: "→"
-                            rpmControlEnabled: operatorSession.selected
+                            rpmControlEnabled: operatorSession.selected && window.controllerReady
                             onRpmRequested: (device, tag) => window.openPumpRpm(device, tag)
                             pumpDevice: pump1
                             valveDevice: valve1
+                            onFaultRequested: function(tag) {
+                                window.openEquipment(tag)
+                            }
                         }
 
                         EquipmentLane {
@@ -165,10 +189,13 @@ ApplicationWindow {
                             pumpTag: "P2"
                             valveTag: "V2"
                             flowArrow: "→"
-                            rpmControlEnabled: operatorSession.selected
+                            rpmControlEnabled: operatorSession.selected && window.controllerReady
                             onRpmRequested: (device, tag) => window.openPumpRpm(device, tag)
                             pumpDevice: pump2
                             valveDevice: valve2
+                            onFaultRequested: function(tag) {
+                                window.openEquipment(tag)
+                            }
                         }
 
                         EquipmentLane {
@@ -177,10 +204,13 @@ ApplicationWindow {
                             pumpTag: "P3"
                             valveTag: "V3"
                             flowArrow: "←"
-                            rpmControlEnabled: operatorSession.selected
+                            rpmControlEnabled: operatorSession.selected && window.controllerReady
                             onRpmRequested: (device, tag) => window.openPumpRpm(device, tag)
                             pumpDevice: pump3
                             valveDevice: valve3
+                            onFaultRequested: function(tag) {
+                                window.openEquipment(tag)
+                            }
                         }
                     }
                 }
@@ -205,15 +235,20 @@ ApplicationWindow {
                     hasActiveFault: alarmBar.hasFault
                     operatorSelected: operatorSession.selected
                     operatorName: operatorSession.operatorName
+                    pump1Device: pump1
+                    pump2Device: pump2
+                    pump3Device: pump3
+                    hardwareMode: window.isHardwareMode
+                    recoveryAllowed: operatorSession.canApproveDrain
                 }
             }
             EquipmentPanel {
                 anchors.fill: parent
                 anchors.margins: 24
                 visible: window.activePage === "EQUIPMENT"
-                rpmControlEnabled: operatorSession.selected
+                rpmControlEnabled: operatorSession.selected && window.controllerReady
                 onRpmRequested: (device, tag) => window.openPumpRpm(device, tag)
-                resetFaultAllowed: operatorSession.canResetFault
+                resetFaultAllowed: operatorSession.canResetFault && window.controllerReady
                 resetService: faultResetService
                 drainRequestService: drainService
                 highlightedTag: window.highlightedEquipmentTag
@@ -230,6 +265,8 @@ ApplicationWindow {
                 operatorSelected: operatorSession.selected
                 canApproveDrain: operatorSession.canApproveDrain
                 batchDevice: batchController
+                hardwareMode: window.isHardwareMode
+                controllerClient: window.processControllerClient
             }
             SimulationControlPanel {
                 anchors.fill: parent
@@ -242,7 +279,8 @@ ApplicationWindow {
                 demoOverrideEnabled: operatorSession.operatorRole === "OPERATOR"
                 resetService: faultResetService
                 drainRequestService: drainService
-
+                hardwareMode: window.isHardwareMode
+                controllerClient: window.processControllerClient
             }
             TrendPanel {
                 anchors.fill: parent
@@ -285,14 +323,31 @@ ApplicationWindow {
                                     + eventHistoryModel.runFilter.substring(0, 8)
                         }
 
-                        Button {
-                            width: 180
+                        HmiButton {
+                            id: selectRunButton
+                            width: 160
                             height: parent.height
                             text: "SELECT RUN"
+
                             onClicked: runSelectionDialog.open()
+
+                            background: Rectangle {
+                                radius: 4
+                                color: selectRunButton.pressed ? "#d3d6d8" : "#f2f3f3"
+                                border.color: "#858e92"
+                            }
+
+                            contentItem: Text {
+                                text: selectRunButton.text
+                                color: "#252a2d"
+                                font.pixelSize: 13
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
 
-                        Button {
+                        HmiButton {
                             width: 180
                             height: parent.height
                             visible: eventHistoryModel.runFilter !== ""
@@ -393,7 +448,8 @@ ApplicationWindow {
                             verticalAlignment: Text.AlignVCenter
                         }
 
-                        Button {
+                        HmiButton {
+                            id: acknowledgeButton
                             width: 220
                             height: 44
                             text: "ACKNOWLEDGE"
@@ -415,6 +471,21 @@ ApplicationWindow {
                                     "ALARM",
                                     "Acknowledged " + newAcknowledgements.join(", ")
                                     + " by " + operatorSession.operatorName)
+                            }
+
+                            background: Rectangle {
+                                radius: 4
+                                color: acknowledgeButton.pressed ? "#d3d6d8" : "#f2f3f3"
+                                border.color: acknowledgeButton.enabled ? "#9d2424" : "#858e92"
+                            }
+
+                            contentItem: Text {
+                                text: acknowledgeButton.text
+                                color: acknowledgeButton.enabled ? "#9d2424" : "#858e92"
+                                font.pixelSize: 13
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
                         }
                     }
@@ -460,6 +531,11 @@ ApplicationWindow {
                                         font.pixelSize: 16
                                         font.bold: true
                                     }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: window.openEquipment(modelData)
+                                    }
                                 }
                             }
                         }
@@ -493,6 +569,9 @@ ApplicationWindow {
                     window.acknowledgedFaults.filter(function(tag) {
                         return activeFaults.indexOf(tag) !== -1
                     })
+            }
+            onFaultRequested: function(tag) {
+                window.openEquipment(tag)
             }
         }
 
@@ -575,7 +654,7 @@ ApplicationWindow {
         managementService: userManagementService
         currentUserId: operatorSession.operatorId
     }
-    Dialog {
+    HmiDialog {
         id: operatorDialog
         parent: Overlay.overlay
         width: 420
@@ -601,7 +680,21 @@ ApplicationWindow {
 
                 ScrollBar.vertical: ScrollBar {}
 
-                delegate: Button {
+                delegate: HmiButton {
+                    id: operatorButton
+                    background: Rectangle {
+                        color: operatorButton.down ? "#c5ced2" : "#f7f8f8"
+                        border.color: "#a5aaad"
+                        radius: 3
+                    }
+
+                    contentItem: Text {
+                        text: operatorButton.text
+                        color: "#252a2d"
+                        font.pixelSize: 16
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                     required property string userId
                     required property string displayName
                     required property string role
@@ -611,8 +704,15 @@ ApplicationWindow {
                     text: displayName + " · " + role
 
                     onClicked: {
-                        if (operatorSession.selectOperator(userId))
-                            operatorDialog.close()
+                        const activeBatch = batchController.state !== BatchController.Idle && batchController.state !== BatchController.Complete
+
+                        if (!operatorSession.selectOperator(userId))
+                            return
+
+                        if (activeBatch)
+                            eventManager.addInfo("ACCESS", "Active batch control assumed by " + operatorSession.operatorName + " after HMI reconnect")
+
+                        operatorDialog.close()
                     }
                 }
             }
@@ -628,7 +728,7 @@ ApplicationWindow {
 
         }
     }
-    Dialog {
+    HmiDialog {
         id: runSelectionDialog
         parent: Overlay.overlay
         x: (parent.width - width) / 2
@@ -641,12 +741,26 @@ ApplicationWindow {
 
         onOpened: runListModel.refresh()
 
-        Column {
+        contentItem: Column {
             width: runSelectionDialog.availableWidth
             height: runSelectionDialog.availableHeight
             spacing: 8
 
-            Button {
+            HmiButton {
+                id: allEventsButton
+                background: Rectangle {
+                    color: allEventsButton.down ? "#c5ced2" : "#f7f8f8"
+                    border.color: "#a5aaad"
+                }
+
+                contentItem: Text {
+                    text: allEventsButton.text
+                    color: "#252a2d"
+                    font.pixelSize: 16
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
                 width: parent.width
                 height: 54
                 text: "ALL EVENTS"
@@ -663,13 +777,31 @@ ApplicationWindow {
                 height: parent.height - 62
                 clip: true
                 model: runListModel
+                boundsBehavior: Flickable.StopAtBounds
 
                 delegate: ItemDelegate {
+                    id: runDelegate
+
                     required property string runId
                     required property string kind
                     required property string operatorName
                     required property string startedAt
                     required property string outcome
+
+                    background: Rectangle {
+                        color: runDelegate.down ? "#c5ced2" : "#f7f8f8"
+                        border.color: "#a5aaad"
+                    }
+
+                    contentItem: Text {
+                        text: runDelegate.text
+                        color: "#252a2d"
+                        font.pixelSize: 16
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: 12
+                        rightPadding: 12
+                    }
 
                     width: runListView.width
                     height: 58
@@ -687,7 +819,7 @@ ApplicationWindow {
             }
         }
     }
-    Dialog {
+    HmiDialog {
         id: rpmDialog
         parent: Overlay.overlay
         x: (parent.width - width) / 2
@@ -717,8 +849,8 @@ ApplicationWindow {
             Slider {
                 id: rpmSlider
                 width: parent.width
-                from: 300  // Keep a running batch from losing all flow.
-                to: 1800
+                from: 100  // Keep a running batch from losing all flow.
+                to: rpmDialog.pumpDevice ? rpmDialog.pumpDevice.maxRpm : 1000
                 stepSize: 50
                 snapMode: Slider.SnapAlways
             }
@@ -734,8 +866,19 @@ ApplicationWindow {
         }
 
         onAccepted: {
-            if (pumpDevice)
-                pumpDevice.setTargetRpm(rpmSlider.value)
+            if (!pumpDevice)
+                return
+
+            const requestedRpm = Math.round(rpmSlider.value)
+
+            if (window.isHardwareMode) {
+                if (!window.processControllerClient.setPumpTargetRpm(pumpDevice.id, requestedRpm))
+                    eventManager.addWarning(pumpTag, "Target RPM request rejected: " + window.processControllerClient.lastError)
+
+                return
+            }
+
+            pumpDevice.setTargetRpm(requestedRpm)
         }
     }
 }

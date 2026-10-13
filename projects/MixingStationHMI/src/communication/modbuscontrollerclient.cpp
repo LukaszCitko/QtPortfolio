@@ -11,6 +11,7 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
     m_client.setNumberOfRetries(2);
 
     m_pollTimer.setInterval(500);
+    m_reconnectTimer.setInterval(2000);
 
     connect(&m_pollTimer, &QTimer::timeout, this, &ModbusControllerClient::requestSnapshot);
 
@@ -20,6 +21,7 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
 
             if (state == QModbusDevice::ConnectedState)
             {
+                m_reconnectTimer.stop();
                 setLastError({});
                 requestSnapshot();
                 m_pollTimer.start();
@@ -35,6 +37,11 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
                 {
                     m_commandPending = false;
                     emit commandPendingChanged();
+                }
+
+                if (!m_disconnectRequested && !m_controllerHost.isEmpty() && !m_reconnectTimer.isActive())
+                {
+                    m_reconnectTimer.start();
                 }
 
                 if (m_snapshotValid)
@@ -53,6 +60,18 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
             }
 
             setLastError(m_client.errorString());
+        });
+    connect(&m_reconnectTimer, &QTimer::timeout, this, [this]()
+        {
+            if (m_disconnectRequested || m_controllerHost.isEmpty() || m_client.state() != QModbusDevice::UnconnectedState)
+            {
+                return;
+            }
+
+            if (!m_client.connectDevice())
+            {
+                setLastError(m_client.errorString());
+            }
         });
 }
 
@@ -81,6 +100,21 @@ quint16 ModbusControllerClient::heartbeat() const
     return m_heartbeat;
 }
 
+quint16 ModbusControllerClient::controllerSessionId() const
+{
+    return m_controllerSessionId;
+}
+
+quint16 ModbusControllerClient::runSequence() const
+{
+    return m_runSequence;
+}
+
+int ModbusControllerClient::runKind() const
+{
+    return m_runKind;
+}
+
 int ModbusControllerClient::processState() const
 {
     return m_processState;
@@ -94,6 +128,17 @@ double ModbusControllerClient::stageProgress() const
 double ModbusControllerClient::mixtureVolumeLitres() const
 {
     return m_mixtureVolumeLitres;
+}
+
+
+double ModbusControllerClient::waterVolumeLitres() const
+{
+    return m_waterVolumeLitres;
+}
+
+double ModbusControllerClient::concentrateVolumeLitres() const
+{
+    return m_concentrateVolumeLitres;
 }
 
 double ModbusControllerClient::temperatureCelsius() const
@@ -131,6 +176,11 @@ quint16 ModbusControllerClient::faultMask() const
     return m_faultMask;
 }
 
+quint16 ModbusControllerClient::simulatedFaultMask() const
+{
+    return m_simulatedFaultMask;
+}
+
 quint16 ModbusControllerClient::lastHandledCommandSequence() const
 {
     return m_lastHandledCommandSequence;
@@ -149,6 +199,9 @@ bool ModbusControllerClient::commandPending() const
 bool ModbusControllerClient::connectToController(
     const QString &host)
 {
+    m_controllerHost = host.trimmed();
+    m_disconnectRequested = false;
+
     if (host.trimmed().isEmpty())
     {
         setLastError(QStringLiteral("Controller address cannot be empty."));
@@ -162,7 +215,7 @@ bool ModbusControllerClient::connectToController(
         return false;
     }
 
-    m_client.setConnectionParameter(QModbusDevice::NetworkAddressParameter, host.trimmed());
+    m_client.setConnectionParameter(QModbusDevice::NetworkAddressParameter, m_controllerHost);
 
     m_client.setConnectionParameter(QModbusDevice::NetworkPortParameter, ControllerProtocol::TcpPort);
 
@@ -171,6 +224,7 @@ bool ModbusControllerClient::connectToController(
     if (!m_client.connectDevice())
     {
         setLastError(m_client.errorString());
+        m_reconnectTimer.start();
         return false;
     }
 
@@ -179,6 +233,9 @@ bool ModbusControllerClient::connectToController(
 
 void ModbusControllerClient::disconnectFromController()
 {
+    m_disconnectRequested = true;
+    m_reconnectTimer.stop();
+    m_pollTimer.stop();
     m_client.disconnectDevice();
 }
 
@@ -199,6 +256,17 @@ bool ModbusControllerClient::setPumpTargetRpm(int pumpNumber, int rpm)
         setLastError(QStringLiteral("Pump number must be between 1 and 3."));
         return false;
     }
+}
+bool ModbusControllerClient::setSimulatedFault(quint16 faultBit, bool active)
+{
+    if (faultBit == 0U || (faultBit & static_cast<quint16>(~ControllerProtocol::DefinedFaultMask)) != 0U)
+    {
+        setLastError(QStringLiteral("Requested simulated fault bit is not supported."));
+        return false;
+    }
+
+    const quint16 newFaultMask = active ? static_cast<quint16>(m_simulatedFaultMask | faultBit) : static_cast<quint16>(m_simulatedFaultMask & static_cast<quint16>(~faultBit));
+    return setSimulatedFaultMask(newFaultMask);
 }
 
 bool ModbusControllerClient::setSimulatedFaultMask(quint16 faultMask)
@@ -234,6 +302,12 @@ bool ModbusControllerClient::setSimulatedFaultMask(quint16 faultMask)
         if (success)
         {
             setLastError({});
+
+            if (m_simulatedFaultMask != faultMask)
+            {
+                m_simulatedFaultMask = faultMask;
+                emit simulatedFaultMaskChanged();
+            }
         }
         else
         {
@@ -482,6 +556,9 @@ void ModbusControllerClient::processSnapshot(const QModbusDataUnit &registers)
     m_protocolVersion = receivedProtocolVersion;
 
     m_heartbeat = registerValue(ControllerProtocol::InputRegister::ControllerHeartbeat);
+    m_controllerSessionId = registerValue(ControllerProtocol::InputRegister::ControllerSessionId);
+    m_runSequence = registerValue(ControllerProtocol::InputRegister::RunSequence);
+    m_runKind = static_cast<int>(registerValue(ControllerProtocol::InputRegister::RunKind));
     m_processState = static_cast<int>(registerValue(ControllerProtocol::InputRegister::ProcessState));
 
     const quint16 progressPermille = registerValue(ControllerProtocol::InputRegister::StageProgressPermille);
@@ -489,6 +566,12 @@ void ModbusControllerClient::processSnapshot(const QModbusDataUnit &registers)
 
     const quint16 volumeDecilitres = registerValue(ControllerProtocol::InputRegister::MixtureVolumeDecilitres);
     m_mixtureVolumeLitres = static_cast<double>(volumeDecilitres) / 10.0;
+
+    const quint16 waterVolumeDecilitres = registerValue(ControllerProtocol::InputRegister::WaterVolumeDecilitres);
+    m_waterVolumeLitres = static_cast<double>(waterVolumeDecilitres) / 10.0;
+
+    const quint16 concentrateVolumeDecilitres = registerValue(ControllerProtocol::InputRegister::ConcentrateVolumeDecilitres);
+    m_concentrateVolumeLitres = static_cast<double>(concentrateVolumeDecilitres) / 10.0;
 
     const quint16 temperatureTenths = registerValue(ControllerProtocol::InputRegister::TemperatureTenthsCelsius);
     m_temperatureCelsius = static_cast<double>(temperatureTenths) / 10.0;

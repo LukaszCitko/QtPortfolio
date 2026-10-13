@@ -11,9 +11,7 @@ namespace MixingStation::Firmware
 {
 
 using InputRegisterBank = std::array<std::uint16_t, ControllerProtocol::RegisterCount>;
-
-[[nodiscard]] InputRegisterBank makeInputRegisterBank(
-    const ControllerSnapshot &snapshot);
+[[nodiscard]] InputRegisterBank makeInputRegisterBank(const ControllerSnapshot &snapshot);
 
 } // namespace MixingStation::Firmware
 
