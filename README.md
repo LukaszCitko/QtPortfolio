@@ -36,7 +36,7 @@ flowchart LR
     INPUT[Mixer connection input] --> ESP
 ```
 
-[Project overview and build instructions](projects/MixingStationHMI/README.md) | [Illustrated system guide](projects/MixingStationHMI/docs/MixingStationHMI-Guide.pdf) | [Prototype wiring diagram](projects/MixingStationHMI/docs/wiring-diagram.svg) | [Qt/C++ source](projects/MixingStationHMI/src/) | [ESP32 firmware](projects/MixingStationHMI/firmware/mixing_controller/) | [Tests](projects/MixingStationHMI/tests/)
+[Project overview and build instructions](projects/MixingStationHMI/README.md) | [Illustrated system guide](projects/MixingStationHMI/docs/MixingStationHMI-Guide.pdf) | [Qt/C++ source](projects/MixingStationHMI/src/) | [ESP32 firmware](projects/MixingStationHMI/firmware/mixing_controller/) | [Tests](projects/MixingStationHMI/tests/)
 
 ## Project status
 

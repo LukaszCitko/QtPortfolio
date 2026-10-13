@@ -6,7 +6,7 @@ A distributed batch mixing station prototype built with a Qt/QML HMI and an ESP3
 
 <img src="docs/screenshots/hero.jpg" alt="Qt HMI controlling the ESP32-S3 prototype during water filling" width="900">
 
-[Open the illustrated system guide](docs/MixingStationHMI-Guide.pdf) | [Open the prototype wiring diagram](docs/wiring-diagram.svg) | [Browse selected screenshots](docs/screenshots/) | [Review follow-up work](docs/TODO.md)
+[Open the illustrated system guide](docs/MixingStationHMI-Guide.pdf) | [Browse selected screenshots](docs/screenshots/) | [Review follow-up work](docs/TODO.md)
 
 ## Current capabilities
 
@@ -61,13 +61,13 @@ open -n build/cli-debug/appMixingStationHMI.app
 Start the application with the controller IP address. The local process simulator is disabled and the HMI synchronizes its device models from Modbus snapshots.
 
 ```sh
-./build/cli-debug/appMixingStationHMI --controller-host 192.168.1.131
+./build/cli-debug/appMixingStationHMI --controller-host <IP adress>
 ```
 
 On macOS:
 
 ```sh
-open -n build/cli-debug/appMixingStationHMI.app --args --controller-host 192.168.1.131
+open -n build/cli-debug/appMixingStationHMI.app --args --controller-host <IP adress>
 ```
 
 The address is assigned by the local network and may change after reconnecting the controller.
