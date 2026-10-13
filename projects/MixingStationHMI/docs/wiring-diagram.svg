@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+<defs>
+<style>
+.bg{fill:#fff}.wire{fill:none;stroke:#263238;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.rail{fill:none;stroke:#263238;stroke-width:4}.signal{fill:none;stroke:#247c83;stroke-width:2.5}.component{fill:#fff;stroke:#263238;stroke-width:2}.device{fill:#f7f9fa;stroke:#aebbc0;stroke-width:1.6}.title{font:700 28px Arial,sans-serif;fill:#1f2a30}.heading{font:700 18px Arial,sans-serif;fill:#1f2a30}.label{font:14px Arial,sans-serif;fill:#263238}.small{font:12px Arial,sans-serif;fill:#53636a}.pin{font:700 13px Arial,sans-serif;fill:#247c83}.net{font:700 13px Arial,sans-serif;fill:#b54135}.note{fill:#fff7e8;stroke:#d9b66b;stroke-width:1.6}.junction{fill:#263238}.ledgreen{fill:#dff0e5;stroke:#2f7a51;stroke-width:2}.ledred{fill:#f8dfdc;stroke:#b54135;stroke-width:2}
+</style>
+<g id="resistor"><path d="M0 0 L12 0 L20 -10 L34 10 L48 -10 L62 10 L76 -10 L84 0 L96 0" class="wire"/></g>
+<g id="led-green"><line x1="0" y1="0" x2="9" y2="0" class="wire"/><polygon points="9,-13 9,13 35,0" class="ledgreen"/><line x1="38" y1="-15" x2="38" y2="15" class="wire"/><line x1="38" y1="0" x2="50" y2="0" class="wire"/><path d="M19 -19 l11 -8 M27 -18 l4 -9 l-9 2" class="signal"/><path d="M31 -12 l11 -8 M39 -11 l4 -9 l-9 2" class="signal"/></g>
+<g id="led-red"><line x1="0" y1="0" x2="9" y2="0" class="wire"/><polygon points="9,-13 9,13 35,0" class="ledred"/><line x1="38" y1="-15" x2="38" y2="15" class="wire"/><line x1="38" y1="0" x2="50" y2="0" class="wire"/><path d="M19 -19 l11 -8 M27 -18 l4 -9 l-9 2" class="signal"/><path d="M31 -12 l11 -8 M39 -11 l4 -9 l-9 2" class="signal"/></g>
+<g id="ground"><line x1="0" y1="0" x2="0" y2="12" class="wire"/><line x1="-18" y1="12" x2="18" y2="12" class="wire"/><line x1="-12" y1="19" x2="12" y2="19" class="wire"/><line x1="-6" y1="26" x2="6" y2="26" class="wire"/></g>
+<g id="switch"><circle cx="0" cy="0" r="5" class="component"/><circle cx="50" cy="0" r="5" class="component"/><line x1="4" y1="-3" x2="42" y2="-25" class="wire"/></g>
+</defs>
+<rect width="1400" height="900" class="bg"/>
+<text x="45" y="48" class="title">MixingStationHMI — ESP32-S3 prototype schematic</text>
+<text x="45" y="76" class="small">3.3 V logic • common-cathode dual-colour LEDs • common ground</text>
+
+<!-- ESP32 module -->
+<rect x="45" y="115" width="255" height="620" rx="8" class="device"/>
+<text x="70" y="150" class="heading">ESP32-S3 DevKitC-1</text>
+<text x="70" y="174" class="small">Firmware GPIO interface</text>
+
+<text x="70" y="172" class="heading">M1</text>
+<text x="150" y="150" class="pin">GPIO41</text><line x1="245" y1="145" x2="300" y2="145" class="signal"/>
+<text x="150" y="198" class="net">GPIO5</text><line x1="245" y1="193" x2="300" y2="193" class="wire"/>
+<text x="70" y="312" class="heading">P1</text>
+<text x="150" y="290" class="pin">GPIO1</text><line x1="245" y1="285" x2="300" y2="285" class="signal"/>
+<text x="150" y="338" class="net">GPIO6</text><line x1="245" y1="333" x2="300" y2="333" class="wire"/>
+<text x="70" y="452" class="heading">P2</text>
+<text x="150" y="430" class="pin">GPIO2</text><line x1="245" y1="425" x2="300" y2="425" class="signal"/>
+<text x="150" y="478" class="net">GPIO7</text><line x1="245" y1="473" x2="300" y2="473" class="wire"/>
+<text x="70" y="592" class="heading">P3</text>
+<text x="150" y="570" class="pin">GPIO42</text><line x1="245" y1="565" x2="300" y2="565" class="signal"/>
+<text x="150" y="618" class="net">GPIO15</text><line x1="245" y1="613" x2="300" y2="613" class="wire"/>
+
+<text x="70" y="695" class="pin">GPIO40</text><text x="150" y="695" class="small">mixer input</text>
+<text x="70" y="718" class="pin">GPIO4</text><text x="150" y="718" class="small">DS18B20 DATA</text>
+
+<!-- output circuits -->
+
+<rect x="350" y="108" width="590" height="118" rx="7" class="device"/>
+<text x="368" y="138" class="heading">M1 dual-colour indicator</text>
+<text x="368" y="166" class="pin">GPIO41</text><line x1="300" y1="145" x2="450" y2="145" class="signal"/>
+<use href="#resistor" x="450" y="145"/><text x="477" y="132" class="small">220 Ω</text>
+<line x1="546" y1="145" x2="625" y2="145" class="wire"/><use href="#led-green" x="625" y="145"/>
+<text x="690" y="150" class="small">green RUN anode</text>
+<text x="368" y="214" class="net">GPIO5</text><line x1="300" y1="193" x2="450" y2="193" class="wire"/>
+<use href="#resistor" x="450" y="193"/><text x="477" y="180" class="small">220 Ω</text>
+<line x1="546" y1="193" x2="625" y2="193" class="wire"/><use href="#led-red" x="625" y="193"/>
+<text x="690" y="198" class="small">red FAULT anode</text>
+<line x1="675" y1="145" x2="830" y2="145" class="wire"/><line x1="675" y1="193" x2="830" y2="193" class="wire"/>
+<line x1="830" y1="145" x2="830" y2="215" class="wire"/><circle cx="830" cy="193" r="4" class="junction"/>
+<use href="#ground" x="830" y="215"/><text x="855" y="232" class="small">common cathode</text>
+
+<rect x="350" y="248" width="590" height="118" rx="7" class="device"/>
+<text x="368" y="278" class="heading">P1 dual-colour indicator</text>
+<text x="368" y="306" class="pin">GPIO1</text><line x1="300" y1="285" x2="450" y2="285" class="signal"/>
+<use href="#resistor" x="450" y="285"/><text x="477" y="272" class="small">220 Ω</text>
+<line x1="546" y1="285" x2="625" y2="285" class="wire"/><use href="#led-green" x="625" y="285"/>
+<text x="690" y="290" class="small">green RUN anode</text>
+<text x="368" y="354" class="net">GPIO6</text><line x1="300" y1="333" x2="450" y2="333" class="wire"/>
+<use href="#resistor" x="450" y="333"/><text x="477" y="320" class="small">220 Ω</text>
+<line x1="546" y1="333" x2="625" y2="333" class="wire"/><use href="#led-red" x="625" y="333"/>
+<text x="690" y="338" class="small">red FAULT anode</text>
+<line x1="675" y1="285" x2="830" y2="285" class="wire"/><line x1="675" y1="333" x2="830" y2="333" class="wire"/>
+<line x1="830" y1="285" x2="830" y2="355" class="wire"/><circle cx="830" cy="333" r="4" class="junction"/>
+<use href="#ground" x="830" y="355"/><text x="855" y="372" class="small">common cathode</text>
+
+<rect x="350" y="388" width="590" height="118" rx="7" class="device"/>
+<text x="368" y="418" class="heading">P2 dual-colour indicator</text>
+<text x="368" y="446" class="pin">GPIO2</text><line x1="300" y1="425" x2="450" y2="425" class="signal"/>
+<use href="#resistor" x="450" y="425"/><text x="477" y="412" class="small">220 Ω</text>
+<line x1="546" y1="425" x2="625" y2="425" class="wire"/><use href="#led-green" x="625" y="425"/>
+<text x="690" y="430" class="small">green RUN anode</text>
+<text x="368" y="494" class="net">GPIO7</text><line x1="300" y1="473" x2="450" y2="473" class="wire"/>
+<use href="#resistor" x="450" y="473"/><text x="477" y="460" class="small">220 Ω</text>
+<line x1="546" y1="473" x2="625" y2="473" class="wire"/><use href="#led-red" x="625" y="473"/>
+<text x="690" y="478" class="small">red FAULT anode</text>
+<line x1="675" y1="425" x2="830" y2="425" class="wire"/><line x1="675" y1="473" x2="830" y2="473" class="wire"/>
+<line x1="830" y1="425" x2="830" y2="495" class="wire"/><circle cx="830" cy="473" r="4" class="junction"/>
+<use href="#ground" x="830" y="495"/><text x="855" y="512" class="small">common cathode</text>
+
+<rect x="350" y="528" width="590" height="118" rx="7" class="device"/>
+<text x="368" y="558" class="heading">P3 dual-colour indicator</text>
+<text x="368" y="586" class="pin">GPIO42</text><line x1="300" y1="565" x2="450" y2="565" class="signal"/>
+<use href="#resistor" x="450" y="565"/><text x="477" y="552" class="small">220 Ω</text>
+<line x1="546" y1="565" x2="625" y2="565" class="wire"/><use href="#led-green" x="625" y="565"/>
+<text x="690" y="570" class="small">green RUN anode</text>
+<text x="368" y="634" class="net">GPIO15</text><line x1="300" y1="613" x2="450" y2="613" class="wire"/>
+<use href="#resistor" x="450" y="613"/><text x="477" y="600" class="small">220 Ω</text>
+<line x1="546" y1="613" x2="625" y2="613" class="wire"/><use href="#led-red" x="625" y="613"/>
+<text x="690" y="618" class="small">red FAULT anode</text>
+<line x1="675" y1="565" x2="830" y2="565" class="wire"/><line x1="675" y1="613" x2="830" y2="613" class="wire"/>
+<line x1="830" y1="565" x2="830" y2="635" class="wire"/><circle cx="830" cy="613" r="4" class="junction"/>
+<use href="#ground" x="830" y="635"/><text x="855" y="652" class="small">common cathode</text>
+
+
+<!-- power rails -->
+<line x1="990" y1="120" x2="1355" y2="120" class="rail"/>
+<text x="1295" y="105" class="net">+3V3</text>
+<line x1="990" y1="735" x2="1355" y2="735" class="rail"/>
+<text x="1315" y="765" class="label">GND</text><use href="#ground" x="1330" y="735"/>
+
+<!-- mixer button -->
+<rect x="980" y="155" width="375" height="160" rx="8" class="device"/>
+<text x="1002" y="187" class="heading">S1 — mixer connected input</text>
+<text x="1002" y="225" class="pin">GPIO40</text><line x1="1078" y1="220" x2="1120" y2="220" class="signal"/>
+<use href="#switch" x="1120" y="220"/><line x1="1170" y1="220" x2="1170" y2="270" class="wire"/><use href="#ground" x="1170" y="270"/>
+<text x="1002" y="292" class="small">Normally open; active low; internal ESP32 pull-up enabled</text>
+
+<!-- DS18B20 -->
+<rect x="980" y="350" width="375" height="330" rx="8" class="device"/>
+<text x="1002" y="382" class="heading">U1 — DS18B20 temperature sensor</text>
+<rect x="1195" y="470" width="115" height="95" class="component"/>
+<text x="1214" y="503" class="label">DS18B20</text>
+<text x="1207" y="530" class="small">VDD  DQ  GND</text>
+
+<!-- VDD -->
+<line x1="1213" y1="470" x2="1213" y2="420" class="wire"/><line x1="1213" y1="420" x2="1213" y2="120" class="wire"/><circle cx="1213" cy="120" r="4" class="junction"/>
+<!-- GND -->
+<line x1="1291" y1="565" x2="1291" y2="735" class="wire"/><circle cx="1291" cy="735" r="4" class="junction"/>
+<!-- DATA -->
+<text x="1002" y="525" class="pin">GPIO4 / 1-Wire DATA</text><line x1="1150" y1="520" x2="1252" y2="520" class="signal"/><circle cx="1150" cy="520" r="4" class="junction"/>
+
+<!-- parallel pull-up resistors -->
+<line x1="1060" y1="520" x2="1060" y2="455" class="wire"/>
+<rect x="1048" y="385" width="24" height="70" class="component"/>
+<line x1="1060" y1="385" x2="1060" y2="120" class="wire"/><circle cx="1060" cy="120" r="4" class="junction"/>
+<text x="1078" y="425" class="small">R9 10 kΩ</text>
+<line x1="1130" y1="520" x2="1130" y2="455" class="wire"/>
+<rect x="1118" y="385" width="24" height="70" class="component"/>
+<line x1="1130" y1="385" x2="1130" y2="120" class="wire"/><circle cx="1130" cy="120" r="4" class="junction"/>
+<text x="1148" y="425" class="small">R10 10 kΩ</text>
+<text x="1002" y="610" class="label">R9 ∥ R10 = 5 kΩ pull-up from DATA to +3V3</text>
+<text x="1002" y="637" class="small">Red wire: VDD • Yellow wire: DATA • Black wire: GND</text>
+
+<rect x="45" y="790" width="1310" height="62" rx="6" class="note"/>
+<text x="65" y="817" class="heading">Prototype boundary</text>
+<text x="65" y="840" class="small">GPIO outputs drive LED indicators only. Real pumps and mixers require isolated output drivers, motor protection, emergency-stop hardware, and certified safety circuits.</text>
+</svg>

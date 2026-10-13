@@ -14,3 +14,7 @@
 - Add physical process-level measurement.
 - Add physical pump feedback inputs.
 - Decide whether physical fault inputs will be included in the next hardware release.
+
+## Diagnostics
+
+- Add optional network diagnostics for maintenance while retaining USB/UART as the firmware development log channel.
