@@ -12,6 +12,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 
+
 #include "batchcontroller.h"
 #include "drainservice.h"
 #include "eventmanager.h"

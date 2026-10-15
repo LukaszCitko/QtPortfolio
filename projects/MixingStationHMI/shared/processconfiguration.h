@@ -28,4 +28,6 @@ inline constexpr std::uint16_t MaximumProcessTemperatureTenthsCelsius = 360;
 inline constexpr std::uint32_t MixingDurationMilliseconds = 8000;
 inline constexpr std::uint16_t DrainFlowDecilitresPerSecond = 100;
 
+inline constexpr std::uint32_t TemperatureMeasurementTimeoutMilliseconds = 3000;
+
 }  // namespace ProcessConfiguration

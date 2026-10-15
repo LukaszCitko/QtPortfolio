@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cmath>
+
 #include "controllercore.h"
 #include "hardwareinputs.h"
 #include "hardwareoutputs.h"
@@ -17,7 +20,6 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#include <cmath>
 
 namespace
 {
@@ -30,6 +32,7 @@ constexpr std::uint32_t HeartbeatLogIntervalCycles = 1000U / ProcessConfiguratio
 constexpr std::uint32_t TemperatureTaskStackSize = 4096;
 constexpr UBaseType_t TemperatureTaskPriority = 4;
 constexpr std::uint32_t TemperatureReadIntervalMilliseconds = 1000;
+constexpr std::uint16_t TemperatureFailuresBeforeReinitialization = 3;
 
 constexpr UBaseType_t TemperatureQueueLength = 1;
 constexpr float MinimumSupportedTemperatureCelsius = 0.0F;
@@ -51,7 +54,10 @@ struct ControllerTaskContext
     QueueHandle_t temperatureQueue;
     std::uint16_t latestTemperatureTenthsCelsius{250};
     std::uint16_t latestSimulatedFaultMask{0};
+    std::uint32_t temperatureMeasurementAgeMilliseconds{0};
     bool lastReportedMixerConnected{false};
+    bool temperatureMeasurementReceived{false};
+    bool temperatureSensorFaultActive{false};
 };
 
 void temperatureTask(void *argument)
@@ -65,16 +71,18 @@ void temperatureTask(void *argument)
         return;
     }
 
-    TickType_t lastWakeTime = xTaskGetTickCount();
+
+    std::uint16_t consecutiveReadFailures = 0;
 
     while (true)
     {
         float temperatureCelsius = 0.0F;
-
+        TickType_t cycleStart = xTaskGetTickCount();
         const esp_err_t readResult = context->temperatureSensor.readTemperature(temperatureCelsius);
 
         if (readResult == ESP_OK && temperatureCelsius >= MinimumSupportedTemperatureCelsius && temperatureCelsius <= MaximumSupportedTemperatureCelsius)
         {
+            consecutiveReadFailures = 0;
             const std::uint16_t temperatureTenthsCelsius = static_cast<std::uint16_t>(std::lround(temperatureCelsius * 10.0F));
             const BaseType_t queueResult = xQueueOverwrite(context->temperatureQueue, &temperatureTenthsCelsius);
 
@@ -95,8 +103,29 @@ void temperatureTask(void *argument)
         {
             ESP_LOGE(LogTag, "Temperature is outside the supported process range: %.2f C", static_cast<double>(temperatureCelsius));
         }
+        if (readResult != ESP_OK || temperatureCelsius < MinimumSupportedTemperatureCelsius || temperatureCelsius > MaximumSupportedTemperatureCelsius)
+        {
+            ++consecutiveReadFailures;
 
-        xTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TemperatureReadIntervalMilliseconds));
+            if (consecutiveReadFailures >= TemperatureFailuresBeforeReinitialization)
+            {
+                ESP_LOGW(LogTag, "Reinitializing the temperature sensor after repeated read failures.");
+
+                const esp_err_t reinitializationResult = context->temperatureSensor.reinitialize();
+
+                if (reinitializationResult == ESP_OK)
+                {
+                    ESP_LOGI(LogTag, "Temperature sensor interface reinitialized.");
+                }
+                else
+                {
+                    ESP_LOGE(LogTag, "Temperature sensor reinitialization failed: %s", esp_err_to_name(reinitializationResult));
+                }
+
+                consecutiveReadFailures = 0;
+            }
+        }
+        xTaskDelayUntil(&cycleStart, pdMS_TO_TICKS(TemperatureReadIntervalMilliseconds));
     }
 }
 
@@ -138,9 +167,7 @@ void controllerTask(void *argument)
         {
             context->latestSimulatedFaultMask = *simulatedFaultMask;
         }
-
         const auto controllerOutputs = context->controller.snapshot();
-
         context->simulatedInputs.tick(controllerOutputs, ProcessConfiguration::SimulationStepMilliseconds);
 
         std::uint16_t measuredTemperatureTenthsCelsius = 0;
@@ -148,12 +175,38 @@ void controllerTask(void *argument)
         if (context->temperatureQueue != nullptr && xQueueReceive(context->temperatureQueue, &measuredTemperatureTenthsCelsius, 0) == pdTRUE)
         {
             context->latestTemperatureTenthsCelsius = measuredTemperatureTenthsCelsius;
+            context->temperatureMeasurementAgeMilliseconds = 0;
+            context->temperatureMeasurementReceived = true;
         }
+
+        else
+        {
+            context->temperatureMeasurementAgeMilliseconds = std::min(context->temperatureMeasurementAgeMilliseconds + ProcessConfiguration::SimulationStepMilliseconds, ProcessConfiguration::TemperatureMeasurementTimeoutMilliseconds);
+        }
+
+        const bool temperatureValid = context->temperatureMeasurementReceived && context->temperatureMeasurementAgeMilliseconds < ProcessConfiguration::TemperatureMeasurementTimeoutMilliseconds;
+        const bool temperatureSensorFaultActive = context->temperatureMeasurementAgeMilliseconds >= ProcessConfiguration::TemperatureMeasurementTimeoutMilliseconds;
+
+        if (temperatureSensorFaultActive != context->temperatureSensorFaultActive)
+        {
+            context->temperatureSensorFaultActive = temperatureSensorFaultActive;
+            ESP_LOGW(LogTag, "Temperature sensor state changed: %s", temperatureSensorFaultActive ? "FAULT" : "VALID");
+        }
+
+
 
         auto processInputs = context->simulatedInputs.inputs();
 
+        std::uint16_t combinedFaultMask = context->latestSimulatedFaultMask;
+
+        if (temperatureSensorFaultActive)
+        {
+            combinedFaultMask |= static_cast<std::uint16_t>(ControllerProtocol::FaultBit::TemperatureSensor);
+        }
+
         processInputs.temperatureTenthsCelsius = context->latestTemperatureTenthsCelsius;
-        processInputs.faultMask = context->latestSimulatedFaultMask;
+        processInputs.temperatureValid = temperatureValid;
+        processInputs.faultMask = combinedFaultMask;
         processInputs.mixerConnected = mixerConnected;
 
         context->controller.updateInputs(processInputs);
@@ -239,6 +292,7 @@ extern "C" void app_main()
     ESP_LOGI(LogTag, "Hardware inputs initialized.");
 
     const esp_err_t temperatureSensorResult = temperatureSensor.initialize();
+
     if (temperatureSensorResult != ESP_OK)
     {
         ESP_LOGE(LogTag, "Unable to initialize temperature sensor: %s", esp_err_to_name(temperatureSensorResult));
@@ -246,14 +300,14 @@ extern "C" void app_main()
     else
     {
         ESP_LOGI(LogTag, "Temperature sensor initialized.");
+    }
 
-        static TemperatureTaskContext temperatureTaskContext{temperatureSensor, temperatureQueue};
-        const BaseType_t temperatureTaskCreationResult = xTaskCreate(temperatureTask, "temperature", TemperatureTaskStackSize, &temperatureTaskContext, TemperatureTaskPriority, nullptr);
+    static TemperatureTaskContext temperatureTaskContext{temperatureSensor, temperatureQueue};
+    const BaseType_t temperatureTaskCreationResult = xTaskCreate(temperatureTask, "temperature", TemperatureTaskStackSize, &temperatureTaskContext, TemperatureTaskPriority, nullptr);
 
-        if (temperatureTaskCreationResult != pdPASS)
-        {
-            ESP_LOGE(LogTag, "Failed to create the temperature sensor task.");
-        }
+    if (temperatureTaskCreationResult != pdPASS)
+    {
+        ESP_LOGE(LogTag, "Failed to create the temperature sensor task.");
     }
 
     esp_netif_t *networkInterface = MixingStation::Firmware::connectWifiStation();

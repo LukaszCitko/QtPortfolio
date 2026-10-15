@@ -180,7 +180,9 @@ Rectangle {
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 10
                     width: equipmentCard.fault
-                           && (modelData.tag === "P1" || modelData.tag === "M1")
+                           && (modelData.tag === "P1"
+                               || modelData.tag === "M1"
+                               || (root.hardwareMode && modelData.tag === "TK1"))
                            ? parent.width - 170
                            : parent.width - 28
                     elide: Text.ElideRight
@@ -232,7 +234,9 @@ Rectangle {
                     height: 38
 
                     visible: equipmentCard.fault
-                             && (modelData.tag === "P1" || modelData.tag === "M1")
+                                && (modelData.tag === "P1"
+                                || modelData.tag === "M1"
+                                || (root.hardwareMode && modelData.tag === "TK1"))
                     enabled: root.resetFaultAllowed
                     text: "RESET FAULT"
 
@@ -241,15 +245,17 @@ Rectangle {
                         {
                             if (modelData.tag === "P1")
                                 root.controllerClient.setSimulatedFault(1, false)
-                            else
+                            else if (modelData.tag === "M1")
                                 root.controllerClient.setSimulatedFault(64, false)
+                            else if (modelData.tag === "TK1")
+                                root.controllerClient.resetFaults()
 
                             return
                         }
 
                         if (modelData.tag === "P1")
                             root.resetService.resetPump1()
-                        else
+                        else if (modelData.tag === "M1")
                             root.resetService.resetMixer()
                     }
 

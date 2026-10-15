@@ -136,6 +136,11 @@ bool RemoteProcessController::devicesHealthy() const
     return connected() && m_client->faultMask() == 0U;
 }
 
+bool RemoteProcessController::temperatureSensorReady() const
+{
+    return connected() && m_client->temperatureSensorValid();
+}
+
 bool RemoteProcessController::mixerReady() const
 {
     const quint16 mixerConnectedMask = static_cast<quint16>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
@@ -159,7 +164,7 @@ bool RemoteProcessController::tryStartBatch(const QString &operatorName)
         return false;
     }
 
-    if (!tankEmpty() || !devicesHealthy() || !mixerReady() || !valvesClosed())
+  if (!tankEmpty() || !devicesHealthy() || !mixerReady() || !valvesClosed() || !temperatureSensorReady())
     {
         return false;
     }

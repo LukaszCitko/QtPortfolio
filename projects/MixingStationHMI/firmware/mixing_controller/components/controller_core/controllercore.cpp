@@ -16,6 +16,8 @@ constexpr std::uint16_t TransferEquipmentMask = static_cast<std::uint16_t>(Contr
 
 constexpr std::uint16_t MixerRunningMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerRunning);
 constexpr std::uint16_t MixerConnectedMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
+constexpr std::uint16_t TemperatureSensorFaultMask = static_cast<std::uint16_t>(ControllerProtocol::FaultBit::TemperatureSensor);
+constexpr std::uint16_t TemperatureSensorValidMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::TemperatureSensorValid);
 constexpr std::uint16_t DrainValveMask = static_cast<std::uint16_t>(ControllerProtocol::EquipmentStatusBit::DrainValveOpen);
 
 constexpr std::uint16_t ControlledEquipmentMask = WaterFillingEquipmentMask
@@ -64,6 +66,16 @@ void ControllerCore::updateInputs(const ProcessInputs &inputs)
     {
         m_snapshot.equipmentStatusMask &= static_cast<std::uint16_t>(~MixerConnectedMask);
     }
+
+    if (inputs.temperatureValid)
+    {
+        m_snapshot.equipmentStatusMask |= TemperatureSensorValidMask;
+    }
+    else
+    {
+        m_snapshot.equipmentStatusMask &= static_cast<std::uint16_t>(~TemperatureSensorValidMask);
+    }
+
 }
 
 ControllerSnapshot ControllerCore::snapshot() const
@@ -85,8 +97,10 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(ControllerProtoc
     {
     case ControllerProtocol::Command::StartBatch:
         if (m_snapshot.processState != ControllerProtocol::ProcessState::Idle
-            || m_snapshot.mixtureVolumeDecilitres != 0U
-            || (m_snapshot.equipmentStatusMask & MixerConnectedMask) == 0U)
+        || m_snapshot.mixtureVolumeDecilitres != 0U
+        || m_snapshot.faultMask != 0U
+        || (m_snapshot.equipmentStatusMask & MixerConnectedMask) == 0U
+        || (m_snapshot.equipmentStatusMask & TemperatureSensorValidMask) == 0U)
         {
             result = ControllerProtocol::CommandResult::InvalidState;
             break;
@@ -389,20 +403,25 @@ std::uint16_t ControllerCore::faultMaskForState(ControllerProtocol::ProcessState
     switch (state)
     {
     case ControllerProtocol::ProcessState::FillingWater:
-        return static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump1) | static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Valve1);
+        return static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump1)
+             | static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Valve1)
+             | TemperatureSensorFaultMask;
 
     case ControllerProtocol::ProcessState::DosingConcentrate:
         return static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump2)
              | static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Valve2)
-             | static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Mixer);
+             | static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Mixer)
+             | TemperatureSensorFaultMask;
 
     case ControllerProtocol::ProcessState::TemperatureCheck:
     case ControllerProtocol::ProcessState::Mixing:
     case ControllerProtocol::ProcessState::ReadyForTransfer:
-        return static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Mixer);
+        return static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Mixer)
+             | TemperatureSensorFaultMask;
 
     case ControllerProtocol::ProcessState::Transferring:
-        return static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump3) | static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Valve3);
+        return static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump3)
+             | static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Valve3);
 
     case ControllerProtocol::ProcessState::Idle:
     case ControllerProtocol::ProcessState::Draining:

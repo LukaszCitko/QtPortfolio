@@ -29,12 +29,12 @@ Rectangle {
     Column {
         anchors.fill: parent
         anchors.margins: 16
-        spacing: 14
+        spacing: 10
 
         Grid {
             columns: 2
             columnSpacing: 12
-            rowSpacing: 13
+            rowSpacing: 10
 
             Text {
                 width: 176
@@ -54,20 +54,32 @@ Rectangle {
 
             Text {
                 width: 176
-                text: (root.tank.temperature < 30.0 && root.tank.volume !== 0) ?
-                        "Temperature (TOO LOW)" : root.tank.temperature > 36.0
-                        ? "Temperature (TOO HIGH)": "Temperature"
+                text: !root.controller.temperatureSensorReady
+                      ? "Temperature sensor"
+                      : (root.tank.temperature < 30.0 && root.tank.volume !== 0)
+                        ? "Temperature (TOO LOW)"
+                        : root.tank.temperature > 36.0
+                          ? "Temperature (TOO HIGH)"
+                          : "Temperature"
 
-                color: ((root.tank.temperature < 30.0 || root.tank.temperature > 36.0) && root.tank.volume !== 0) ? "#b63838": "#252a2d"
+                color: !root.controller.temperatureSensorReady
+                       || ((root.tank.temperature < 30.0 || root.tank.temperature > 36.0)
+                       && root.tank.volume !== 0)
+                       ? "#b63838"
+                       : "#252a2d"
 
                 font.pixelSize: 17
             }
+
             Text {
                 width: 120
-                text: root.tank.temperature.toFixed(1) + " °C"
+                text: root.controller.temperatureSensorReady
+                      ? root.tank.temperature.toFixed(1) + " °C"
+                      : "NO DATA"
                 horizontalAlignment: Text.AlignRight
-                color: "#252a2d"
+                color: root.controller.temperatureSensorReady ? "#252a2d" : "#b63838"
                 font.pixelSize: 17
+                font.bold: !root.controller.temperatureSensorReady
             }
 
             Text {
@@ -145,7 +157,7 @@ Rectangle {
 
         PreCheckPanel {
             width: parent.width
-            height: 184
+            height: 204
             visible: root.controller.state === BatchController.Idle
 
             controller: root.controller

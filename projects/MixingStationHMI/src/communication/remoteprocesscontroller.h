@@ -23,6 +23,7 @@ class RemoteProcessController : public QObject
     Q_PROPERTY(bool mixerReady READ mixerReady NOTIFY startConditionsChanged)
     Q_PROPERTY(bool valvesClosed READ valvesClosed NOTIFY startConditionsChanged)
     Q_PROPERTY(bool recoveryRequired READ recoveryRequired NOTIFY recoveryRequiredChanged)
+    Q_PROPERTY(bool temperatureSensorReady READ temperatureSensorReady NOTIFY startConditionsChanged)
 
 public:
     explicit RemoteProcessController(ModbusControllerClient *client, QObject *parent = nullptr);
@@ -35,6 +36,7 @@ public:
     QString batchId() const;
     int runKind() const;
 
+    bool temperatureSensorReady() const;
     bool transferAllowed() const;
     bool tankEmpty() const;
     bool devicesHealthy() const;

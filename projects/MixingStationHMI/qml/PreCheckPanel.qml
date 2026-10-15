@@ -10,7 +10,7 @@ Item {
     required property bool hardwareMode
     required property bool recoveryAllowed
     readonly property bool recoveryRequired: root.hardwareMode && root.controller.recoveryRequired
-
+    readonly property bool temperatureSensorReady: root.controller.temperatureSensorReady
     readonly property bool tankEmpty: root.controller.tankEmpty
     readonly property bool devicesHealthy: root.controller.devicesHealthy
     readonly property bool mixerReady: root.controller.mixerReady
@@ -20,6 +20,7 @@ Item {
         { label: "Operator selected", ok: root.operatorSelected },
         { label: "Tank empty", ok: root.tankEmpty },
         { label: "Devices without faults", ok: root.devicesHealthy },
+        { label: "Temperature sensor", ok: root.temperatureSensorReady },
         { label: "Mixer connected", ok: root.mixerReady },
         { label: "All valves closed", ok: root.valvesClosed }
     ]
@@ -32,7 +33,7 @@ Item {
         Text {
             text: "START CONDITIONS  "
                   + root.checks.filter(function(check) { return check.ok }).length
-                  + " / 5"
+                  + " / " + root.checks.length
             color: "#252a2d"
             font.pixelSize: 15
             font.bold: true

@@ -8,7 +8,7 @@ namespace ControllerProtocol {
 // Development server uses a non-privileged TCP port.
 inline constexpr std::uint16_t TcpPort = 1502;
 inline constexpr std::uint8_t ServerAddress = 1;
-inline constexpr std::uint16_t ProtocolVersion = 4;
+inline constexpr std::uint16_t ProtocolVersion = 5;
 inline constexpr std::uint16_t RegisterCount = 64;
 inline constexpr std::uint16_t MaximumPumpRpm = 1000;
 
@@ -110,7 +110,8 @@ enum class EquipmentStatusBit : std::uint16_t
     Valve3Open = 1U << 5,
     MixerRunning = 1U << 6,
     MixerConnected = 1U << 7,
-    DrainValveOpen = 1U << 8
+    DrainValveOpen = 1U << 8,
+    TemperatureSensorValid = 1U << 9
 };
 
 // Individual bits stored in FaultMask.
@@ -123,7 +124,8 @@ enum class FaultBit : std::uint16_t
     Pump3 = 1U << 4,
     Valve3 = 1U << 5,
     Mixer = 1U << 6,
-    TemperatureHigh = 1U << 7
+    TemperatureHigh = 1U << 7,
+    TemperatureSensor = 1U << 8
 };
 
 inline constexpr std::uint16_t DefinedFaultMask = static_cast<std::uint16_t>(FaultBit::Pump1)
@@ -133,7 +135,8 @@ inline constexpr std::uint16_t DefinedFaultMask = static_cast<std::uint16_t>(Fau
                                                 | static_cast<std::uint16_t>(FaultBit::Pump3)
                                                 | static_cast<std::uint16_t>(FaultBit::Valve3)
                                                 | static_cast<std::uint16_t>(FaultBit::Mixer)
-                                                | static_cast<std::uint16_t>(FaultBit::TemperatureHigh);
+                                                | static_cast<std::uint16_t>(FaultBit::TemperatureHigh)
+                                                | static_cast<std::uint16_t>(FaultBit::TemperatureSensor);
 
 constexpr std::uint16_t address(HoldingRegister registerId)
 {

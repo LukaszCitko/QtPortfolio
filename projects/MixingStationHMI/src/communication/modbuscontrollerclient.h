@@ -14,8 +14,8 @@ class ModbusControllerClient : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(bool connected READ isConnected NOTIFY connectionChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
+    Q_PROPERTY(bool connected READ isConnected NOTIFY connectionChanged)
     Q_PROPERTY(bool snapshotValid READ snapshotValid NOTIFY snapshotChanged)
     Q_PROPERTY(quint16 protocolVersion READ protocolVersion NOTIFY snapshotChanged)
     Q_PROPERTY(quint16 heartbeat READ heartbeat NOTIFY snapshotChanged)
@@ -35,9 +35,10 @@ class ModbusControllerClient : public QObject
     Q_PROPERTY(quint16 equipmentStatusMask READ equipmentStatusMask NOTIFY snapshotChanged)
     Q_PROPERTY(quint16 faultMask READ faultMask NOTIFY snapshotChanged)
     Q_PROPERTY(quint16 lastHandledCommandSequence READ lastHandledCommandSequence NOTIFY snapshotChanged)
+    Q_PROPERTY(quint16 simulatedFaultMask READ simulatedFaultMask NOTIFY simulatedFaultMaskChanged)
     Q_PROPERTY(int lastCommandResult READ lastCommandResult NOTIFY snapshotChanged)
     Q_PROPERTY(bool commandPending READ commandPending NOTIFY commandPendingChanged)
-    Q_PROPERTY(quint16 simulatedFaultMask READ simulatedFaultMask NOTIFY simulatedFaultMaskChanged)
+    Q_PROPERTY(bool temperatureSensorValid READ temperatureSensorValid NOTIFY snapshotChanged)
 
 public:
     explicit ModbusControllerClient(QObject *parent = nullptr);
@@ -70,6 +71,7 @@ public:
     quint16 lastHandledCommandSequence() const;
     int lastCommandResult() const;
     bool commandPending() const;
+    bool temperatureSensorValid() const;
 
     Q_INVOKABLE bool connectToController(const QString &host);
     Q_INVOKABLE void disconnectFromController();

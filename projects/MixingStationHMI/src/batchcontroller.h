@@ -28,6 +28,8 @@ class BatchController : public QObject
     Q_PROPERTY(bool devicesHealthy READ devicesHealthy NOTIFY startConditionsChanged)
     Q_PROPERTY(bool mixerReady READ mixerReady NOTIFY startConditionsChanged)
     Q_PROPERTY(bool valvesClosed READ valvesClosed NOTIFY startConditionsChanged)
+    Q_PROPERTY(bool temperatureSensorReady READ temperatureSensorReady NOTIFY startConditionsChanged)
+
 public:
     enum class State
     {
@@ -94,6 +96,7 @@ public:
     bool devicesHealthy() const;
     bool mixerReady() const;
     bool valvesClosed() const;
+    bool temperatureSensorReady() const;
 
 signals:
     void stateChanged();

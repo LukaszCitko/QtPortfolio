@@ -73,7 +73,7 @@ TEST_CASE("Complete simulated batch reaches ready, transfers and returns to idle
     MixingStation::Firmware::ProcessInputs processInputs = simulator.inputs();
     processInputs.mixerConnected = true;
     processInputs.temperatureTenthsCelsius = 330;
-
+    processInputs.temperatureValid = true;
     controller.updateInputs(processInputs);
 
     const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
@@ -87,6 +87,7 @@ TEST_CASE("Complete simulated batch reaches ready, transfers and returns to idle
         processInputs = simulator.inputs();
         processInputs.mixerConnected = true;
         processInputs.temperatureTenthsCelsius = 330;
+        processInputs.temperatureValid = true;
 
         controller.updateInputs(processInputs);
         controller.tick(ProcessConfiguration::SimulationStepMilliseconds);
@@ -113,7 +114,7 @@ TEST_CASE("Complete simulated batch reaches ready, transfers and returns to idle
         processInputs = simulator.inputs();
         processInputs.mixerConnected = true;
         processInputs.temperatureTenthsCelsius = 330;
-
+        processInputs.temperatureValid = true;
         controller.updateInputs(processInputs);
         controller.tick(ProcessConfiguration::SimulationStepMilliseconds);
     }

@@ -379,6 +379,12 @@ bool ModbusControllerClient::writePumpTargetRpm(int pumpNumber, quint16 register
     return true;
 }
 
+bool ModbusControllerClient::temperatureSensorValid() const
+{
+    const quint16 validMask = static_cast<quint16>(ControllerProtocol::EquipmentStatusBit::TemperatureSensorValid);
+    return m_snapshotValid && (m_equipmentStatusMask & validMask) != 0U;
+}
+
 bool ModbusControllerClient::startBatch()
 {
     return sendCommand(static_cast<quint16>(ControllerProtocol::Command::StartBatch));

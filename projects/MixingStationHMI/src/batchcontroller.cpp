@@ -62,6 +62,7 @@ BatchController::State BatchController::state() const
     return m_state;
 }
 
+
 QString BatchController::stateText() const
 {
     switch (m_state)
@@ -125,6 +126,11 @@ QString BatchController::stopReasonText() const
 bool BatchController::tankEmpty() const
 {
     return m_mixingTank->volume() == 0.0;
+}
+
+bool BatchController::temperatureSensorReady() const
+{
+    return true;
 }
 
 bool BatchController::devicesHealthy() const
