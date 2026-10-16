@@ -44,7 +44,7 @@ Item {
 
             Row {
                 width: root.width
-                height: 18
+                height: 16
 
                 Text {
                     width: 220
@@ -67,7 +67,7 @@ Item {
         HmiButton {
             id: startButton
             width: root.width
-            height: 42
+            height: 36
             text: "START BATCH"
             enabled: root.checks.every(function(check) { return check.ok })
             onClicked: root.controller.tryStartBatch(root.operatorName)

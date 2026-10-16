@@ -40,14 +40,14 @@ Rectangle {
                 width: 176
                 text: "Run ID"
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.controller.batchId === "" ? "—" : root.controller.batchId
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
                 fontSizeMode: Text.Fit
                 minimumPixelSize: 12
             }
@@ -68,7 +68,7 @@ Rectangle {
                        ? "#b63838"
                        : "#252a2d"
 
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
 
             Text {
@@ -78,7 +78,7 @@ Rectangle {
                       : "NO DATA"
                 horizontalAlignment: Text.AlignRight
                 color: root.controller.temperatureSensorReady ? "#252a2d" : "#b63838"
-                font.pixelSize: 17
+                font.pixelSize: 16
                 font.bold: !root.controller.temperatureSensorReady
             }
 
@@ -86,42 +86,42 @@ Rectangle {
                 width: 176
                 text: "Water added"
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.tank.waterVolume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
 
             Text {
                 width: 176
                 text: "Concentrate added"
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text:  root.tank.concentrateVolume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
 
             Text {
                 width: 176
                 text: "Mixture volume"
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.tank.volume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
 
 
@@ -129,27 +129,27 @@ Rectangle {
                 width: 176
                 text: "Mixer speed"
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.mixerDevice.actualRpm > 0 ? Math.round(root.mixerDevice.actualRpm) + " RPM" : "—"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 176
                 text: root.activePumpDevice ? "Pump: " + root.activePumpTag + " speed" : "Pump speed"
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.activePumpDevice ? Math.round(root.activePumpDevice.actualRpm) + " RPM" : "—"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
 
 
