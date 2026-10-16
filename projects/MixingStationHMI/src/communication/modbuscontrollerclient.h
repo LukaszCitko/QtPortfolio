@@ -94,6 +94,7 @@ signals:
     void pumpTargetRpmWriteFinished(int pumpNumber, int requestedRpm, bool success);
     void simulatedFaultMaskWriteFinished(quint16 faultMask, bool success);
     void simulatedFaultMaskChanged();
+    void commandFinished(quint16 commandCode, quint16 commandSequence, int result);
 
 private:
     bool sendCommand(quint16 commandCode);
@@ -139,6 +140,7 @@ private:
     bool writePumpTargetRpm(int pumpNumber, quint16 registerAddress, int rpm);
     quint16 m_lastHandledCommandSequence = 0;
     quint16 m_nextCommandSequence = 1;
+    quint16 m_pendingCommandCode = 0;
     quint16 m_pendingCommandSequence = 0;
     quint16 m_simulatedFaultMask = 0;
 };

@@ -436,6 +436,7 @@ bool ModbusControllerClient::sendCommand(quint16 commandCode)
 
     const quint16 commandSequence = m_nextCommandSequence;
 
+
     const QList<quint16> values{commandCode, commandSequence};
 
     const QModbusDataUnit request(
@@ -452,6 +453,7 @@ bool ModbusControllerClient::sendCommand(quint16 commandCode)
     }
 
     m_pendingCommandSequence = commandSequence;
+    m_pendingCommandCode = commandCode;
     m_commandPending = true;
 
     ++m_nextCommandSequence;
@@ -600,8 +602,16 @@ void ModbusControllerClient::processSnapshot(const QModbusDataUnit &registers)
 
     if (m_commandPending && m_lastHandledCommandSequence == m_pendingCommandSequence)
     {
+        const quint16 completedCommandCode = m_pendingCommandCode;
+        const quint16 completedCommandSequence = m_pendingCommandSequence;
+        const int completedCommandResult = m_lastCommandResult;
+
         m_commandPending = false;
+        m_pendingCommandCode = 0;
+        m_pendingCommandSequence = 0;
+
         emit commandPendingChanged();
+        emit commandFinished(completedCommandCode, completedCommandSequence, completedCommandResult);
     }
 
     if (!m_commandPending)
