@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <functional>
 
 class ModbusControllerClient;
 
@@ -28,6 +29,8 @@ class RemoteProcessController : public QObject
 public:
     explicit RemoteProcessController(ModbusControllerClient *client, QObject *parent = nullptr);
 
+
+    void setRecoveryAuthorization(std::function<bool()> authorization);
     bool connected() const;
     int state() const;
     QString stateText() const;
@@ -62,11 +65,12 @@ signals:
     void recoveryRequiredChanged();
 
 private:
+    static int stageIndexForState(int processState);
     void handleSnapshotChanged();
     void handleConnectionChanged();
-    static int stageIndexForState(int processState);
-
+    void updateConnectionState();
     ModbusControllerClient *m_client;
+    std::function<bool()> m_recoveryAuthorization;
     QString m_batchId;
     int m_previousState;
     int m_lastActiveStageIndex;
@@ -76,6 +80,7 @@ private:
     bool m_connectionInterrupted{false};
     bool m_restoredSnapshotPending{false};
     bool m_firstSnapshotReceived{false};
+    bool m_lastConnectedState{false};
 };
 
 #endif // REMOTEPROCESSCONTROLLER_H

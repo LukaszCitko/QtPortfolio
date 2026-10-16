@@ -117,7 +117,7 @@ Item {
             width: parent.width
             height: 48
             text: "TANK EMPTIED MECHANICALLY · COMPLETE RECOVERY"
-            enabled: root.recoveryAllowed                                    //TODO: enabled: root.recoveryAllowed && root.controller.connected
+            enabled: root.recoveryAllowed && (!root.hardwareMode || root.controller.connected)
             onClicked: root.controller.completeMechanicalRecovery()
 
             background: Rectangle {

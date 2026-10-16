@@ -8,7 +8,16 @@ ApplicationWindow {
     property string activePage: "PROCESS"
     property string highlightedEquipmentTag: ""
     property var acknowledgedFaults: []
-    readonly property bool controllerReady: !window.isHardwareMode || window.processControllerClient.snapshotValid
+    readonly property bool controllerReady: !window.isHardwareMode || batchController.connected
+
+    readonly property bool operatorChangeAllowed:
+        !operatorSession.selected
+        || batchController.state === BatchController.Idle
+        || batchController.state === BatchController.Complete
+        || alarmBar.hasFault
+        || (window.isHardwareMode
+            && (!window.controllerReady || batchController.recoveryRequired))
+
     readonly property bool hasUnacknowledgedFault:
         alarmBar.faults.some(function(tag) {
             return acknowledgedFaults.indexOf(tag) === -1
@@ -82,9 +91,7 @@ ApplicationWindow {
                       ? operatorSession.operatorName + "\n" + operatorSession.operatorRole
                       : "LOGIN"
 
-                enabled: !operatorSession.selected
-                         || batchController.state === BatchController.Idle
-                         || batchController.state === BatchController.Complete
+                enabled: window.operatorChangeAllowed
 
                 onClicked: operatorDialog.open()
 
@@ -710,7 +717,7 @@ ApplicationWindow {
                             return
 
                         if (activeBatch)
-                            eventManager.addInfo("ACCESS", "Active batch control assumed by " + operatorSession.operatorName + " after HMI reconnect")
+                            eventManager.addInfo("ACCESS", "Active batch control assumed by " + operatorSession.operatorName)
 
                         operatorDialog.close()
                     }

@@ -517,6 +517,13 @@ void ModbusControllerClient::requestSnapshot()
         if (reply->error() != QModbusDevice::NoError)
         {
             setLastError(reply->errorString());
+
+            if (m_snapshotValid)
+            {
+                m_snapshotValid = false;
+                emit snapshotChanged();
+            }
+
             reply->deleteLater();
             return;
         }

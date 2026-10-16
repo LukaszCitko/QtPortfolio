@@ -245,6 +245,12 @@ int main(int argc, char *argv[])
 
     ModbusControllerClient modbusControllerClient;
     RemoteProcessController remoteProcessController(&modbusControllerClient);
+    remoteProcessController.setRecoveryAuthorization([&operatorSession]()
+    {
+        return operatorSession.canApproveDrain();
+    }
+    );
+
     RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
 
 
