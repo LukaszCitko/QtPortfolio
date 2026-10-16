@@ -83,11 +83,7 @@ Rectangle {
             device: root.drainValveDevice
         }
     ]
-    readonly property bool valveCard:
-        modelData.tag === "V1"
-        || modelData.tag === "V2"
-        || modelData.tag === "V3"
-        || modelData.tag === "V4"
+
 
     color: "#eceeef"
     border.color: "#a5aaad"
@@ -132,6 +128,12 @@ Rectangle {
                     modelData.tag === "P1"
                     || modelData.tag === "P2"
                     || modelData.tag === "P3"
+
+                readonly property bool valveCard:
+                    modelData.tag === "V1"
+                    || modelData.tag === "V2"
+                    || modelData.tag === "V3"
+                    || modelData.tag === "V4"
 
                 readonly property bool active:
                     pumpCard
