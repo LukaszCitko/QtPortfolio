@@ -89,7 +89,7 @@ The current breadboard demonstrates commands and feedback without connecting rea
 
 The indicator board uses four common-cathode, three-lead dual-colour LEDs. Every green and red channel has its own 220 ohm series resistor, for eight resistors in total. The common cathodes and all input devices share the ESP32 ground.
 
-<img src="docs/wiring-diagram.svg" alt="ESP32-S3 prototype wiring diagram" width="900">
+
 
 Water, concentrate, and transfer volumes are currently calculated by the firmware simulation from elapsed time and pump RPM. The DS18B20 value and mixer connection input are physical. Valve states remain logical controller outputs. The hardware layer can later be replaced with real input/output drivers without changing the HMI protocol.
 
