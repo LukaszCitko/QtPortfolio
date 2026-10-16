@@ -296,11 +296,12 @@ void ProcessEventCoordinator::watchBatchState(RemoteProcessController &controlle
                         }
                         else if (currentState == drainingState)
                         {
-                            events->addWarning("V4", "Hardware drain started by " + sessionPtr->operatorName());
+                            const QString action = oldState == pausedState ? QStringLiteral("resumed") : QStringLiteral("started");
+                            events->addWarning("V4", QStringLiteral("Hardware drain %1 by %2").arg(action, sessionPtr->operatorName()));
                         }
                         else if (oldState == drainingState && currentState == completeState)
                         {
-                            events->addWarning("V4", "Drain " + controllerPtr->batchId() + " started by " + sessionPtr->operatorName());
+                            events->addInfo("V4", QStringLiteral("Drain %1 completed").arg(controllerPtr->batchId()));
                         }
                         else if (currentState == pausedState)
                         {
@@ -367,9 +368,20 @@ void ProcessEventCoordinator::watchConnection(RemoteProcessController &controlle
                         const QString runId = controllerPtr->batchId();
                         const QString message = runId.isEmpty()
                                                     ? QStringLiteral("HMI connected to controller")
-                                                    : QStringLiteral("HMI connected · active run %1 recovered").arg(runId);
+                                                    : QStringLiteral("HMI connected · active run %1 synchronized").arg(runId);
 
                         events->addInfo(QStringLiteral("CONTROLLER"), message);
+                    }
+    );
+
+    QObject::connect(controllerPtr, &RemoteProcessController::connectionLost, events, [controllerPtr, events]()
+                    {
+                        const QString runId = controllerPtr->batchId();
+                        const QString message = runId.isEmpty()
+                                                    ? QStringLiteral("Controller communication lost")
+                                                    : QStringLiteral("Controller communication lost · active run %1 status unavailable").arg(runId);
+
+                        events->addWarning(QStringLiteral("CONTROLLER"), message);
                     }
     );
 
@@ -378,7 +390,7 @@ void ProcessEventCoordinator::watchConnection(RemoteProcessController &controlle
                         const QString runId = controllerPtr->batchId();
                         const QString message = runId.isEmpty()
                                                     ? QStringLiteral("Controller connection restored")
-                                                    : QStringLiteral("Controller connection restored · active run %1").arg(runId);
+                                                    : QStringLiteral("Controller connection restored · active run %1 synchronized").arg(runId);
 
                         events->addInfo(QStringLiteral("CONTROLLER"), message);
                     }

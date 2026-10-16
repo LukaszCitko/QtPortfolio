@@ -282,8 +282,15 @@ void RemoteProcessController::updateConnectionState()
         return;
     }
 
+    const bool previousConnectedState = m_lastConnectedState;
     m_lastConnectedState = currentConnectedState;
+
     emit connectionChanged();
+
+    if (previousConnectedState && !currentConnectedState)
+    {
+        emit connectionLost();
+    }
 }
 
 void RemoteProcessController::handleConnectionChanged()

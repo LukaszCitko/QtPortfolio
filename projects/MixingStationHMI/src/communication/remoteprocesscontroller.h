@@ -63,6 +63,7 @@ signals:
     void connectionRestored();
     void initialSnapshotReceived();
     void recoveryRequiredChanged();
+    void connectionLost();
 
 private:
     static int stageIndexForState(int processState);

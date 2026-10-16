@@ -2,9 +2,7 @@
 
 ## Recovery and safety
 
-
 - Persist recovery-required information when both the ESP32 controller and HMI are restarted.
-- Distinguish initial connection, HMI reconnection and controller restart in History.
 - Add a physical tank-level input before allowing automatic recovery operations.
 - Consider storing a diagnostic process checkpoint in ESP32 NVS without automatically restarting equipment after reboot.
 
