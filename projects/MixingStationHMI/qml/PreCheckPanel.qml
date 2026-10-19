@@ -10,7 +10,7 @@ Item {
     required property bool hardwareMode
     required property bool recoveryAllowed
     readonly property bool recoveryRequired: root.hardwareMode && root.controller.recoveryRequired
-
+    readonly property bool temperatureSensorReady: root.controller.temperatureSensorReady
     readonly property bool tankEmpty: root.controller.tankEmpty
     readonly property bool devicesHealthy: root.controller.devicesHealthy
     readonly property bool mixerReady: root.controller.mixerReady
@@ -20,6 +20,7 @@ Item {
         { label: "Operator selected", ok: root.operatorSelected },
         { label: "Tank empty", ok: root.tankEmpty },
         { label: "Devices without faults", ok: root.devicesHealthy },
+        { label: "Temperature sensor", ok: root.temperatureSensorReady },
         { label: "Mixer connected", ok: root.mixerReady },
         { label: "All valves closed", ok: root.valvesClosed }
     ]
@@ -32,7 +33,7 @@ Item {
         Text {
             text: "START CONDITIONS  "
                   + root.checks.filter(function(check) { return check.ok }).length
-                  + " / 5"
+                  + " / " + root.checks.length
             color: "#252a2d"
             font.pixelSize: 15
             font.bold: true
@@ -43,7 +44,7 @@ Item {
 
             Row {
                 width: root.width
-                height: 18
+                height: 16
 
                 Text {
                     width: 220
@@ -66,7 +67,7 @@ Item {
         HmiButton {
             id: startButton
             width: root.width
-            height: 42
+            height: 36
             text: "START BATCH"
             enabled: root.checks.every(function(check) { return check.ok })
             onClicked: root.controller.tryStartBatch(root.operatorName)
@@ -116,7 +117,7 @@ Item {
             width: parent.width
             height: 48
             text: "TANK EMPTIED MECHANICALLY · COMPLETE RECOVERY"
-            enabled: root.recoveryAllowed                                    //TODO: enabled: root.recoveryAllowed && root.controller.connected
+            enabled: root.recoveryAllowed && (!root.hardwareMode || root.controller.connected)
             onClicked: root.controller.completeMechanicalRecovery()
 
             background: Rectangle {

@@ -9,6 +9,7 @@ class Mixer;
 class OperatorSession;
 class BatchController;
 class RemoteProcessController;
+class ModbusControllerClient;
 
 class ProcessEventCoordinator
 {
@@ -29,6 +30,7 @@ public:
     void watchStageCompletion(RemoteProcessController &controller);
     void watchConnection(RemoteProcessController &controller);
     void watchRecovery(RemoteProcessController &controller, OperatorSession &session);
+    void watchCommandResults(ModbusControllerClient &client);
 private:
     EventManager &m_events;
 };

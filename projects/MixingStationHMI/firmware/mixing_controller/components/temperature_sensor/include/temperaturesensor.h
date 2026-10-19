@@ -14,6 +14,7 @@ class TemperatureSensor final
 {
 public:
     [[nodiscard]] esp_err_t initialize();
+    [[nodiscard]] esp_err_t reinitialize();
     [[nodiscard]] esp_err_t readTemperature(float &temperatureCelsius);
 
 private:

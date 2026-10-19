@@ -5,6 +5,7 @@
 #include "processconfiguration.h"
 
 #include <cmath>
+#include <utility>
 
 RemoteProcessController::RemoteProcessController(ModbusControllerClient *client, QObject *parent)
     : QObject(parent),
@@ -99,11 +100,16 @@ bool RemoteProcessController::recoveryRequired() const
     return m_recoveryRequired;
 }
 
+void RemoteProcessController::setRecoveryAuthorization(std::function<bool()> authorization)
+{
+    m_recoveryAuthorization = std::move(authorization);
+}
+
 bool RemoteProcessController::completeMechanicalRecovery()
 {
     const int idleState = static_cast<int>(ControllerProtocol::ProcessState::Idle);
 
-    if (!m_recoveryRequired || !connected() || state() != idleState)
+    if (!m_recoveryAuthorization || !m_recoveryAuthorization() || !m_recoveryRequired || !connected() || state() != idleState)
     {
         return false;
     }
@@ -136,6 +142,11 @@ bool RemoteProcessController::devicesHealthy() const
     return connected() && m_client->faultMask() == 0U;
 }
 
+bool RemoteProcessController::temperatureSensorReady() const
+{
+    return connected() && m_client->temperatureSensorValid();
+}
+
 bool RemoteProcessController::mixerReady() const
 {
     const quint16 mixerConnectedMask = static_cast<quint16>(ControllerProtocol::EquipmentStatusBit::MixerConnected);
@@ -159,7 +170,7 @@ bool RemoteProcessController::tryStartBatch(const QString &operatorName)
         return false;
     }
 
-    if (!tankEmpty() || !devicesHealthy() || !mixerReady() || !valvesClosed())
+  if (!tankEmpty() || !devicesHealthy() || !mixerReady() || !valvesClosed() || !temperatureSensorReady())
     {
         return false;
     }
@@ -189,6 +200,8 @@ bool RemoteProcessController::prepareNextBatch()
 
 void RemoteProcessController::handleSnapshotChanged()
 {
+    updateConnectionState();
+
     if (!m_client->snapshotValid())
     {
         emit stateChanged();
@@ -260,8 +273,29 @@ void RemoteProcessController::handleSnapshotChanged()
     emit startConditionsChanged();
 }
 
+void RemoteProcessController::updateConnectionState()
+{
+    const bool currentConnectedState = connected();
+
+    if (m_lastConnectedState == currentConnectedState)
+    {
+        return;
+    }
+
+    const bool previousConnectedState = m_lastConnectedState;
+    m_lastConnectedState = currentConnectedState;
+
+    emit connectionChanged();
+
+    if (previousConnectedState && !currentConnectedState)
+    {
+        emit connectionLost();
+    }
+}
+
 void RemoteProcessController::handleConnectionChanged()
 {
+
     if (m_client->isConnected())
     {
         if (m_connectedOnce && m_connectionInterrupted)
@@ -277,7 +311,7 @@ void RemoteProcessController::handleConnectionChanged()
         m_connectionInterrupted = true;
     }
 
-    emit connectionChanged();
+    updateConnectionState();
     emit startConditionsChanged();
 }
 

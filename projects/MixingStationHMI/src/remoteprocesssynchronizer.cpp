@@ -224,7 +224,10 @@ void RemoteProcessSynchronizer::synchronizeSnapshot()
     const int displayedProcessState = effectiveProcessState(processState);
     MixingTank::State tankState = tankStateForProcessState(displayedProcessState);
 
-    if (faultBitIsSet(faultMask, ControllerProtocol::FaultBit::TemperatureHigh))
+    const bool temperatureHighFault = faultBitIsSet(faultMask, ControllerProtocol::FaultBit::TemperatureHigh);
+    const bool temperatureSensorFault = faultBitIsSet(faultMask, ControllerProtocol::FaultBit::TemperatureSensor);
+
+    if (temperatureHighFault || temperatureSensorFault)
     {
         tankState = MixingTank::State::Fault;
     }

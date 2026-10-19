@@ -12,6 +12,7 @@
 #include "valve.h"
 #include "communication/remoteprocesscontroller.h"
 #include "controllerprotocol.h"
+#include "communication/modbuscontrollerclient.h"
 
 ProcessEventCoordinator::ProcessEventCoordinator(EventManager &events)
     : m_events(events)
@@ -296,11 +297,12 @@ void ProcessEventCoordinator::watchBatchState(RemoteProcessController &controlle
                         }
                         else if (currentState == drainingState)
                         {
-                            events->addWarning("V4", "Hardware drain started by " + sessionPtr->operatorName());
+                            const QString action = oldState == pausedState ? QStringLiteral("resumed") : QStringLiteral("started");
+                            events->addWarning("V4", QStringLiteral("Hardware drain %1 by %2").arg(action, sessionPtr->operatorName()));
                         }
                         else if (oldState == drainingState && currentState == completeState)
                         {
-                            events->addWarning("V4", "Drain " + controllerPtr->batchId() + " started by " + sessionPtr->operatorName());
+                            events->addInfo("V4", QStringLiteral("Drain %1 completed").arg(controllerPtr->batchId()));
                         }
                         else if (currentState == pausedState)
                         {
@@ -367,9 +369,20 @@ void ProcessEventCoordinator::watchConnection(RemoteProcessController &controlle
                         const QString runId = controllerPtr->batchId();
                         const QString message = runId.isEmpty()
                                                     ? QStringLiteral("HMI connected to controller")
-                                                    : QStringLiteral("HMI connected · active run %1 recovered").arg(runId);
+                                                    : QStringLiteral("HMI connected · active run %1 synchronized").arg(runId);
 
                         events->addInfo(QStringLiteral("CONTROLLER"), message);
+                    }
+    );
+
+    QObject::connect(controllerPtr, &RemoteProcessController::connectionLost, events, [controllerPtr, events]()
+                    {
+                        const QString runId = controllerPtr->batchId();
+                        const QString message = runId.isEmpty()
+                                                    ? QStringLiteral("Controller communication lost")
+                                                    : QStringLiteral("Controller communication lost · active run %1 status unavailable").arg(runId);
+
+                        events->addWarning(QStringLiteral("CONTROLLER"), message);
                     }
     );
 
@@ -378,7 +391,7 @@ void ProcessEventCoordinator::watchConnection(RemoteProcessController &controlle
                         const QString runId = controllerPtr->batchId();
                         const QString message = runId.isEmpty()
                                                     ? QStringLiteral("Controller connection restored")
-                                                    : QStringLiteral("Controller connection restored · active run %1").arg(runId);
+                                                    : QStringLiteral("Controller connection restored · active run %1 synchronized").arg(runId);
 
                         events->addInfo(QStringLiteral("CONTROLLER"), message);
                     }
@@ -407,4 +420,64 @@ void ProcessEventCoordinator::watchRecovery(RemoteProcessController &controller,
                         events->addInfo(QStringLiteral("RECOVERY"), QStringLiteral("Tank mechanically emptied. Recovery completed by %1").arg(operatorName));
                     }
     );
+}
+
+void ProcessEventCoordinator::watchCommandResults(ModbusControllerClient &client)
+{
+    EventManager *events = &m_events;
+
+    const auto commandName = [](quint16 commandCode)
+    {
+        switch (static_cast<ControllerProtocol::Command>(commandCode))
+        {
+        case ControllerProtocol::Command::StartBatch:
+            return QStringLiteral("Start batch");
+        case ControllerProtocol::Command::PauseBatch:
+            return QStringLiteral("Pause batch");
+        case ControllerProtocol::Command::ResumeBatch:
+            return QStringLiteral("Resume batch");
+        case ControllerProtocol::Command::StartTransfer:
+            return QStringLiteral("Start transfer");
+        case ControllerProtocol::Command::ResetFaults:
+            return QStringLiteral("Reset faults");
+        case ControllerProtocol::Command::StartDrain:
+            return QStringLiteral("Start drain");
+        case ControllerProtocol::Command::PrepareNextBatch:
+            return QStringLiteral("Prepare next batch");
+        case ControllerProtocol::Command::None:
+            return QStringLiteral("Unknown");
+        }
+
+        return QStringLiteral("Unknown");
+    };
+
+    const auto resultDescription = [](int result)
+    {
+        switch (static_cast<ControllerProtocol::CommandResult>(result))
+        {
+        case ControllerProtocol::CommandResult::DuplicateSequence:
+            return QStringLiteral("duplicate command sequence");
+        case ControllerProtocol::CommandResult::InvalidState:
+            return QStringLiteral("invalid controller state");
+        case ControllerProtocol::CommandResult::UnsupportedCommand:
+            return QStringLiteral("unsupported command");
+        case ControllerProtocol::CommandResult::None:
+            return QStringLiteral("no result returned");
+        case ControllerProtocol::CommandResult::Accepted:
+            return QStringLiteral("accepted");
+        }
+
+        return QStringLiteral("unknown result");
+    };
+
+    QObject::connect(&client, &ModbusControllerClient::commandFinished, events, [events, commandName, resultDescription](quint16 commandCode, quint16 commandSequence, int result)
+                     {
+                         if (result == static_cast<int>(ControllerProtocol::CommandResult::Accepted))
+                         {
+                             return;
+                         }
+
+                         const QString message = QStringLiteral("%1 command rejected: %2 (sequence %3)").arg(commandName(commandCode)).arg(resultDescription(result)).arg(commandSequence);
+                         events->addWarning(QStringLiteral("CONTROLLER"), message);
+                     });
 }

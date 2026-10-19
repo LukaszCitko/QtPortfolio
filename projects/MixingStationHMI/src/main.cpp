@@ -12,6 +12,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 
+
 #include "batchcontroller.h"
 #include "drainservice.h"
 #include "eventmanager.h"
@@ -244,6 +245,12 @@ int main(int argc, char *argv[])
 
     ModbusControllerClient modbusControllerClient;
     RemoteProcessController remoteProcessController(&modbusControllerClient);
+    remoteProcessController.setRecoveryAuthorization([&operatorSession]()
+    {
+        return operatorSession.canApproveDrain();
+    }
+    );
+
     RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
 
 
@@ -265,6 +272,7 @@ int main(int argc, char *argv[])
         processEventCoordinator.watchStageCompletion(remoteProcessController);
         processEventCoordinator.watchConnection(remoteProcessController);
         processEventCoordinator.watchRecovery(remoteProcessController, operatorSession);
+        processEventCoordinator.watchCommandResults(modbusControllerClient);
     }
 
     QObject::connect(&modbusControllerClient, &ModbusControllerClient::pumpTargetRpmWriteFinished, &eventManager, [&pump1, &pump2, &pump3, &eventManager, &modbusControllerClient](int pumpNumber, int requestedRpm, bool success)

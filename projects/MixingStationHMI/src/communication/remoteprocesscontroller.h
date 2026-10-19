@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <functional>
 
 class ModbusControllerClient;
 
@@ -23,10 +24,13 @@ class RemoteProcessController : public QObject
     Q_PROPERTY(bool mixerReady READ mixerReady NOTIFY startConditionsChanged)
     Q_PROPERTY(bool valvesClosed READ valvesClosed NOTIFY startConditionsChanged)
     Q_PROPERTY(bool recoveryRequired READ recoveryRequired NOTIFY recoveryRequiredChanged)
+    Q_PROPERTY(bool temperatureSensorReady READ temperatureSensorReady NOTIFY startConditionsChanged)
 
 public:
     explicit RemoteProcessController(ModbusControllerClient *client, QObject *parent = nullptr);
 
+
+    void setRecoveryAuthorization(std::function<bool()> authorization);
     bool connected() const;
     int state() const;
     QString stateText() const;
@@ -35,6 +39,7 @@ public:
     QString batchId() const;
     int runKind() const;
 
+    bool temperatureSensorReady() const;
     bool transferAllowed() const;
     bool tankEmpty() const;
     bool devicesHealthy() const;
@@ -58,13 +63,15 @@ signals:
     void connectionRestored();
     void initialSnapshotReceived();
     void recoveryRequiredChanged();
+    void connectionLost();
 
 private:
+    static int stageIndexForState(int processState);
     void handleSnapshotChanged();
     void handleConnectionChanged();
-    static int stageIndexForState(int processState);
-
+    void updateConnectionState();
     ModbusControllerClient *m_client;
+    std::function<bool()> m_recoveryAuthorization;
     QString m_batchId;
     int m_previousState;
     int m_lastActiveStageIndex;
@@ -74,6 +81,7 @@ private:
     bool m_connectionInterrupted{false};
     bool m_restoredSnapshotPending{false};
     bool m_firstSnapshotReceived{false};
+    bool m_lastConnectedState{false};
 };
 
 #endif // REMOTEPROCESSCONTROLLER_H

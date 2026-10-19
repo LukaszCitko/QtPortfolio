@@ -49,6 +49,35 @@ esp_err_t TemperatureSensor::initialize()
     return ESP_OK;
 }
 
+esp_err_t TemperatureSensor::reinitialize()
+{
+    m_initialized = false;
+
+    if (m_device != nullptr)
+    {
+        const esp_err_t deviceResult = ds18b20_del_device(m_device);
+
+        if (deviceResult != ESP_OK)
+        {
+            return deviceResult;
+        }
+        m_device = nullptr;
+    }
+
+    if (m_bus != nullptr)
+    {
+        const esp_err_t busResult = onewire_bus_del(m_bus);
+
+        if (busResult != ESP_OK)
+        {
+            return busResult;
+        }
+        m_bus = nullptr;
+    }
+
+    return initialize();
+}
+
 esp_err_t TemperatureSensor::readTemperature(float &temperatureCelsius)
 {
     if (!m_initialized)
@@ -65,5 +94,6 @@ esp_err_t TemperatureSensor::readTemperature(float &temperatureCelsius)
 
     return ds18b20_get_temperature(m_device, &temperatureCelsius);
 }
+
 
 } // namespace MixingStation::Firmware

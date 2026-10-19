@@ -16,6 +16,7 @@ struct ProcessInputs
     std::uint16_t waterVolumeDecilitres{0};
     std::uint16_t concentrateVolumeDecilitres{0};
     bool mixerConnected{false};
+    bool temperatureValid{false};
 };
 
 struct ControllerSetpoints

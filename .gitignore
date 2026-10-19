@@ -28,3 +28,7 @@ managed_components/
 
 #VS Code
 .vscode/
+
+# Locally rendered demonstration videos (published as GitHub release assets)
+projects/MixingStationHMI/docs/*.mov
+projects/MixingStationHMI/docs/*.mp4

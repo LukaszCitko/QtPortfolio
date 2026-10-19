@@ -29,87 +29,99 @@ Rectangle {
     Column {
         anchors.fill: parent
         anchors.margins: 16
-        spacing: 14
+        spacing: 10
 
         Grid {
             columns: 2
             columnSpacing: 12
-            rowSpacing: 13
+            rowSpacing: 10
 
             Text {
                 width: 176
                 text: "Run ID"
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.controller.batchId === "" ? "—" : root.controller.batchId
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
                 fontSizeMode: Text.Fit
                 minimumPixelSize: 12
             }
 
             Text {
                 width: 176
-                text: (root.tank.temperature < 30.0 && root.tank.volume !== 0) ?
-                        "Temperature (TOO LOW)" : root.tank.temperature > 36.0
-                        ? "Temperature (TOO HIGH)": "Temperature"
+                text: !root.controller.temperatureSensorReady
+                      ? "Temperature sensor"
+                      : (root.tank.temperature < 30.0 && root.tank.volume !== 0)
+                        ? "Temperature (TOO LOW)"
+                        : root.tank.temperature > 36.0
+                          ? "Temperature (TOO HIGH)"
+                          : "Temperature"
 
-                color: ((root.tank.temperature < 30.0 || root.tank.temperature > 36.0) && root.tank.volume !== 0) ? "#b63838": "#252a2d"
+                color: !root.controller.temperatureSensorReady
+                       || ((root.tank.temperature < 30.0 || root.tank.temperature > 36.0)
+                       && root.tank.volume !== 0)
+                       ? "#b63838"
+                       : "#252a2d"
 
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
+
             Text {
                 width: 120
-                text: root.tank.temperature.toFixed(1) + " °C"
+                text: root.controller.temperatureSensorReady
+                      ? root.tank.temperature.toFixed(1) + " °C"
+                      : "NO DATA"
                 horizontalAlignment: Text.AlignRight
-                color: "#252a2d"
-                font.pixelSize: 17
+                color: root.controller.temperatureSensorReady ? "#252a2d" : "#b63838"
+                font.pixelSize: 16
+                font.bold: !root.controller.temperatureSensorReady
             }
 
             Text {
                 width: 176
                 text: "Water added"
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.tank.waterVolume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
 
             Text {
                 width: 176
                 text: "Concentrate added"
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text:  root.tank.concentrateVolume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
 
             Text {
                 width: 176
                 text: "Mixture volume"
                 color: "#252a2d"
-                font.pixelSize: 17
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.tank.volume.toFixed(1) + " L"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
 
 
@@ -117,27 +129,27 @@ Rectangle {
                 width: 176
                 text: "Mixer speed"
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.mixerDevice.actualRpm > 0 ? Math.round(root.mixerDevice.actualRpm) + " RPM" : "—"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 176
                 text: root.activePumpDevice ? "Pump: " + root.activePumpTag + " speed" : "Pump speed"
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
             Text {
                 width: 120
                 text: root.activePumpDevice ? Math.round(root.activePumpDevice.actualRpm) + " RPM" : "—"
                 horizontalAlignment: Text.AlignRight
                 color: "#252a2d"
-                font.pixelSize: 18
+                font.pixelSize: 16
             }
 
 
@@ -145,7 +157,7 @@ Rectangle {
 
         PreCheckPanel {
             width: parent.width
-            height: 184
+            height: 204
             visible: root.controller.state === BatchController.Idle
 
             controller: root.controller

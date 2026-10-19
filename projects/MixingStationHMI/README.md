@@ -4,6 +4,8 @@
 
 A distributed batch mixing station prototype built with a Qt/QML HMI and an ESP32-S3 controller. The HMI communicates with the controller over Modbus TCP through Wi-Fi, records process history in SQLite, and can also run as a self-contained desktop simulation.
 
+**[Watch the 90-second Raspberry Pi and ESP32 hardware demonstration](https://github.com/LukaszCitko/QtPortfolio/releases/download/v2.1.0/MixingStationHMI-v2.1-demo.mp4)**
+
 <img src="docs/screenshots/hero.jpg" alt="Qt HMI controlling the ESP32-S3 prototype during water filling" width="900">
 
 [Open the illustrated system guide](docs/MixingStationHMI-Guide.pdf) | [Browse selected screenshots](docs/screenshots/) | [Review follow-up work](docs/TODO.md)
@@ -89,7 +91,7 @@ The current breadboard demonstrates commands and feedback without connecting rea
 
 The indicator board uses four common-cathode, three-lead dual-colour LEDs. Every green and red channel has its own 220 ohm series resistor, for eight resistors in total. The common cathodes and all input devices share the ESP32 ground.
 
-<img src="docs/wiring-diagram.svg" alt="ESP32-S3 prototype wiring diagram" width="900">
+
 
 Water, concentrate, and transfer volumes are currently calculated by the firmware simulation from elapsed time and pump RPM. The DS18B20 value and mixer connection input are physical. Valve states remain logical controller outputs. The hardware layer can later be replaced with real input/output drivers without changing the HMI protocol.
 
