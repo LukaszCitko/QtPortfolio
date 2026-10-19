@@ -14,6 +14,8 @@ MixingStationHMI is a distributed batch-control prototype with a Qt/QML operator
 
 The project can also run without hardware using its desktop simulation mode.
 
+**[Watch the 90-second Raspberry Pi and ESP32 hardware demonstration](https://github.com/LukaszCitko/QtPortfolio/releases/download/v2.1.0/MixingStationHMI-v2.1-demo.mp4)**
+
 **Technology stack:** C++17, Qt 6, QML, Qt SerialBus, SQLite, CMake, ESP-IDF 6.1, FreeRTOS, Modbus TCP, GPIO, DS18B20, Qt Test, Unity, and GitHub Actions.
 
 **What the project demonstrates:**
