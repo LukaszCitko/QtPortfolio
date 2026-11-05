@@ -33,18 +33,14 @@ esp_err_t ModbusServer::start(esp_netif_t *networkInterface)
 
     mb_communication_info_t communicationConfiguration{};
 
-    communicationConfiguration.tcp_opts.port =
-        ControllerProtocol::TcpPort;
+    communicationConfiguration.tcp_opts.port = ControllerProtocol::TcpPort;
     communicationConfiguration.tcp_opts.mode = MB_TCP;
     communicationConfiguration.tcp_opts.addr_type = MB_IPV4;
     communicationConfiguration.tcp_opts.ip_addr_table = nullptr;
     communicationConfiguration.tcp_opts.ip_netif_ptr = networkInterface;
-    communicationConfiguration.tcp_opts.uid =
-        static_cast<std::uint8_t>(ControllerProtocol::ServerAddress);
+    communicationConfiguration.tcp_opts.uid = static_cast<std::uint8_t>(ControllerProtocol::ServerAddress);
 
-    esp_err_t result = mbc_slave_create_tcp(
-        &communicationConfiguration,
-        &m_handle);
+    esp_err_t result = mbc_slave_create_tcp(&communicationConfiguration, &m_handle);
 
     if (result != ESP_OK) {
         m_handle = nullptr;
