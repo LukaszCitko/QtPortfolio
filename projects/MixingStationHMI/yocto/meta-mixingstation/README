@@ -1,0 +1,45 @@
+# meta-mixingstation
+
+Yocto layer for running MixingStationHMI on a Raspberry Pi 3 A+ with an ESP32 controller.
+
+The image includes Qt 6, Weston, the HMI application, Wi-Fi firmware and kernel modules, SSH access, and systemd services. The HMI connects to the controller through its Modbus TCP address.
+
+## Build requirements
+
+- Yocto Project 6.0 (Wrynose), tested with Poky 6.0.4
+- `MACHINE = "raspberrypi3-64"`
+- `INIT_MANAGER = "systemd"`
+- `wayland` and `pam` in `DISTRO_FEATURES`
+- Active layers: `meta-raspberrypi`, `meta-openembedded/meta-oe`, `meta-openembedded/meta-python`, `meta-qt6` (Qt 6.12 branch), and this layer
+
+The HMI recipe fetches QtPortfolio at a pinned source commit.
+
+## Local configuration
+
+Before building, create these three local files. They are intentionally excluded from Git:
+
+1. Copy `recipes-connectivity/mixingstation-network/files/wpa_supplicant-wlan0.conf.example` to the same name without `.example`. Set your country code, Wi-Fi SSID, and password.
+2. Copy `recipes-apps/mixingstation-hmi/files/mixingstation-hmi.env.example` to the same name without `.example`. Set `CONTROLLER_HOST` to your ESP32 address.
+3. Copy the SSH public key from the computer you will use to administer the device to `recipes-core/mixingstation-access/files/authorized_keys`.
+
+The private SSH key must remain on your computer.
+
+## Build and flash
+
+Add this layer to an initialized Yocto build environment, then run:
+
+```sh
+bitbake-layers add-layer /absolute/path/to/meta-mixingstation
+bitbake mixingstation-image
+```
+
+The resulting `mixingstation-image-raspberrypi3-64.rootfs.wic.bz2` is a compressed disk image. Decompress it and write the `.wic` image to a microSD card.
+
+## Runtime
+
+- Weston and MixingStationHMI start through systemd.
+- Weston screen blanking is disabled for the HMI.
+- SSH public-key access is configured for `lukasz` and `root`.
+- The controller address is read from `/etc/default/mixingstation-hmi`. After changing it on the device, restart `mixingstation-hmi.service`.
+
+The current HMI runs in a window. Full-screen presentation and an on-screen keyboard are planned for the touchscreen version.

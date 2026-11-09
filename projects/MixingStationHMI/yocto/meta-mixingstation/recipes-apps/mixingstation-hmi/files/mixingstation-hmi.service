@@ -1,0 +1,22 @@
+[Unit]
+Description=MixingStation HMI
+Requires=weston.service
+After=weston.service
+
+[Service]
+Type=simple
+User=weston
+Group=weston
+PAMName=weston-autologin
+WorkingDirectory=/home/weston
+Environment=WAYLAND_DISPLAY=/run/wayland-0
+Environment=QT_QPA_PLATFORM=wayland
+
+EnvironmentFile=/etc/default/mixingstation-hmi
+ExecStart=/usr/bin/appMixingStationHMI --controller-host ${CONTROLLER_HOST}
+
+
+Restart=on-failure
+
+[Install]
+WantedBy=graphical.target

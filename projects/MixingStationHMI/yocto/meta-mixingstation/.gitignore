@@ -1,0 +1,4 @@
+/recipes-connectivity/mixingstation-network/files/wpa_supplicant-wlan0.conf
+/recipes-apps/mixingstation-hmi/files/mixingstation-hmi.env
+/recipes-core/mixingstation-access/files/authorized_keys
+.DS_Store
