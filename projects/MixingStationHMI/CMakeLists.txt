@@ -199,6 +199,7 @@ qt_add_qml_module(appMixingStationHMI
         qml/UserManagementDialog.qml
         qml/HmiButton.qml
         qml/HmiDialog.qml
+        qml/RunSelectionDialog.qml
 
     RESOURCES
         qml/assets/pump.png

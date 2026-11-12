@@ -655,12 +655,14 @@ ApplicationWindow {
             }
         }
     }
+
     UserManagementDialog {
         id: userManagementDialog
         usersModel: userListModel
         managementService: userManagementService
         currentUserId: operatorSession.operatorId
     }
+
     HmiDialog {
         id: operatorDialog
         parent: Overlay.overlay
@@ -735,97 +737,17 @@ ApplicationWindow {
 
         }
     }
-    HmiDialog {
+
+    RunSelectionDialog {
         id: runSelectionDialog
-        parent: Overlay.overlay
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-        width: 720
-        height: 500
-        modal: true
-        focus: true
-        title: "SELECT RUN"
+        runsModel: runListModel
 
-        onOpened: runListModel.refresh()
-
-        contentItem: Column {
-            width: runSelectionDialog.availableWidth
-            height: runSelectionDialog.availableHeight
-            spacing: 8
-
-            HmiButton {
-                id: allEventsButton
-                background: Rectangle {
-                    color: allEventsButton.down ? "#c5ced2" : "#f7f8f8"
-                    border.color: "#a5aaad"
-                }
-
-                contentItem: Text {
-                    text: allEventsButton.text
-                    color: "#252a2d"
-                    font.pixelSize: 16
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                width: parent.width
-                height: 54
-                text: "ALL EVENTS"
-
-                onClicked: {
-                    if (eventHistoryModel.selectRun(""))
-                        runSelectionDialog.close()
-                }
-            }
-
-            ListView {
-                id: runListView
-                width: parent.width
-                height: parent.height - 62
-                clip: true
-                model: runListModel
-                boundsBehavior: Flickable.StopAtBounds
-
-                delegate: ItemDelegate {
-                    id: runDelegate
-
-                    required property string runId
-                    required property string kind
-                    required property string operatorName
-                    required property string startedAt
-                    required property string outcome
-
-                    background: Rectangle {
-                        color: runDelegate.down ? "#c5ced2" : "#f7f8f8"
-                        border.color: "#a5aaad"
-                    }
-
-                    contentItem: Text {
-                        text: runDelegate.text
-                        color: "#252a2d"
-                        font.pixelSize: 16
-                        elide: Text.ElideRight
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: 12
-                        rightPadding: 12
-                    }
-
-                    width: runListView.width
-                    height: 58
-                    font.pixelSize: 16
-
-                    text: startedAt + " · " + kind
-                          + " · " + (outcome === "" ? "IN PROGRESS" : outcome)
-                          + (operatorName === "" ? "" : " · " + operatorName)
-
-                    onClicked: {
-                        if (eventHistoryModel.selectRun(runId))
-                            runSelectionDialog.close()
-                    }
-                }
-            }
+        onRunSelected: function(selectedRunId) {
+            if (eventHistoryModel.selectRun(selectedRunId))
+                runSelectionDialog.close()
         }
     }
+
     HmiDialog {
         id: rpmDialog
         parent: Overlay.overlay
