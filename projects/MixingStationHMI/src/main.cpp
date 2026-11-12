@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
     RunListModel runListModel(database);
     TrendHistorySource trendHistorySource(database);
     QString runsError;
+
     if (!runListModel.reload(&runsError))
     {
         qCritical() << "Cannot load runs:" << runsError;

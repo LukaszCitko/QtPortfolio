@@ -186,9 +186,17 @@ void RunPersistenceCoordinator::watchBatchStart(RemoteProcessController &control
                         }
 
                         const int drainRunKind = static_cast<int>(ControllerProtocol::RunKind::Drain);
-                        const bool saved = controllerPtr->runKind() == drainRunKind
-                                               ? runs->beginDrain(runId, QDateTime::currentMSecsSinceEpoch(), &error)
-                                               : runs->beginBatch(runId, sessionPtr->operatorId(), QDateTime::currentMSecsSinceEpoch(), &error);
+                        const qint64 firstObservedAtMs = QDateTime::currentMSecsSinceEpoch();
+                        const QString operatorId = sessionPtr->operatorId();
+                        bool saved = false;
+
+                        if (controllerPtr->runKind() == drainRunKind) {
+                            saved = runs->beginDrain(runId, firstObservedAtMs, &error);
+                        } else if (operatorId.isEmpty()) {
+                            saved = runs->beginObservedBatch(runId, firstObservedAtMs, &error);
+                        } else {
+                            saved = runs->beginBatch(runId, operatorId, firstObservedAtMs, &error);
+                        }
 
                         if (!saved)
                         {

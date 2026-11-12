@@ -71,6 +71,17 @@ void TestRunRepository::storesBatchLifecycle()
     QCOMPARE(savedDrain.value(2).toLongLong(), qint64(5000));
     QCOMPARE(savedDrain.value(3).toLongLong(), qint64(6000));
     QCOMPARE(savedDrain.value(4).toString(), QStringLiteral("DRAINED"));
+
+    QVERIFY(!repository.beginBatch("batch-no-operator", "", 7000, &error));
+    QVERIFY2(repository.beginObservedBatch("observed-1", 8000, &error), qPrintable(error));
+
+    QSqlQuery observedRun(database);
+    QVERIFY(observedRun.exec("SELECT kind, batch_operator_user_id, started_at_ms, ended_at_ms FROM runs WHERE run_id = 'observed-1'"));
+    QVERIFY(observedRun.next());
+    QCOMPARE(observedRun.value(0).toString(), QStringLiteral("BATCH"));
+    QVERIFY(observedRun.value(1).isNull());
+    QCOMPARE(observedRun.value(2).toLongLong(), qint64(8000));
+    QVERIFY(observedRun.value(3).isNull());
 }
 
 QTEST_GUILESS_MAIN(TestRunRepository)

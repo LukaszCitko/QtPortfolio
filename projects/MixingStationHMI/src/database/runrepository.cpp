@@ -36,6 +36,28 @@ bool RunRepository::beginBatch(const QString &runId, const QString &operatorId, 
 
     return true;
 }
+bool RunRepository::beginObservedBatch(const QString &runId, qint64 firstObservedAtMs, QString *errorMessage)
+{
+    if (runId.isEmpty()) {
+        *errorMessage = "Run ID is required";
+        return false;
+    }
+
+    QSqlQuery query(m_database);
+    if (!query.prepare("INSERT INTO runs (run_id, kind, started_at_ms) VALUES (:run_id, 'BATCH', :started_at_ms)")) {
+        *errorMessage = query.lastError().text();
+        return false;
+    }
+
+    query.bindValue(":run_id", runId);
+    query.bindValue(":started_at_ms", firstObservedAtMs);
+    if (!query.exec()) {
+        *errorMessage = query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
 
 bool RunRepository::finishRun(const QString &runId, const QString &outcome, qint64 endedAtMs, QString *errorMessage)
 {

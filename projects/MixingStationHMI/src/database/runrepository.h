@@ -10,6 +10,7 @@ class RunRepository
 public:
     explicit RunRepository(const QSqlDatabase &database);
 
+    bool beginObservedBatch(const QString &runId, qint64 firstObservedAtMs, QString *errorMessage);
     bool beginBatch(const QString &runId, const QString &operatorId, qint64 startedAtMs, QString *errorMessage);
     bool beginDrain(const QString &runId,  qint64 startedAtMs, QString *errorMessage);
     bool finishRun(const QString &runId, const QString &outcome, qint64 endedAtMs, QString *errorMessage);
