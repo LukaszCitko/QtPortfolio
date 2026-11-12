@@ -15,3 +15,9 @@
 ## Diagnostics
 
 - Add optional network diagnostics for maintenance while retaining USB/UART as the firmware development log channel.
+
+### Future architecture
+
+- Split data collection and the Qt HMI into separate systemd services. The collector owns Modbus TCP communication and writes run history to SQLite.
+- Add a bounded event and sample buffer on the ESP32, with sequence numbers and replay after the Raspberry Pi reconnects.
+- Publish live telemetry through an MQTT broker for remote monitoring. Provide historical run data through an API backed by SQLite.

@@ -11,6 +11,7 @@ class TestRunRepository : public QObject
 
 private slots:
     void storesBatchLifecycle();
+
 };
 
 void TestRunRepository::storesBatchLifecycle()
@@ -56,9 +57,20 @@ void TestRunRepository::storesBatchLifecycle()
     QCOMPARE(savedRun.value(4).toString(), QStringLiteral("COMPLETED"));
 
     QVERIFY(!repository.beginBatch("batch-2", "missing-user", 3000, &error));
-    QVERIFY(!repository.finishRun("batch-1", "COMPLETED", 4000, &error));
+    QVERIFY2(repository.finishRun("batch-1", "COMPLETED", 4000, &error), qPrintable(error));
+    QVERIFY(!repository.finishRun("batch-1", "INTERRUPTED", 4000, &error));
+    bool conflict = false;
+    QVERIFY2(repository.hasConflictingCompletion("batch-1", "INTERRUPTED", &conflict, &error), qPrintable(error));
+    QVERIFY(conflict);
+    QVERIFY2(repository.hasConflictingCompletion("batch-1", "COMPLETED", &conflict, &error), qPrintable(error));
+    QVERIFY(!conflict);
     QVERIFY2(repository.beginDrain("drain-1", 5000, &error), qPrintable(error));
     QVERIFY2(repository.finishRun("drain-1", "DRAINED", 6000, &error), qPrintable(error));
+
+    QSqlQuery unchangedRun(database);
+    QVERIFY(unchangedRun.exec("SELECT ended_at_ms FROM runs WHERE run_id = 'batch-1'"));
+    QVERIFY(unchangedRun.next());
+    QCOMPARE(unchangedRun.value(0).toLongLong(), qint64(2000));
 
     QSqlQuery savedDrain(database);
     QVERIFY(savedDrain.exec(

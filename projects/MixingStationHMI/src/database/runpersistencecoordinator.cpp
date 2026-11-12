@@ -1,4 +1,5 @@
 #include "runpersistencecoordinator.h"
+#include "persistenceretryqueue.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -13,8 +14,8 @@
 #include "runrepository.h"
 #include "../communication/remoteprocesscontroller.h"
 
-RunPersistenceCoordinator::RunPersistenceCoordinator(RunRepository &runs, EventManager &events)
-    : m_runs(runs), m_events(events)
+RunPersistenceCoordinator::RunPersistenceCoordinator(EventManager &events, PersistenceRetryQueue &retryQueue)
+    : m_events(events), m_retryQueue(retryQueue)
 {
 }
 
@@ -22,25 +23,12 @@ void RunPersistenceCoordinator::watchBatchStart(BatchController &controller, Ope
 {
     BatchController *controllerPtr = &controller;
     OperatorSession *sessionPtr = &session;
-    RunRepository *runs = &m_runs;
-    EventManager *events = &m_events;
+    PersistenceRetryQueue *retryQueue = &m_retryQueue;
 
-    QObject::connect(controllerPtr, &BatchController::batchIdChanged, sessionPtr,
-        [controllerPtr, sessionPtr, runs, events]()
-        {
-            const QString runId = controllerPtr->batchId();
-
-            if (runId.isEmpty()) return;
-
-            QString error;
-            if (!runs->beginBatch(
-                    runId,
-                    sessionPtr->operatorId(),
-                    QDateTime::currentMSecsSinceEpoch(),
-                    &error)) {
-                qCritical() << "Cannot save batch run:" << error;
-                events->addAlarm("DATABASE", "Batch record could not be saved");
-            }
+    QObject::connect(controllerPtr, &BatchController::batchIdChanged, sessionPtr, [controllerPtr, sessionPtr, retryQueue]() {
+        const QString runId = controllerPtr->batchId();
+        if (runId.isEmpty()) return;
+        retryQueue->submitRunStart(PersistenceRetryQueue::RunStartKind::Batch, runId, sessionPtr->operatorId(), QDateTime::currentMSecsSinceEpoch());
         }
     );
 }
@@ -48,11 +36,11 @@ void RunPersistenceCoordinator::watchBatchStart(BatchController &controller, Ope
 void RunPersistenceCoordinator::watchBatchFinish(BatchController &controller)
 {
     BatchController *controllerPtr = &controller;
-    RunRepository *runs = &m_runs;
+    PersistenceRetryQueue *retryQueue = &m_retryQueue;
     EventManager *events = &m_events;
 
     QObject::connect(controllerPtr, &BatchController::stateChanged, events,
-                    [this, controllerPtr, runs, events, previousState = controllerPtr->state()]() mutable
+                    [this, controllerPtr, retryQueue, events, previousState = controllerPtr->state()]() mutable
                     {
                         using State = BatchController::State;
 
@@ -85,11 +73,7 @@ void RunPersistenceCoordinator::watchBatchFinish(BatchController &controller)
 
                         if (runId.isEmpty()) return;
 
-                        QString error;
-                        if (!runs->finishRun(runId, outcome, QDateTime::currentMSecsSinceEpoch(), &error)) {
-                            qCritical() << "Cannot finish run:" << error;
-                            events->addAlarm("DATABASE", "Run outcome could not be saved");
-                        }
+                        retryQueue->submitRunFinish(runId, outcome, QDateTime::currentMSecsSinceEpoch());
 
                         if (standaloneDrain) {
                             events->setBatchId(QString());
@@ -130,12 +114,7 @@ void RunPersistenceCoordinator::watchTrendRecording(BatchController &controller,
                             if (runId.isEmpty()) {
                                 runId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-                                QString error;
-                                if (!m_runs.beginDrain(runId, QDateTime::currentMSecsSinceEpoch(), &error)) {
-                                    qCritical() << "Cannot save drain run:" << error;
-                                    m_events.addAlarm("DATABASE", "Drain record could not be saved");
-                                    return;
-                                }
+                                m_retryQueue.submitRunStart(PersistenceRetryQueue::RunStartKind::Drain, runId, QString(), QDateTime::currentMSecsSinceEpoch());
 
                                 m_standaloneDrainRunId = runId;
                                 m_events.setBatchId(runId);
@@ -158,62 +137,33 @@ void RunPersistenceCoordinator::watchBatchStart(RemoteProcessController &control
 {
     RemoteProcessController *controllerPtr = &controller;
     OperatorSession *sessionPtr = &session;
-    RunRepository *runs = &m_runs;
-    EventManager *events = &m_events;
+    PersistenceRetryQueue *retryQueue = &m_retryQueue;
 
-    QObject::connect(controllerPtr, &RemoteProcessController::batchIdChanged, sessionPtr, [controllerPtr, sessionPtr, runs, events]()
-                    {
-                        const QString runId = controllerPtr->batchId();
+    QObject::connect(controllerPtr, &RemoteProcessController::batchIdChanged, sessionPtr, [controllerPtr, sessionPtr, retryQueue]() {
+        const QString runId = controllerPtr->batchId();
+        if (runId.isEmpty()) return;
 
-                        if (runId.isEmpty())
-                        {
-                            return;
-                        }
+        const int drainRunKind = static_cast<int>(ControllerProtocol::RunKind::Drain);
+        const QString operatorId = sessionPtr->operatorId();
+        const qint64 firstObservedAtMs = QDateTime::currentMSecsSinceEpoch();
 
-                        QString error;
-                        bool exists = false;
-
-                        if (!runs->runExists(runId, &exists, &error))
-                        {
-                            qCritical() << "Cannot check remote run:" << error;
-                            events->addAlarm("DATABASE", "Remote run could not be checked");
-                            return;
-                        }
-
-                        if (exists)
-                        {
-                            return;
-                        }
-
-                        const int drainRunKind = static_cast<int>(ControllerProtocol::RunKind::Drain);
-                        const qint64 firstObservedAtMs = QDateTime::currentMSecsSinceEpoch();
-                        const QString operatorId = sessionPtr->operatorId();
-                        bool saved = false;
-
-                        if (controllerPtr->runKind() == drainRunKind) {
-                            saved = runs->beginDrain(runId, firstObservedAtMs, &error);
-                        } else if (operatorId.isEmpty()) {
-                            saved = runs->beginObservedBatch(runId, firstObservedAtMs, &error);
-                        } else {
-                            saved = runs->beginBatch(runId, operatorId, firstObservedAtMs, &error);
-                        }
-
-                        if (!saved)
-                        {
-                            qCritical() << "Cannot save remote run:" << error;
-                            events->addAlarm("DATABASE", "Remote run record could not be saved");
-                        }
-                     }
-    );
+        if (controllerPtr->runKind() == drainRunKind) {
+            retryQueue->submitRunStart(PersistenceRetryQueue::RunStartKind::Drain, runId, QString(), firstObservedAtMs);
+        } else if (operatorId.isEmpty()) {
+            retryQueue->submitRunStart(PersistenceRetryQueue::RunStartKind::ObservedBatch, runId, QString(), firstObservedAtMs);
+        } else {
+            retryQueue->submitRunStart(PersistenceRetryQueue::RunStartKind::Batch, runId, operatorId, firstObservedAtMs);
+        }
+    });
 }
 
 void RunPersistenceCoordinator::watchBatchFinish(RemoteProcessController &controller)
 {
     RemoteProcessController *controllerPtr = &controller;
-    RunRepository *runs = &m_runs;
+    PersistenceRetryQueue *retryQueue = &m_retryQueue;
     EventManager *events = &m_events;
 
-    QObject::connect(controllerPtr, &RemoteProcessController::stateChanged, events, [controllerPtr, runs, events, previousState = controllerPtr->state()]() mutable
+    QObject::connect(controllerPtr, &RemoteProcessController::stateChanged, events, [controllerPtr, retryQueue, previousState = controllerPtr->state()]() mutable
                     {
                         const int currentState = controllerPtr->state();
                         const int oldState = previousState;
@@ -240,13 +190,7 @@ void RunPersistenceCoordinator::watchBatchFinish(RemoteProcessController &contro
                         }
                         const int drainRunKind = static_cast<int>(ControllerProtocol::RunKind::Drain);
                         const QString outcome = controllerPtr->runKind() == drainRunKind ? QStringLiteral("DRAINED") : QStringLiteral("COMPLETED");
-                        QString error;
-
-                        if (!runs->finishRun(runId, outcome, QDateTime::currentMSecsSinceEpoch(), &error))
-                        {
-                            qCritical() << "Cannot finish remote run:" << error;
-                            events->addAlarm("DATABASE", "Remote run outcome could not be saved");
-                        }
+                        retryQueue->submitRunFinish(runId, outcome, QDateTime::currentMSecsSinceEpoch());
                     }
     );
 }
@@ -304,10 +248,10 @@ void RunPersistenceCoordinator::watchTrendRecording(RemoteProcessController &con
 void RunPersistenceCoordinator::watchControllerRecovery(RemoteProcessController &controller)
 {
     RemoteProcessController *controllerPtr = &controller;
-    RunRepository *runs = &m_runs;
+    PersistenceRetryQueue *retryQueue = &m_retryQueue;
     EventManager *events = &m_events;
 
-    QObject::connect(controllerPtr, &RemoteProcessController::recoveryRequiredChanged, events, [controllerPtr, runs, events]()
+    QObject::connect(controllerPtr, &RemoteProcessController::recoveryRequiredChanged, events, [controllerPtr, retryQueue]()
                     {
                         if (!controllerPtr->recoveryRequired())
                         {
@@ -321,13 +265,7 @@ void RunPersistenceCoordinator::watchControllerRecovery(RemoteProcessController 
                             return;
                         }
 
-                        QString error;
-
-                        if (!runs->finishRun(runId, QStringLiteral("INTERRUPTED"), QDateTime::currentMSecsSinceEpoch(), &error))
-                        {
-                            qCritical() << "Cannot mark interrupted run:" << error;
-                            events->addAlarm(QStringLiteral("DATABASE"), QStringLiteral("Interrupted run could not be saved"));
-                        }
+                        retryQueue->submitRunFinish(runId, QStringLiteral("INTERRUPTED"), QDateTime::currentMSecsSinceEpoch());
                     }
     );
 }

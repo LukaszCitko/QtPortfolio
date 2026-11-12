@@ -85,13 +85,31 @@ bool RunRepository::finishRun(const QString &runId, const QString &outcome, qint
         return false;
     }
 
-    if (query.numRowsAffected() != 1) {
-        *errorMessage = "No unfinished run found for ID: " + runId;
+    if (query.numRowsAffected() == 1)
+        return true;
+
+    QSqlQuery existing(m_database);
+
+    if (!existing.prepare("SELECT ended_at_ms, outcome FROM runs WHERE run_id = :run_id")) {
+        *errorMessage = existing.lastError().text();
         return false;
     }
 
-    return true;
+    existing.bindValue(":run_id", runId);
+
+    if (!existing.exec()) {
+        *errorMessage = existing.lastError().text();
+        return false;
+    }
+
+    if (existing.next() && !existing.value(0).isNull() && existing.value(1).toString() == outcome)
+        return true;
+
+    *errorMessage = "No unfinished run with this outcome found for ID: " + runId;
+    return false;
+
 }
+
 bool RunRepository::beginDrain(const QString &runId, qint64 startedAtMs, QString *errorMessage)
 {
     if (runId.isEmpty()) {
@@ -144,5 +162,27 @@ bool RunRepository::runExists(const QString &runId, bool *exists, QString *error
     }
 
     *exists = query.next();
+    return true;
+}
+
+bool RunRepository::hasConflictingCompletion(const QString &runId, const QString &expectedOutcome, bool *conflict, QString *errorMessage)
+{
+    *conflict = false;
+
+    QSqlQuery query(m_database);
+    if (!query.prepare("SELECT outcome FROM runs WHERE run_id = :run_id AND ended_at_ms IS NOT NULL")) {
+        *errorMessage = query.lastError().text();
+        return false;
+    }
+
+    query.bindValue(":run_id", runId);
+    if (!query.exec()) {
+        *errorMessage = query.lastError().text();
+        return false;
+    }
+
+    if (query.next())
+        *conflict = query.value(0).toString() != expectedOutcome;
+
     return true;
 }

@@ -3,17 +3,16 @@
 
 #include <QString>
 
-class RunRepository;
 class EventManager;
 class BatchController;
 class OperatorSession;
 class TrendRecorder;
 class RemoteProcessController;
-
+class PersistenceRetryQueue;
 class RunPersistenceCoordinator
 {
 public:
-    RunPersistenceCoordinator(RunRepository &runs, EventManager &events);
+    RunPersistenceCoordinator(EventManager &events, PersistenceRetryQueue &retryQueue);
 
     void watchBatchStart(BatchController &controller, OperatorSession &session);
     void watchBatchStart(RemoteProcessController &controller, OperatorSession &session);
@@ -25,10 +24,11 @@ public:
     void watchTrendRecording(RemoteProcessController &controller, TrendRecorder &recorder);
 
     void watchControllerRecovery(RemoteProcessController &controller);
+
 private:
-    RunRepository &m_runs;
     EventManager &m_events;
     QString m_standaloneDrainRunId;
+    PersistenceRetryQueue &m_retryQueue;
 };
 
 #endif

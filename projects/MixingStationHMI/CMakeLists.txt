@@ -84,6 +84,8 @@ qt_add_library(mixingstation_core STATIC
     src/database/userlistmodel.h
     src/database/userrepository.cpp
     src/database/userrepository.h
+    src/database/persistenceretryqueue.h
+    src/database/persistenceretryqueue.cpp
 )
 
 target_include_directories(mixingstation_core

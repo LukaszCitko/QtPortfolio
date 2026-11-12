@@ -199,6 +199,15 @@ target_link_libraries(test_demouserseeder
         mixingstation_core
         Qt6::Test
 )
+add_executable(test_persistenceretryqueue
+    tst_persistenceretryqueue.cpp
+)
+
+target_link_libraries(test_persistenceretryqueue
+    PRIVATE
+        mixingstation_core
+        Qt6::Test
+)
 
 add_test(NAME test_demouserseeder COMMAND test_demouserseeder)
 add_test(NAME test_usermanagementservice COMMAND test_usermanagementservice)
@@ -219,3 +228,4 @@ add_test(NAME test_pump COMMAND test_pump)
 add_test(NAME test_valve COMMAND test_valve)
 add_test(NAME test_mixingtank COMMAND test_mixingtank)
 add_test(NAME test_batchcontroller COMMAND test_batchcontroller)
+add_test(NAME test_persistenceretryqueue COMMAND test_persistenceretryqueue)

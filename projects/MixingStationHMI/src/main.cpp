@@ -33,6 +33,7 @@
 #include "database/demouserseeder.h"
 #include "database/eventhistorymodel.h"
 #include "database/eventrepository.h"
+#include "database/persistenceretryqueue.h"
 #include "database/runlistmodel.h"
 #include "database/runpersistencecoordinator.h"
 #include "database/runrepository.h"
@@ -69,14 +70,10 @@ int main(int argc, char *argv[])
     }
 
     // Preserve data created under the previous application name.
-    const QString databasePath =
-        QDir(dataPath).filePath("mixingstation.sqlite");
+    const QString databasePath = QDir(dataPath).filePath("mixingstation.sqlite");
+    const QString legacyDatabasePath = QDir(dataPath).filePath("pumpstation.sqlite");
 
-    const QString legacyDatabasePath =
-        QDir(dataPath).filePath("pumpstation.sqlite");
-
-    if (!QFile::exists(databasePath)
-        && QFile::exists(legacyDatabasePath))
+    if (!QFile::exists(databasePath) && QFile::exists(legacyDatabasePath))
     {
         if (!QFile::rename(legacyDatabasePath, databasePath))
         {
@@ -137,6 +134,7 @@ int main(int argc, char *argv[])
     RunRepository runRepository(database);
     EventRepository eventRepository(database);
     TrendSampleRepository trendSampleRepository(database);
+    PersistenceRetryQueue retryQueue(runRepository, eventRepository, trendSampleRepository);
     EventHistoryModel eventHistoryModel(database);
     RunListModel runListModel(database);
     TrendHistorySource trendHistorySource(database);
@@ -172,25 +170,16 @@ int main(int argc, char *argv[])
 
     EventManager eventManager;
 
-    QObject::connect(&eventManager, &EventManager::eventRecorded, &eventManager,
-                     [&eventRepository, &eventHistoryModel](
-                         const QString &runId, qint64 timestampMs,
-                         const QString &level, const QString &source,
-                         const QString &message)
-                     {
-                         QString error;
+    QObject::connect(&retryQueue, &PersistenceRetryQueue::eventSaved, &eventHistoryModel,
+        [&eventHistoryModel](const QString &runId, qint64 timestampMs, const QString &level, const QString &source, const QString &message) {
+            eventHistoryModel.prependSavedEvent(runId, timestampMs, level, source, message);
+    });
 
-                         if (!eventRepository.saveEvent(runId, timestampMs, level,
-                                                        source, message, &error))
-                         {
-                             qCritical() << "Cannot save event:" << error;
-                             return;
-                         }
+    QObject::connect(&eventManager, &EventManager::eventRecorded, &retryQueue,
+        [&retryQueue](const QString &runId, qint64 timestampMs, const QString &level, const QString &source, const QString &message) {
+            retryQueue.submitEvent(runId, timestampMs, level, source, message);
+    });
 
-                         eventHistoryModel.prependSavedEvent(
-                             runId, timestampMs, level, source, message);
-                     }
-    );
 
     ProcessEventCoordinator processEventCoordinator(eventManager);
 
@@ -204,16 +193,10 @@ int main(int argc, char *argv[])
     BatchController batchController(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
     TrendRecorder trendRecorder(&mixingTank);
 
-    QObject::connect(&trendRecorder, &TrendRecorder::sampleRecorded, &trendRecorder,
-                     [&trendSampleRepository](const QString &runId, qint64 timestampMs, double volumeL, double temperatureC)
-                     {
-                         QString error;
-                         if (!trendSampleRepository.saveSample(runId, timestampMs, volumeL, temperatureC, &error))
-                         {
-                             qCritical() << "Cannot save trend sample:" << error;
-                         }
-                     }
-    );
+    QObject::connect(&trendRecorder, &TrendRecorder::sampleRecorded, &retryQueue,
+        [&retryQueue](const QString &runId, qint64 timestampMs, double volumeL, double temperatureC) {
+          retryQueue.submitSample(runId, timestampMs, volumeL, temperatureC);
+    });
 
     QTimer batchTimer;
     batchTimer.setInterval(100);
@@ -234,8 +217,7 @@ int main(int argc, char *argv[])
     UserManagementService userManagementService(operatorSession, userRepository, userListModel, eventManager);
     DrainService drainService(operatorSession, batchController, mixingTank, valve4, eventManager);
     FaultResetService faultResetService(operatorSession, pump1, mixer, eventManager);
-    RunPersistenceCoordinator runPersistenceCoordinator(runRepository, eventManager);
-
+    RunPersistenceCoordinator runPersistenceCoordinator(eventManager, retryQueue);
     runPersistenceCoordinator.watchBatchStart(batchController, operatorSession);
     runPersistenceCoordinator.watchTrendRecording(batchController, trendRecorder);
     processEventCoordinator.watchRpmChanges(pump1, pump2, pump3, mixer, operatorSession);
@@ -354,6 +336,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("faultResetService", &faultResetService);
     engine.rootContext()->setContextProperty("drainService", &drainService);
     engine.rootContext()->setContextProperty("userManagementService", &userManagementService);
+    engine.rootContext()->setContextProperty("persistenceRetryQueue", &retryQueue);
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []()
         {

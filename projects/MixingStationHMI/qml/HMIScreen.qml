@@ -79,6 +79,17 @@ ApplicationWindow {
                 font.pixelSize: 20
             }
 
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 5
+                visible: persistenceRetryQueue.hasPendingWrites || persistenceRetryQueue.hasPermanentFailure
+                text: persistenceRetryQueue.hasPermanentFailure ? "HISTORY SAVE ERROR · CHECK LOGS" : "HISTORY SAVE PENDING"
+                color: "#b63838"
+                font.pixelSize: 14
+                font.bold: true
+            }
+
             HmiButton {
                 id: loginButton
                 anchors.right: parent.right
