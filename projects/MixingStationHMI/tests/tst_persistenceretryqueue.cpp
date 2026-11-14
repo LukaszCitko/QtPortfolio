@@ -18,6 +18,8 @@ private slots:
     void retriesEventAfterDatabaseReopens();
     void retriesRunBeforeItsSample();
     void retriesRunStartBeforeFinish();
+    void reportsConflictingCompletions();
+    void reportsEventOverflow();
 };
 
 void TestPersistenceRetryQueue::retriesRunStartAfterDatabaseReopens()
@@ -171,6 +173,76 @@ void TestPersistenceRetryQueue::retriesRunStartBeforeFinish()
     QVERIFY(!savedRun.next());
 }
 
+void TestPersistenceRetryQueue::reportsConflictingCompletions()
+{
+    QSqlDatabase database = QSqlDatabase::addDatabase("QSQLITE", "completion-conflict-test");
+    database.setDatabaseName(":memory:");
+    QVERIFY(database.open());
+
+    QString error;
+    QVERIFY2(initializeDatabaseSchema(database, &error), qPrintable(error));
+
+    RunRepository runs(database);
+    EventRepository events(database);
+    TrendSampleRepository samples(database);
+
+    QVERIFY2(runs.beginObservedBatch("stored-run", 1000, &error), qPrintable(error));
+    QVERIFY2(runs.finishRun("stored-run", "COMPLETED", 2000, &error), qPrintable(error));
+
+    PersistenceRetryQueue storedConflict(runs, events, samples);
+    storedConflict.submitRunFinish("stored-run", "INTERRUPTED", 3000);
+    QVERIFY(storedConflict.hasPermanentFailure());
+    QVERIFY(!storedConflict.hasPendingWrites());
+
+    database.close();
+
+    PersistenceRetryQueue pendingConflict(runs, events, samples);
+    pendingConflict.submitRunFinish("pending-run", "COMPLETED", 4000);
+    QVERIFY(pendingConflict.hasPendingWrites());
+    QVERIFY(!pendingConflict.hasPermanentFailure());
+
+    pendingConflict.submitRunFinish("pending-run", "INTERRUPTED", 5000);
+    QVERIFY(pendingConflict.hasPendingWrites());
+    QVERIFY(pendingConflict.hasPermanentFailure());
+}
+
+void TestPersistenceRetryQueue::reportsEventOverflow()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    QSqlDatabase database = QSqlDatabase::addDatabase("QSQLITE", "event-overflow-test");
+    database.setDatabaseName(directory.filePath("overflow.sqlite"));
+    QVERIFY(database.open());
+
+    QString error;
+    QVERIFY2(initializeDatabaseSchema(database, &error), qPrintable(error));
+
+    RunRepository runs(database);
+    EventRepository events(database);
+    TrendSampleRepository samples(database);
+    PersistenceRetryQueue queue(runs, events, samples);
+
+    database.close();
+
+    for (int i = 0; i < 1001; ++i)
+        queue.submitEvent("", i, "INFO", "TEST", "Event");
+
+    QVERIFY(queue.hasPendingWrites());
+    QVERIFY(queue.hasPermanentFailure());
+
+    QVERIFY(database.open());
+    QTRY_VERIFY_WITH_TIMEOUT(!queue.hasPendingWrites(), 20000);
+
+    QSqlQuery savedEvents(database);
+    QVERIFY(savedEvents.exec("SELECT COUNT(*), MIN(timestamp_ms), MAX(timestamp_ms) FROM events"));
+    QVERIFY(savedEvents.next());
+    QCOMPARE(savedEvents.value(0).toInt(), 1000);
+    QCOMPARE(savedEvents.value(1).toInt(), 1);
+    QCOMPARE(savedEvents.value(2).toInt(), 1000);
+    QVERIFY(queue.hasPermanentFailure());
+}
 
 QTEST_GUILESS_MAIN(TestPersistenceRetryQueue)
 #include "tst_persistenceretryqueue.moc"
+

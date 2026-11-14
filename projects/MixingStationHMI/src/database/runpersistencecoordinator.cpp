@@ -233,7 +233,9 @@ void RunPersistenceCoordinator::watchTrendRecording(RemoteProcessController &con
 
                         if (oldState == idleState && (currentState == fillingState || currentState == drainingState))
                         {
-                            recorderPtr->beginRun(controllerPtr->batchId());
+                            const QString runId = controllerPtr->batchId();
+                            if (runId.isEmpty()) return;
+                            recorderPtr->beginRun(runId);
                             return;
                         }
 

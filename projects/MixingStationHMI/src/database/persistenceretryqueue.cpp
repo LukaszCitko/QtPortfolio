@@ -66,6 +66,13 @@ void PersistenceRetryQueue::retryRunStarts()
 
 void PersistenceRetryQueue::submitEvent(const QString &runId, qint64 timestampMs, const QString &level, const QString &source, const QString &message)
 {
+    if (m_pendingEvents.size() >= MaxPendingEvents) {
+        m_pendingEvents.removeFirst();
+        if (!m_eventOverflowReported) {
+            m_eventOverflowReported = true;
+            reportPermanentFailure(QStringLiteral("Pending event limit exceeded; oldest events were discarded"));
+        }
+    }
     m_pendingEvents.append(PendingEvent{runId, timestampMs, level, source, message});
     retryEvents();
     updateRetryTimer();
@@ -102,6 +109,13 @@ void PersistenceRetryQueue::updateRetryTimer()
 
 void PersistenceRetryQueue::submitSample(const QString &runId, qint64 timestampMs, double volumeL, double temperatureC)
 {
+    if (m_pendingSamples.size() >= MaxPendingSamples) {
+        m_pendingSamples.removeFirst();
+        if (!m_sampleOverflowReported) {
+            m_sampleOverflowReported = true;
+            reportPermanentFailure(QStringLiteral("Pending sample limit exceeded; oldest samples were discarded"));
+        }
+    }
     m_pendingSamples.append(PendingSample{runId, timestampMs, volumeL, temperatureC});
     retrySamples();
     updateRetryTimer();

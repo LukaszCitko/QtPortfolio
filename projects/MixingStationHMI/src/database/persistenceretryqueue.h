@@ -43,6 +43,12 @@ private:
     bool m_hasPermanentFailure = false;
     void reportPermanentFailure(const QString &message);
 
+    static constexpr qsizetype MaxPendingEvents = 1000;
+    static constexpr qsizetype MaxPendingSamples = 10000;
+    bool m_eventOverflowReported = false;
+    bool m_sampleOverflowReported = false;
+
+
     struct PendingRunStart {
         RunStartKind kind;
         QString runId;
