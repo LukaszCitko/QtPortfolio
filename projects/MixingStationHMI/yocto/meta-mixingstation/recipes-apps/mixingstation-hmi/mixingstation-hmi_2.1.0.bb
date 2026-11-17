@@ -2,9 +2,8 @@ SUMMARY = "MixingStationHMI Qt application"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${UNPACKDIR}/${BP}/LICENSE;md5=47b32672e6100229502ff903af5cad0d"
 
-SRC_URI = "git://github.com/LukaszCitko/QtPortfolio.git;protocol=https;branch=main"
-
-SRCREV = "e4bb0802f63e4b945d2af5a759cef453cedcf6c0"
+SRC_URI = "git://github.com/LukaszCitko/QtPortfolio.git;protocol=https;branch=feature/run-recovery"
+SRCREV = "3606ba7824a41c3d44c7c8e6da6a12e09b877654"
 
 S = "${UNPACKDIR}/${BP}/projects/MixingStationHMI"
 
