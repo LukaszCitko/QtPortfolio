@@ -103,6 +103,8 @@ target_link_libraries(mixingstation_core
 enable_project_warnings(mixingstation_core)
 
 qt_add_library(mixingstation_communication STATIC
+    src/communication/commandoutcometracker.cpp
+    src/communication/commandoutcometracker.h
     src/communication/modbuscontrollerclient.cpp
     src/communication/modbuscontrollerclient.h
     src/communication/remoteprocesscontroller.cpp

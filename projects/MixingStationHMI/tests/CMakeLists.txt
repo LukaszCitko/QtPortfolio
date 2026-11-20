@@ -1,213 +1,67 @@
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
-add_executable(test_pump
-    tst_pump.cpp
-)
+add_executable(test_pump tst_pump.cpp)
+target_link_libraries(test_pump PRIVATE mixingstation_core Qt6::Test)
 
-target_link_libraries(test_pump
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
+add_executable(test_valve tst_valve.cpp)
+target_link_libraries(test_valve PRIVATE mixingstation_core Qt6::Test)
 
-add_executable(test_valve
-    tst_valve.cpp
-)
+add_executable(test_processsimulator tst_processsimulator.cpp)
+target_link_libraries(test_processsimulator PRIVATE mixingstation_core Qt6::Test Qt6::Core)
 
-target_link_libraries(test_valve
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
+add_executable(test_mixingtank tst_mixingtank.cpp)
+target_link_libraries(test_mixingtank PRIVATE mixingstation_core Qt6::Test Qt6::Core)
 
-add_executable(test_processsimulator
-    tst_processsimulator.cpp
+add_executable(test_batchcontroller tst_batchcontroller.cpp ../src/batchcontroller.cpp)
+target_link_libraries(test_batchcontroller PRIVATE mixingstation_core Qt6::Test Qt6::Qml)
 
-)
+add_executable(test_eventmanager tst_eventmanager.cpp)
+target_link_libraries(test_eventmanager PRIVATE mixingstation_cor Qt6::Test Qt6::Core)
 
-target_link_libraries(test_processsimulator
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-        Qt6::Core
-)
+add_executable(test_trendrecorder tst_trendrecorder.cpp)
+target_link_libraries(test_trendrecorder PRIVATE mixingstation_core Qt6::Test Qt6::Core)
 
-add_executable(test_mixingtank
-    tst_mixingtank.cpp
-)
+add_executable(test_runrepository tst_runrepository.cpp)
+target_link_libraries(test_runrepository PRIVATE mixingstation_core Qt6::Test)
 
-target_link_libraries(test_mixingtank
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-        Qt6::Core
-)
+add_executable(test_eventrepository tst_eventrepository.cpp)
+target_link_libraries(test_eventrepository PRIVATE mixingstation_core Qt6::Test)
 
-add_executable(test_batchcontroller
-    tst_batchcontroller.cpp
-    ../src/batchcontroller.cpp
-)
+add_executable(test_trendsamplerepository tst_trendsamplerepository.cpp)
+target_link_libraries(test_trendsamplerepository PRIVATE mixingstation_core Qt6::Test)
 
-target_link_libraries(test_batchcontroller
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-        Qt6::Qml
-)
+add_executable(test_trendhistorysource  tst_trendhistorysource.cpp)
+target_link_libraries(test_trendhistorysource  PRIVATE mixingstation_core  Qt6::Test)
 
-add_executable(test_eventmanager
-    tst_eventmanager.cpp
-)
+add_executable(test_userrepository tst_userrepository.cpp)
+target_link_libraries(test_userrepository PRIVATE mixingstation_core Qt6::Test)
 
-target_link_libraries(test_eventmanager
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-        Qt6::Core
-)
+add_executable(test_operatorsession tst_operatorsession.cpp)
+target_link_libraries(test_operatorsession PRIVATE mixingstation_cor)
 
-add_executable(test_trendrecorder
-    tst_trendrecorder.cpp
-)
+add_executable(test_accesspolicy tst_accesspolicy.cpp)
+target_link_libraries(test_accesspolicy PRIVATE mixingstation_core Qt6::Test)
 
-target_link_libraries(test_trendrecorder
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-        Qt6::Core
-)
+add_executable(test_faultresetservice tst_faultresetservice.cpp)
+target_link_libraries(test_faultresetservice PRIVATE mixingstation_core Qt6::Test)
 
-add_executable(test_runrepository
-    tst_runrepository.cpp
-)
+add_executable(test_mixer tst_mixer.cpp)
+target_link_libraries(test_mixer PRIVATE mixingstation_core Qt6::Test Qt6::Core)
 
-target_link_libraries(test_runrepository
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
+add_executable(test_drainservice tst_drainservice.cpp ../src/batchcontroller.cpp ../src/drainservice.cpp)
+target_link_libraries(test_drainservice PRIVATE mixingstation_core Qt6::Test Qt6::Qml)
 
-add_executable(test_eventrepository
-    tst_eventrepository.cpp
-)
+add_executable(test_usermanagementservice tst_usermanagementservice.cpp)
+target_link_libraries(test_usermanagementservice PRIVATE mixingstation_core Qt6::Test)
 
-target_link_libraries(test_eventrepository
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
+add_executable(test_demouserseeder tst_demouserseeder.cpp)
+target_link_libraries(test_demouserseeder PRIVATE mixingstation_core Qt6::Test)
 
-add_executable(test_trendsamplerepository
-    tst_trendsamplerepository.cpp
-)
+add_executable(test_persistenceretryqueue tst_persistenceretryqueue.cpp)
+target_link_libraries(test_persistenceretryqueue PRIVATE mixingstation_core Qt6::Test)
 
-target_link_libraries(test_trendsamplerepository
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-
-add_executable(test_trendhistorysource
-    tst_trendhistorysource.cpp
-)
-
-target_link_libraries(test_trendhistorysource
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-
-add_executable(test_userrepository
-    tst_userrepository.cpp
-)
-
-target_link_libraries(test_userrepository
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-
-add_executable(test_operatorsession
-    tst_operatorsession.cpp
-)
-
-target_link_libraries(test_operatorsession
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-
-add_executable(test_accesspolicy
-    tst_accesspolicy.cpp
-)
-
-target_link_libraries(test_accesspolicy
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-
-add_executable(test_faultresetservice
-    tst_faultresetservice.cpp
-)
-
-target_link_libraries(test_faultresetservice
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-
-add_executable(test_mixer
-    tst_mixer.cpp
-)
-
-target_link_libraries(test_mixer
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-        Qt6::Core
-)
-
-add_executable(test_drainservice
-    tst_drainservice.cpp
-    ../src/batchcontroller.cpp
-    ../src/drainservice.cpp
-)
-
-target_link_libraries(test_drainservice
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-        Qt6::Qml
-)
-add_executable(test_usermanagementservice
-    tst_usermanagementservice.cpp
-)
-
-target_link_libraries(test_usermanagementservice
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-
-add_executable(test_demouserseeder
-    tst_demouserseeder.cpp
-)
-
-target_link_libraries(test_demouserseeder
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
-add_executable(test_persistenceretryqueue
-    tst_persistenceretryqueue.cpp
-)
-
-target_link_libraries(test_persistenceretryqueue
-    PRIVATE
-        mixingstation_core
-        Qt6::Test
-)
+add_executable(test_commandoutcometracker tst_commandoutcometracker.cpp)
+target_link_libraries(test_commandoutcometracker PRIVATE mixingstation_communication Qt6::Test)
 
 add_test(NAME test_demouserseeder COMMAND test_demouserseeder)
 add_test(NAME test_usermanagementservice COMMAND test_usermanagementservice)
@@ -229,3 +83,4 @@ add_test(NAME test_valve COMMAND test_valve)
 add_test(NAME test_mixingtank COMMAND test_mixingtank)
 add_test(NAME test_batchcontroller COMMAND test_batchcontroller)
 add_test(NAME test_persistenceretryqueue COMMAND test_persistenceretryqueue)
+add_test(NAME test_commandoutcometracker COMMAND test_commandoutcometracker)

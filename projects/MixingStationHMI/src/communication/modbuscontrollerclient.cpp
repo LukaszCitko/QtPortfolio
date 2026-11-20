@@ -12,8 +12,20 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
 
     m_pollTimer.setInterval(500);
     m_reconnectTimer.setInterval(2000);
+    m_commandDeadlineTimer.setSingleShot(true);
+    m_commandDeadlineTimer.setInterval(10000);
+    m_heartbeatDeadlineTimer.setSingleShot(true);
+    m_heartbeatDeadlineTimer.setInterval(5000);
 
     connect(&m_pollTimer, &QTimer::timeout, this, &ModbusControllerClient::requestSnapshot);
+
+    connect(&m_commandDeadlineTimer, &QTimer::timeout, this, [this]() {
+        const auto unknown = m_commandTracker.expire();
+        if (!unknown) return;
+
+        emit commandPendingChanged();
+        emit commandOutcomeUnknown(unknown->code, unknown->sequence, QStringLiteral("Controller acknowledgement timed out."));
+    });
 
     connect(&m_client, &QModbusDevice::stateChanged, this, [this](QModbusDevice::State state)
         {
@@ -31,12 +43,22 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
             if (state == QModbusDevice::UnconnectedState)
             {
                 m_pollTimer.stop();
+                m_heartbeatDeadlineTimer.stop();
+                m_heartbeatObserved = false;
+
+                if (m_heartbeatStalled) {
+                    m_heartbeatStalled = false;
+                    emit heartbeatStalledChanged();
+                }
+
                 m_readPending = false;
 
-                if (m_commandPending)
-                {
-                    m_commandPending = false;
+                m_commandDeadlineTimer.stop();
+                const auto unknown = m_commandTracker.disconnect();
+
+                if (unknown) {
                     emit commandPendingChanged();
+                    emit commandOutcomeUnknown(unknown->code, unknown->sequence, QStringLiteral("Controller disconnected before confirming the command."));
                 }
 
                 if (!m_disconnectRequested && !m_controllerHost.isEmpty() && !m_reconnectTimer.isActive())
@@ -50,7 +72,7 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
                     emit snapshotChanged();
                 }
             }
-        });
+    });
 
     connect(&m_client, &QModbusDevice::errorOccurred, this, [this](QModbusDevice::Error error)
         {
@@ -60,7 +82,7 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
             }
 
             setLastError(m_client.errorString());
-        });
+    });
     connect(&m_reconnectTimer, &QTimer::timeout, this, [this]()
         {
             if (m_disconnectRequested || m_controllerHost.isEmpty() || m_client.state() != QModbusDevice::UnconnectedState)
@@ -72,7 +94,26 @@ ModbusControllerClient::ModbusControllerClient(QObject *parent) : QObject(parent
             {
                 setLastError(m_client.errorString());
             }
-        });
+    });
+    connect(&m_heartbeatDeadlineTimer, &QTimer::timeout, this, [this]() {
+        if (!m_snapshotValid) return;
+        m_heartbeatStalled = true;
+        emit heartbeatStalledChanged();
+        m_snapshotValid = false;
+        setLastError(QStringLiteral("Controller heartbeat stopped."));
+        emit snapshotChanged();
+    });
+}
+
+ModbusControllerClient::~ModbusControllerClient()
+{
+    m_disconnectRequested = true;
+    QObject::disconnect(&m_client, nullptr, this, nullptr);
+    m_reconnectTimer.stop();
+    m_pollTimer.stop();
+    m_commandDeadlineTimer.stop();
+    m_heartbeatDeadlineTimer.stop();
+    m_client.disconnectDevice();
 }
 
 bool ModbusControllerClient::isConnected() const
@@ -88,6 +129,11 @@ QString ModbusControllerClient::lastError() const
 bool ModbusControllerClient::snapshotValid() const
 {
     return m_snapshotValid;
+}
+
+bool ModbusControllerClient::heartbeatStalled() const
+{
+    return m_heartbeatStalled;
 }
 
 quint16 ModbusControllerClient::protocolVersion() const
@@ -193,11 +239,10 @@ int ModbusControllerClient::lastCommandResult() const
 
 bool ModbusControllerClient::commandPending() const
 {
-    return m_commandPending;
+    return m_commandTracker.pending();
 }
 
-bool ModbusControllerClient::connectToController(
-    const QString &host)
+bool ModbusControllerClient::connectToController(const QString &host)
 {
     m_controllerHost = host.trimmed();
     m_disconnectRequested = false;
@@ -422,72 +467,68 @@ bool ModbusControllerClient::prepareNextBatch()
 
 bool ModbusControllerClient::sendCommand(quint16 commandCode)
 {
-    if (!isConnected())
-    {
+    if (!isConnected()) {
         setLastError(QStringLiteral("Cannot send a command while disconnected."));
         return false;
     }
 
-    if (m_commandPending)
-    {
+    if (!m_snapshotValid || !m_commandSequenceInitialized) {
+        setLastError(QStringLiteral("Waiting for a valid controller snapshot."));
+        return false;
+    }
+
+    if (m_commandTracker.pending()) {
         setLastError(QStringLiteral("The previous command is still pending."));
         return false;
     }
 
-    const quint16 commandSequence = m_nextCommandSequence;
+    quint16 commandSequence = m_nextCommandSequence;
 
+    if (!m_commandTracker.begin(commandCode, commandSequence)) {
+        commandSequence = static_cast<quint16>(commandSequence + 1);
+        if (commandSequence == 0) commandSequence = 1;
+
+        if (!m_commandTracker.begin(commandCode, commandSequence)) {
+            setLastError(QStringLiteral("Cannot reserve a command sequence."));
+            return false;
+        }
+    }
 
     const QList<quint16> values{commandCode, commandSequence};
-
-    const QModbusDataUnit request(
-        QModbusDataUnit::HoldingRegisters,
-        ControllerProtocol::address(ControllerProtocol::HoldingRegister::CommandCode),
-        values);
-
+    const QModbusDataUnit request(QModbusDataUnit::HoldingRegisters, ControllerProtocol::address(ControllerProtocol::HoldingRegister::CommandCode), values);
     QModbusReply *reply = m_client.sendWriteRequest(request, ControllerProtocol::ServerAddress);
 
-    if (!reply)
-    {
+    if (!reply) {
+        m_commandTracker.cancelPending();
         setLastError(m_client.errorString());
         return false;
     }
 
-    m_pendingCommandSequence = commandSequence;
-    m_pendingCommandCode = commandCode;
-    m_commandPending = true;
-
-    ++m_nextCommandSequence;
-
-    if (m_nextCommandSequence == 0)
-    {
-        m_nextCommandSequence = 1;
-    }
+    m_nextCommandSequence = static_cast<quint16>(commandSequence + 1);
+    if (m_nextCommandSequence == 0) m_nextCommandSequence = 1;
 
     setLastError({});
     emit commandPendingChanged();
+    m_commandDeadlineTimer.start();
 
-    const auto handleReply = [this, reply]()
-    {
-        if (reply->error()
-            != QModbusDevice::NoError)
-        {
-            m_commandPending = false;
-
+    const auto handleReply = [this, reply, commandSequence]() {
+        if (reply->error() != QModbusDevice::NoError && m_commandTracker.pending(commandSequence)) {
+            const auto unknown = m_commandTracker.expire();
+            m_commandDeadlineTimer.stop();
             setLastError(reply->errorString());
             emit commandPendingChanged();
+            emit commandOutcomeUnknown(unknown->code, unknown->sequence, reply->errorString());
         }
 
         reply->deleteLater();
     };
 
-    if (reply->isFinished())
-    {
+    if (reply->isFinished()) {
         handleReply();
         return true;
     }
 
     connect(reply, &QModbusReply::finished, this, handleReply);
-
     return true;
 }
 
@@ -570,7 +611,19 @@ void ModbusControllerClient::processSnapshot(const QModbusDataUnit &registers)
 
     m_protocolVersion = receivedProtocolVersion;
 
-    m_heartbeat = registerValue(ControllerProtocol::InputRegister::ControllerHeartbeat);
+    const quint16 receivedHeartbeat = registerValue(ControllerProtocol::InputRegister::ControllerHeartbeat);
+
+    if (!m_heartbeatObserved || receivedHeartbeat != m_heartbeat) {
+        m_heartbeatObserved = true;
+        m_heartbeatDeadlineTimer.start();
+
+        if (m_heartbeatStalled) {
+            m_heartbeatStalled = false;
+            emit heartbeatStalledChanged();
+        }
+    }
+
+    m_heartbeat = receivedHeartbeat;
     m_controllerSessionId = registerValue(ControllerProtocol::InputRegister::ControllerSessionId);
     m_runSequence = registerValue(ControllerProtocol::InputRegister::RunSequence);
     m_runKind = static_cast<int>(registerValue(ControllerProtocol::InputRegister::RunKind));
@@ -596,37 +649,36 @@ void ModbusControllerClient::processSnapshot(const QModbusDataUnit &registers)
     m_pump3ActualRpm = static_cast<int>(registerValue(ControllerProtocol::InputRegister::Pump3ActualRpm));
     m_mixerActualRpm = static_cast<int>(registerValue(ControllerProtocol::InputRegister::MixerActualRpm));
     m_equipmentStatusMask = registerValue(ControllerProtocol::InputRegister::EquipmentStatusMask);
-    m_faultMask =registerValue(ControllerProtocol::InputRegister::FaultMask);
-    m_lastHandledCommandSequence =registerValue(ControllerProtocol::InputRegister::LastHandledCommandSequence);
-    m_lastCommandResult =static_cast<int>(registerValue(ControllerProtocol::InputRegister::LastCommandResult));
+    m_faultMask = registerValue(ControllerProtocol::InputRegister::FaultMask);
+    m_lastHandledCommandSequence = registerValue(ControllerProtocol::InputRegister::LastHandledCommandSequence);
+    m_lastCommandResult = static_cast<int>(registerValue(ControllerProtocol::InputRegister::LastCommandResult));
 
-    if (m_commandPending && m_lastHandledCommandSequence == m_pendingCommandSequence)
-    {
-        const quint16 completedCommandCode = m_pendingCommandCode;
-        const quint16 completedCommandSequence = m_pendingCommandSequence;
-        const int completedCommandResult = m_lastCommandResult;
+    const auto result = m_commandTracker.acknowledge(m_lastHandledCommandSequence, m_lastCommandResult);
 
-        m_commandPending = false;
-        m_pendingCommandCode = 0;
-        m_pendingCommandSequence = 0;
+    if (result) {
+        if (result->late) {
+            emit commandResultLate(result->code, result->sequence, result->controllerResult);
+        } else {
+            m_commandDeadlineTimer.stop();
+            emit commandPendingChanged();
+            emit commandFinished(result->code, result->sequence, result->controllerResult);
+        }
 
-        emit commandPendingChanged();
-        emit commandFinished(completedCommandCode, completedCommandSequence, completedCommandResult);
     }
 
-    if (!m_commandPending)
+    if (!m_commandSequenceInitialized)
     {
         m_nextCommandSequence = static_cast<quint16>(m_lastHandledCommandSequence + 1);
 
         if (m_nextCommandSequence == 0)
-        {
             m_nextCommandSequence = 1;
-        }
+
+        m_commandSequenceInitialized = true;
     }
 
-    m_snapshotValid = true;
+    m_snapshotValid = m_heartbeatDeadlineTimer.isActive();
 
-    setLastError({});
+    if (m_snapshotValid) setLastError({});
     emit snapshotChanged();
 }
 

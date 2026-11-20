@@ -10,6 +10,8 @@
 #include <QModbusDevice>
 #include <QModbusTcpClient>
 
+#include "commandoutcometracker.h"
+
 class ModbusControllerClient : public QObject
 {
     Q_OBJECT
@@ -39,14 +41,17 @@ class ModbusControllerClient : public QObject
     Q_PROPERTY(int lastCommandResult READ lastCommandResult NOTIFY snapshotChanged)
     Q_PROPERTY(bool commandPending READ commandPending NOTIFY commandPendingChanged)
     Q_PROPERTY(bool temperatureSensorValid READ temperatureSensorValid NOTIFY snapshotChanged)
+    Q_PROPERTY(bool heartbeatStalled READ heartbeatStalled NOTIFY heartbeatStalledChanged)
 
 public:
     explicit ModbusControllerClient(QObject *parent = nullptr);
+    ~ModbusControllerClient() override;
 
     bool isConnected() const;
     QString lastError() const;
 
     bool snapshotValid() const;
+    bool heartbeatStalled() const;
     quint16 protocolVersion() const;
     quint16 heartbeat() const;
     quint16 controllerSessionId() const;
@@ -95,6 +100,9 @@ signals:
     void simulatedFaultMaskWriteFinished(quint16 faultMask, bool success);
     void simulatedFaultMaskChanged();
     void commandFinished(quint16 commandCode, quint16 commandSequence, int result);
+    void commandOutcomeUnknown(quint16 commandCode, quint16 commandSequence, const QString &reason);
+    void commandResultLate(quint16 commandCode, quint16 commandSequence, int result);
+    void heartbeatStalledChanged();
 
 private:
     bool sendCommand(quint16 commandCode);
@@ -106,6 +114,10 @@ private:
     QModbusTcpClient m_client;
     QTimer m_pollTimer;
     QTimer m_reconnectTimer;
+    QTimer m_commandDeadlineTimer;
+    QTimer m_heartbeatDeadlineTimer;
+    CommandOutcomeTracker m_commandTracker;
+    bool m_commandSequenceInitialized = false;
 
     QString m_controllerHost;
     QString m_lastError;
@@ -113,6 +125,8 @@ private:
     bool m_disconnectRequested = false;
     bool m_readPending = false;
     bool m_snapshotValid = false;
+    bool m_heartbeatObserved = false;
+    bool m_heartbeatStalled = false;
 
     quint16 m_protocolVersion = 0;
     quint16 m_heartbeat = 0;
@@ -136,12 +150,10 @@ private:
     quint16 m_faultMask = 0;
 
     int m_lastCommandResult = 0;
-    bool m_commandPending = false;
+
     bool writePumpTargetRpm(int pumpNumber, quint16 registerAddress, int rpm);
     quint16 m_lastHandledCommandSequence = 0;
     quint16 m_nextCommandSequence = 1;
-    quint16 m_pendingCommandCode = 0;
-    quint16 m_pendingCommandSequence = 0;
     quint16 m_simulatedFaultMask = 0;
 };
 

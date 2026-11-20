@@ -471,13 +471,30 @@ void ProcessEventCoordinator::watchCommandResults(ModbusControllerClient &client
     };
 
     QObject::connect(&client, &ModbusControllerClient::commandFinished, events, [events, commandName, resultDescription](quint16 commandCode, quint16 commandSequence, int result)
-                     {
-                         if (result == static_cast<int>(ControllerProtocol::CommandResult::Accepted))
-                         {
-                             return;
-                         }
+                    {
+                        if (result == static_cast<int>(ControllerProtocol::CommandResult::Accepted))
+                        {
+                            return;
+                        }
 
-                         const QString message = QStringLiteral("%1 command rejected: %2 (sequence %3)").arg(commandName(commandCode)).arg(resultDescription(result)).arg(commandSequence);
-                         events->addWarning(QStringLiteral("CONTROLLER"), message);
-                     });
+                        const QString message = QStringLiteral("%1 command rejected: %2 (sequence %3)").arg(commandName(commandCode)).arg(resultDescription(result)).arg(commandSequence);
+                        events->addWarning(QStringLiteral("CONTROLLER"), message);
+    });
+
+    QObject::connect(&client, &ModbusControllerClient::commandOutcomeUnknown, events, [events, commandName](quint16 commandCode, quint16 commandSequence, const QString &reason)
+                    {
+                        const QString message = QStringLiteral("%1 command outcome unknown (sequence %2): %3").arg(commandName(commandCode)).arg(commandSequence).arg(reason);
+                        events->addWarning(QStringLiteral("CONTROLLER"), message);
+    });
+
+    QObject::connect(&client, &ModbusControllerClient::commandResultLate, events, [events, commandName, resultDescription](quint16 commandCode, quint16 commandSequence, int result)
+                    {
+                        const QString message = QStringLiteral("Late confirmation for %1 command (sequence %2): %3").arg(commandName(commandCode)).arg(commandSequence).arg(resultDescription(result));
+
+                        if (result == static_cast<int>(ControllerProtocol::CommandResult::Accepted)) {
+                            events->addInfo(QStringLiteral("CONTROLLER"), message);
+                        } else {
+                            events->addWarning(QStringLiteral("CONTROLLER"), message);
+                        }
+    });
 }

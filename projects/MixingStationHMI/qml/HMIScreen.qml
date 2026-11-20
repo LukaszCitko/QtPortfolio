@@ -74,7 +74,11 @@ ApplicationWindow {
 
             Text {
                 anchors.centerIn: parent
-                text: window.controllerReady ? "STATUS: " + batchController.stateText : "STATUS: CONTROLLER OFFLINE"
+                text: window.controllerReady
+                      ? "STATUS: " + batchController.stateText
+                      : (window.isHardwareMode && controllerClient.heartbeatStalled
+                          ? "STATUS: CONTROLLER HEARTBEAT STOPPED"
+                          : "STATUS: CONTROLLER OFFLINE")
                 color: window.controllerReady ? "#252a2d" : "#b63838"
                 font.pixelSize: 20
             }

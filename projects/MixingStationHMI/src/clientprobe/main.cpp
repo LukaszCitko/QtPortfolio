@@ -26,6 +26,17 @@ int main(int argc, char *argv[])
     bool faultResetRequested = false;
     bool resumeRequested = false;
 
+    QObject::connect(&controllerClient, &ModbusControllerClient::commandFinished, &application, [](quint16 code, quint16 sequence, int result) {
+        qInfo() << "Command finished. Code:" << code << "| Sequence:" << sequence << "| Result:" << result;
+    });
+
+    QObject::connect(&controllerClient, &ModbusControllerClient::commandOutcomeUnknown, &application, [](quint16 code, quint16 sequence, const QString &reason) {
+        qWarning() << "Command outcome unknown. Code:" << code << "| Sequence:" << sequence << "| Reason:" << reason;
+    });
+
+    QObject::connect(&controllerClient, &ModbusControllerClient::commandResultLate, &application, [](quint16 code, quint16 sequence, int result) {
+        qInfo() << "Late command result. Code:" << code << "| Sequence:" << sequence << "| Result:" << result;
+    });
 
     QObject::connect(&controllerClient, &ModbusControllerClient::connectionChanged, &application, [&controllerClient]()
         {
