@@ -16,7 +16,7 @@ add_executable(test_batchcontroller tst_batchcontroller.cpp ../src/batchcontroll
 target_link_libraries(test_batchcontroller PRIVATE mixingstation_core Qt6::Test Qt6::Qml)
 
 add_executable(test_eventmanager tst_eventmanager.cpp)
-target_link_libraries(test_eventmanager PRIVATE mixingstation_cor Qt6::Test Qt6::Core)
+target_link_libraries(test_eventmanager PRIVATE mixingstation_core Qt6::Test Qt6::Core)
 
 add_executable(test_trendrecorder tst_trendrecorder.cpp)
 target_link_libraries(test_trendrecorder PRIVATE mixingstation_core Qt6::Test Qt6::Core)
@@ -37,7 +37,7 @@ add_executable(test_userrepository tst_userrepository.cpp)
 target_link_libraries(test_userrepository PRIVATE mixingstation_core Qt6::Test)
 
 add_executable(test_operatorsession tst_operatorsession.cpp)
-target_link_libraries(test_operatorsession PRIVATE mixingstation_cor)
+target_link_libraries(test_operatorsession PRIVATE mixingstation_core Qt6::Test)
 
 add_executable(test_accesspolicy tst_accesspolicy.cpp)
 target_link_libraries(test_accesspolicy PRIVATE mixingstation_core Qt6::Test)
