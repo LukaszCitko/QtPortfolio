@@ -273,9 +273,21 @@ void ProcessEventCoordinator::watchBatchState(RemoteProcessController &controlle
     OperatorSession *sessionPtr = &session;
     EventManager *events = &m_events;
 
-    QObject::connect(controllerPtr, &RemoteProcessController::stateChanged, events, [controllerPtr, sessionPtr, events, previousState = controllerPtr->state()]() mutable
+    QObject::connect(controllerPtr, &RemoteProcessController::stateChanged, events, [controllerPtr, sessionPtr, events, previousState = controllerPtr->state(), hasBaseline = controllerPtr->connected()]() mutable
                     {
+                        if (!controllerPtr->connected()) {
+                            hasBaseline = false;
+                            return;
+                        }
+
                         const int currentState = controllerPtr->state();
+
+                        if (!hasBaseline) {
+                            previousState = currentState;
+                            hasBaseline = true;
+                            return;
+                        }
+
                         const int oldState = previousState;
 
                         if (currentState == oldState)

@@ -63,6 +63,10 @@ target_link_libraries(test_persistenceretryqueue PRIVATE mixingstation_core Qt6:
 add_executable(test_commandoutcometracker tst_commandoutcometracker.cpp)
 target_link_libraries(test_commandoutcometracker PRIVATE mixingstation_communication Qt6::Test)
 
+add_executable(test_remotehistoryintegration tst_remotehistoryintegration.cpp ../src/database/runpersistencecoordinator.cpp ../src/batchcontroller.cpp
+                                            ../src/remoteprocesssynchronizer.cpp ../src/remoteprocesssynchronizer.h ../src/processeventcoordinator.cpp)
+target_link_libraries(test_remotehistoryintegration PRIVATE mixingstation_core mixingstation_communication Qt6::Test Qt6::Qml)
+
 add_test(NAME test_demouserseeder COMMAND test_demouserseeder)
 add_test(NAME test_usermanagementservice COMMAND test_usermanagementservice)
 add_test(NAME test_userrepository COMMAND test_userrepository)
@@ -84,3 +88,4 @@ add_test(NAME test_mixingtank COMMAND test_mixingtank)
 add_test(NAME test_batchcontroller COMMAND test_batchcontroller)
 add_test(NAME test_persistenceretryqueue COMMAND test_persistenceretryqueue)
 add_test(NAME test_commandoutcometracker COMMAND test_commandoutcometracker)
+add_test(NAME test_remotehistoryintegration COMMAND test_remotehistoryintegration)

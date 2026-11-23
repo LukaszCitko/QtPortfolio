@@ -230,6 +230,12 @@ These checks use the controller's available inputs. The temperature sensor and m
 
 A device with access to the controller's network could send its own commands or change setpoints without using the HMI. It could also disrupt communication between the HMI and controller. Command sequencing and state validation limit some incorrect operations, but they do not authenticate the sender or protect Modbus traffic from interception or modification. Network isolation is an assumption of this lab demonstration, not a safety mechanism implemented by the application.
 
+## History storage failures
+
+If SQLite cannot be opened or initialized at startup, the HMI exits with an error. If a write fails while the HMI is running, run records, events, and trend samples wait in an in-memory queue. The HMI displays `HISTORY SAVE PENDING` and retries the writes every two seconds. Run records are retried before their related events and samples.
+
+The pending event and sample queues are limited to 1,000 and 10,000 entries respectively. If either limit is exceeded, the oldest entries are discarded and the HMI displays `HISTORY SAVE ERROR · CHECK LOGS`. Pending data is lost if the HMI exits before it can be written. A full or unavailable disk can therefore leave gaps in the history; this prototype does not provide a durable event buffer or guaranteed audit record.
+
 ## License
 
 This project is licensed under the [MIT License](../../LICENSE). Qt, ESP-IDF, and managed third-party components remain subject to their applicable licensing terms.

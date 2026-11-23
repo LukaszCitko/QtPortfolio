@@ -20,6 +20,7 @@ private slots:
     void retriesRunStartBeforeFinish();
     void reportsConflictingCompletions();
     void reportsEventOverflow();
+    void retriesRunEventAndSampleAfterWriteFailure();
 };
 
 void TestPersistenceRetryQueue::retriesRunStartAfterDatabaseReopens()
@@ -243,6 +244,50 @@ void TestPersistenceRetryQueue::reportsEventOverflow()
     QVERIFY(queue.hasPermanentFailure());
 }
 
+void TestPersistenceRetryQueue::retriesRunEventAndSampleAfterWriteFailure()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    QSqlDatabase database = QSqlDatabase::addDatabase("QSQLITE", "combined-write-retry-test");
+    database.setDatabaseName(directory.filePath("history.sqlite"));
+    QVERIFY(database.open());
+
+    QString error;
+    QVERIFY2(initializeDatabaseSchema(database, &error), qPrintable(error));
+
+    QSqlQuery pragma(database);
+    QVERIFY(pragma.exec("PRAGMA foreign_keys = ON"));
+    QVERIFY(pragma.exec("PRAGMA query_only = ON"));
+
+    RunRepository runs(database);
+    EventRepository events(database);
+    TrendSampleRepository samples(database);
+    PersistenceRetryQueue queue(runs, events, samples);
+
+    queue.submitRunStart(PersistenceRetryQueue::RunStartKind::ObservedBatch, "observed-4", "", 1000);
+    queue.submitEvent("observed-4", 1100, "INFO", "TEST", "Cycle observed");
+    queue.submitSample("observed-4", 1200, 2.5, 31.0);
+
+    QVERIFY(queue.hasPendingWrites());
+    QVERIFY(!queue.hasPermanentFailure());
+
+    QVERIFY(pragma.exec("PRAGMA query_only = OFF"));
+    QTRY_VERIFY_WITH_TIMEOUT(!queue.hasPendingWrites(), 5000);
+
+    QSqlQuery counts(database);
+    QVERIFY(counts.exec("SELECT (SELECT COUNT(*) FROM runs WHERE run_id = 'observed-4'), (SELECT COUNT(*) FROM events WHERE run_id = 'observed-4'), (SELECT COUNT(*) FROM trend_samples WHERE run_id = 'observed-4')"));
+    QVERIFY(counts.next());
+    QCOMPARE(counts.value(0).toInt(), 1);
+    QCOMPARE(counts.value(1).toInt(), 1);
+    QCOMPARE(counts.value(2).toInt(), 1);
+
+    QSqlQuery foreignKeyCheck(database);
+    QVERIFY(foreignKeyCheck.exec("PRAGMA foreign_key_check"));
+    QVERIFY(!foreignKeyCheck.next());
+}
+
 QTEST_GUILESS_MAIN(TestPersistenceRetryQueue)
+
 #include "tst_persistenceretryqueue.moc"
 
