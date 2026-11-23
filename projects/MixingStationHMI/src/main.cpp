@@ -1,17 +1,11 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QDebug>
-#include <QDir>
-#include <QFile>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QSqlDatabase>
-#include <QSqlError>
-#include <QSqlQuery>
-#include <QStandardPaths>
 #include <QTimer>
-
 
 #include "batchcontroller.h"
 #include "drainservice.h"
@@ -29,8 +23,7 @@
 #include "usermanagementservice.h"
 #include "valve.h"
 
-#include "database/databaseschema.h"
-#include "database/demouserseeder.h"
+#include "database/applicationdatabase.h"
 #include "database/eventhistorymodel.h"
 #include "database/eventrepository.h"
 #include "database/persistenceretryqueue.h"
@@ -61,65 +54,15 @@ int main(int argc, char *argv[])
     const bool hardwareMode = !controllerHost.isEmpty();
 
 
-    const QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QSqlDatabase database;
+    QString databaseError;
 
-    if (dataPath.isEmpty() || !QDir().mkpath(dataPath))
-    {
-        qCritical() << "Cannot create application data directory:" << dataPath;
+    if (!prepareApplicationDatabase(database, &databaseError)) {
+        qCritical() << databaseError;
         return 1;
     }
 
-    // Preserve data created under the previous application name.
-    const QString databasePath = QDir(dataPath).filePath("mixingstation.sqlite");
-    const QString legacyDatabasePath = QDir(dataPath).filePath("pumpstation.sqlite");
-
-    if (!QFile::exists(databasePath) && QFile::exists(legacyDatabasePath))
-    {
-        if (!QFile::rename(legacyDatabasePath, databasePath))
-        {
-            qCritical() << "Cannot rename legacy database:"
-                        << legacyDatabasePath
-                        << "to"
-                        << databasePath;
-            return 1;
-        }
-
-        qInfo() << "Legacy database renamed to" << databasePath;
-    }
-
-    QSqlDatabase database = QSqlDatabase::addDatabase("QSQLITE");
-    database.setDatabaseName(databasePath);
-
-    if (!database.open())
-    {
-        qCritical() << "Cannot open SQLite database:"
-                    << database.lastError().text();
-        return 1;
-    }
-
-    QSqlQuery foreignKeys(database);
-    if (!foreignKeys.exec("PRAGMA foreign_keys = ON"))
-    {
-        qCritical() << "Cannot enable SQLite foreign keys:"
-                    << foreignKeys.lastError().text();
-        return 1;
-    }
-
-    QString schemaError;
-    if (!initializeDatabaseSchema(database, &schemaError))
-    {
-        qCritical() << schemaError;
-        return 1;
-    }
     qInfo() << "SQLite database opened at" << database.databaseName();
-
-    QString demoUsersError;
-
-    if (!seedDemoUsersIfEmpty(database, &demoUsersError))
-    {
-        qCritical() << "Cannot prepare demo users:" << demoUsersError;
-        return 1;
-    }
 
     UserListModel userListModel(database);
     UserRepository userRepository(database);

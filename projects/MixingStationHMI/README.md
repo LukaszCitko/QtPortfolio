@@ -38,6 +38,15 @@ flowchart LR
     MIXER[Mixer connection button on GPIO40] --> CORE
 ```
 
+| Responsibility | Where to look |
+| --- | --- |
+| Process sequence and command validation on ESP32 | `firmware/mixing_controller/components/controller_core/` |
+| Shared Modbus registers and command values | `shared/controllerprotocol.h` |
+| Modbus polling, acknowledgements, and timeouts | `src/communication/modbuscontrollerclient.cpp` |
+| Converting controller snapshots into HMI state | `src/communication/remoteprocesscontroller.cpp` and `src/remoteprocesssynchronizer.cpp` |
+| Run identity, history writes, and retries | `src/database/runpersistencecoordinator.cpp` and `src/database/persistenceretryqueue.cpp` |
+| Operator presentation | `qml/HMIScreen.qml` and the smaller QML components in `qml/` |
+
 The HMI owns presentation, operator sessions, history, trends, and user management. The ESP32 owns the active batch state machine, equipment command state, process timing, temperature validation, and Modbus register bank. Losing the HMI connection does not stop the controller task; reconnecting restores the current snapshot.
 
 The shared files in `shared/` define the protocol and process constants used by both sides. Register values are 16-bit integers. Physical quantities are scaled before transmission, for example temperature in tenths of a degree Celsius, volume in decilitres, and stage progress in permille.
@@ -197,6 +206,18 @@ GitHub Actions runs two independent Linux jobs on every relevant push and pull r
 2. build the ESP32-S3 firmware and its ESP-IDF test application using the official Espressif CI action.
 
 The test coverage includes process transitions, faults, pause/resume behaviour, temperature gating, transfer and drain behaviour, permissions, repositories, trends, Modbus mapping, command sequences, and firmware process simulation. Hardware Unity tests are additionally run on the physical ESP32-S3 during development.
+
+### Reproduce communication and history failures
+
+Run `appControllerSimulator` in one terminal and `appModbusClientProbe` in another, from the project directory. Stop them with Ctrl+C before changing scenarios.
+
+| Scenario | Simulator command | Expected probe result |
+| --- | --- | --- |
+| Missing command acknowledgement | `./build/cli-debug/appControllerSimulator --no-ack` | Command outcome becomes unknown after the deadline |
+| Late acknowledgement | `./build/cli-debug/appControllerSimulator --late-ack` | Unknown outcome followed by a late result |
+| Stalled heartbeat | `./build/cli-debug/appControllerSimulator --freeze-heartbeat` | Snapshot becomes invalid and a heartbeat error is reported |
+
+Start the probe with `./build/cli-debug/appModbusClientProbe`. The automated `test_persistenceretryqueue` and `test_remotehistoryintegration` cases cover temporary SQLite write failure, retry, foreign-key consistency, and reconnecting to an active run without duplicating its record.
 
 ## Repository structure
 
