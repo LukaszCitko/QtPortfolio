@@ -267,6 +267,7 @@ TEST_CASE("Temperature check accepts values from 30 to 36 degrees", "[controller
 
     MixingStation::Firmware::ProcessInputs inputs;
     inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
     inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
     inputs.temperatureTenthsCelsius = 299;
 
@@ -302,6 +303,7 @@ TEST_CASE("Mixing finishes after fifteen seconds", "[controller_core]")
 
     MixingStation::Firmware::ProcessInputs inputs;
     inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
     inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
     inputs.temperatureTenthsCelsius = 330;
 
@@ -328,6 +330,7 @@ TEST_CASE("Mixing timer stops while batch is paused", "[controller_core]")
 
     MixingStation::Firmware::ProcessInputs inputs;
     inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
     inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
     inputs.temperatureTenthsCelsius = 330;
 
@@ -370,6 +373,7 @@ TEST_CASE("Relevant fault pauses batch and remains latched until reset", "[contr
 
     MixingStation::Firmware::ProcessInputs inputs;
     inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
     inputs.mixtureVolumeDecilitres = ProcessConfiguration::WaterTargetDecilitres;
 
     controller.updateInputs(inputs);
@@ -547,4 +551,179 @@ TEST_CASE("Drain from paused batch keeps the existing run sequence", "[controlle
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Draining), static_cast<std::uint16_t>(snapshot.processState));
     TEST_ASSERT_EQUAL_UINT16(1, snapshot.runSequence);
     TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::RunKind::Drain), static_cast<std::uint16_t>(snapshot.runKind));
+}
+
+TEST_CASE("Transfer is rejected when temperature falls below the allowed range", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+    controller.tick(ProcessConfiguration::MixingDurationMilliseconds);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    inputs.temperatureTenthsCelsius = ProcessConfiguration::MinimumProcessTemperatureTenthsCelsius - 1U;
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartTransfer, 2);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+}
+
+TEST_CASE("Transfer is rejected when temperature measurement is invalid", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+    controller.tick(ProcessConfiguration::MixingDurationMilliseconds);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    inputs.temperatureValid = false;
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartTransfer, 2);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+}
+
+TEST_CASE("Transfer is rejected when temperature rises above the allowed range", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+    controller.tick(ProcessConfiguration::MixingDurationMilliseconds);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    inputs.temperatureTenthsCelsius = ProcessConfiguration::MaximumProcessTemperatureTenthsCelsius + 1U;
+
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartTransfer, 2);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+}
+
+TEST_CASE("Transfer is rejected while a temperature fault is latched", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+    controller.tick(ProcessConfiguration::MixingDurationMilliseconds);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    inputs.faultMask = static_cast<std::uint16_t>(ControllerProtocol::FaultBit::TemperatureHigh);
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::StartTransfer, 2);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::ReadyForTransfer), static_cast<std::uint16_t>(controller.snapshot().processState));
+}
+
+TEST_CASE("Resume is rejected while a pump fault is active", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    setRequiredInputsReady(controller);
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+    const ControllerProtocol::CommandResult pauseResult = controller.handleCommand(ControllerProtocol::Command::PauseBatch, 2);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(pauseResult));
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Paused), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.temperatureValid = true;
+    inputs.faultMask = static_cast<std::uint16_t>(ControllerProtocol::FaultBit::Pump1);
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::ResumeBatch, 3);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Paused), static_cast<std::uint16_t>(controller.snapshot().processState));
+    TEST_ASSERT_EQUAL_UINT16(0, controller.snapshot().pump1ActualRpm);
+}
+
+TEST_CASE("Resume is rejected when temperature measurement is invalid", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    setRequiredInputsReady(controller);
+
+    const ControllerProtocol::CommandResult startResult = controller.handleCommand(ControllerProtocol::Command::StartBatch, 1);
+    const ControllerProtocol::CommandResult pauseResult = controller.handleCommand(ControllerProtocol::Command::PauseBatch, 2);
+
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(startResult));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::Accepted), static_cast<std::uint16_t>(pauseResult));
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Paused), static_cast<std::uint16_t>(controller.snapshot().processState));
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.temperatureValid = false;
+    inputs.faultMask = 0;
+    controller.updateInputs(inputs);
+
+    const ControllerProtocol::CommandResult result = controller.handleCommand(ControllerProtocol::Command::ResumeBatch, 3);
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::CommandResult::InvalidState), static_cast<std::uint16_t>(result));
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::Paused), static_cast<std::uint16_t>(controller.snapshot().processState));
+    TEST_ASSERT_EQUAL_UINT16(0, controller.snapshot().pump1ActualRpm);
+}
+
+TEST_CASE("Temperature check waits for a valid measurement", "[controller_core]")
+{
+    MixingStation::Firmware::ControllerCore controller;
+    advanceToTemperatureCheck(controller);
+
+    MixingStation::Firmware::ProcessInputs inputs;
+    inputs.mixerConnected = true;
+    inputs.temperatureValid = false;
+    inputs.mixtureVolumeDecilitres = ProcessConfiguration::MixtureTargetDecilitres;
+    inputs.temperatureTenthsCelsius = 330;
+
+    controller.updateInputs(inputs);
+    controller.tick();
+
+    TEST_ASSERT_EQUAL_UINT16(static_cast<std::uint16_t>(ControllerProtocol::ProcessState::TemperatureCheck), static_cast<std::uint16_t>(controller.snapshot().processState));
 }

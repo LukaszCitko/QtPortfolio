@@ -218,6 +218,18 @@ This is a portfolio prototype, not a production machine controller. The breadboa
 
 Planned work is tracked in [docs/TODO.md](docs/TODO.md), including physical level and pump feedback, stronger recovery rules, persistence of recovery state, connection-event refinement, and optional network diagnostics.
 
+### Control and trust boundary
+
+The ESP32-S3 owns the process state machine and validates commands independently of the HMI. The HMI's disabled buttons guide the operator, but they are not a security boundary: another client on the same network could send Modbus TCP requests directly to the controller.
+
+The prototype uses ordinary Modbus TCP on port 1502 without client authentication or encrypted transport. Demo operator roles do not authenticate the person using the HMI. Run this prototype only on a controlled lab network; it must not control real pumps or valves.
+
+The controller checks process conditions before accepting commands. Transfer requires the transfer-ready state, a valid temperature measurement within 30–36 °C, and no active fault. Resume requires a valid temperature measurement, a connected mixer, and no active fault. The controller also waits for a valid in-range measurement before entering the mixing stage.
+
+These checks use the controller's available inputs. The temperature sensor and mixer connection input are physical, but liquid volumes are calculated from elapsed time and commanded pump speed. Valve states are logical outputs; the prototype has no independent valve-position, flow, or tank-level feedback. Its software checks therefore cannot confirm that liquid moved or a physical valve closed.
+
+A device with access to the controller's network could send its own commands or change setpoints without using the HMI. It could also disrupt communication between the HMI and controller. Command sequencing and state validation limit some incorrect operations, but they do not authenticate the sender or protect Modbus traffic from interception or modification. Network isolation is an assumption of this lab demonstration, not a safety mechanism implemented by the application.
+
 ## License
 
 This project is licensed under the [MIT License](../../LICENSE). Qt, ESP-IDF, and managed third-party components remain subject to their applicable licensing terms.

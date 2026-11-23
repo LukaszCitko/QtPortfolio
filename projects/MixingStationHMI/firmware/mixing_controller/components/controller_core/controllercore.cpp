@@ -124,7 +124,9 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(ControllerProtoc
         break;
 
     case ControllerProtocol::Command::ResumeBatch:
-        if (m_snapshot.processState != ControllerProtocol::ProcessState::Paused)
+        if (m_snapshot.processState != ControllerProtocol::ProcessState::Paused
+            || (m_snapshot.equipmentStatusMask & TemperatureSensorValidMask) == 0U
+            || m_snapshot.faultMask != 0U)
         {
             result = ControllerProtocol::CommandResult::InvalidState;
             break;
@@ -142,7 +144,11 @@ ControllerProtocol::CommandResult ControllerCore::handleCommand(ControllerProtoc
         break;
 
     case ControllerProtocol::Command::StartTransfer:
-        if (m_snapshot.processState != ControllerProtocol::ProcessState::ReadyForTransfer)
+        if (m_snapshot.processState != ControllerProtocol::ProcessState::ReadyForTransfer
+            || m_snapshot.temperatureTenthsCelsius < ProcessConfiguration::MinimumProcessTemperatureTenthsCelsius
+            || m_snapshot.temperatureTenthsCelsius > ProcessConfiguration::MaximumProcessTemperatureTenthsCelsius
+            || (m_snapshot.equipmentStatusMask & TemperatureSensorValidMask) == 0U
+            || m_snapshot.faultMask != 0U)
         {
             result = ControllerProtocol::CommandResult::InvalidState;
             break;
@@ -255,7 +261,8 @@ void ControllerCore::tick(std::uint32_t elapsedMilliseconds)
         return;
 
     case ControllerProtocol::ProcessState::TemperatureCheck:
-        if (m_snapshot.temperatureTenthsCelsius >= ProcessConfiguration::MinimumProcessTemperatureTenthsCelsius
+        if ((m_snapshot.equipmentStatusMask & TemperatureSensorValidMask) != 0U
+            && m_snapshot.temperatureTenthsCelsius >= ProcessConfiguration::MinimumProcessTemperatureTenthsCelsius
             && m_snapshot.temperatureTenthsCelsius <= ProcessConfiguration::MaximumProcessTemperatureTenthsCelsius)
         {
             transitionTo(ControllerProtocol::ProcessState::Mixing);
