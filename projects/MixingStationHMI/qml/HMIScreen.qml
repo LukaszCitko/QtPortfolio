@@ -24,10 +24,7 @@ ApplicationWindow {
         })
 
     function openPumpRpm(pumpObject, tag) {
-        rpmDialog.pumpDevice = pumpObject
-        rpmDialog.pumpTag = tag
-        rpmSlider.value = pumpObject.targetRpm
-        rpmDialog.open()
+        rpmDialog.openFor(pumpObject, tag)
     }
 
     function openEquipment(tag) {
@@ -706,66 +703,18 @@ ApplicationWindow {
         }
     }
 
-    HmiDialog {
+    PumpRpmDialog {
         id: rpmDialog
-        parent: Overlay.overlay
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-        width: 420
-        height: 250
-        modal: true
-        focus: true
 
-        property var pumpDevice: null
-        property string pumpTag: ""
-
-        title: pumpTag + " · TARGET RPM"
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        Column {
-            width: rpmDialog.availableWidth
-            spacing: 16
-
-            Text {
-                text: "TARGET: " + Math.round(rpmSlider.value) + " RPM"
-                color: "#252a2d"
-                font.pixelSize: 20
-                font.bold: true
-            }
-
-            Slider {
-                id: rpmSlider
-                width: parent.width
-                from: 100  // Keep a running batch from losing all flow.
-                to: rpmDialog.pumpDevice ? rpmDialog.pumpDevice.maxRpm : 1000
-                stepSize: 50
-                snapMode: Slider.SnapAlways
-            }
-
-            Text {
-                text: "CURRENT: "
-                      + (rpmDialog.pumpDevice
-                         ? Math.round(rpmDialog.pumpDevice.actualRpm) : 0)
-                      + " RPM"
-                color: "#596368"
-                font.pixelSize: 16
-            }
-        }
-
-        onAccepted: {
-            if (!pumpDevice)
-                return
-
-            const requestedRpm = Math.round(rpmSlider.value)
-
+        onRpmRequested: function(device, tag, rpm) {
             if (window.isHardwareMode) {
-                if (!window.processControllerClient.setPumpTargetRpm(pumpDevice.id, requestedRpm))
-                    eventManager.addWarning(pumpTag, "Target RPM request rejected: " + window.processControllerClient.lastError)
+                if (!window.processControllerClient.setPumpTargetRpm(device.id, rpm))
+                    eventManager.addWarning(tag, "Target RPM request rejected: " + window.processControllerClient.lastError)
 
                 return
             }
 
-            pumpDevice.setTargetRpm(requestedRpm)
+            device.setTargetRpm(rpm)
         }
     }
 }

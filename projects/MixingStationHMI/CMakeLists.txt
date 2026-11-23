@@ -194,19 +194,20 @@ qt_add_qml_module(appMixingStationHMI
         qml/BatchActions.qml
         qml/EquipmentLane.qml
         qml/EquipmentPanel.qml
+        qml/HmiButton.qml
+        qml/HmiDialog.qml
         qml/HMIScreen.qml
+        qml/OperatorSelectionDialog.qml
         qml/PreCheckPanel.qml
         qml/ProcessValues.qml
+        qml/PumpRpmDialog.qml
+        qml/RunSelectionDialog.qml
         qml/SimulationControlPanel.qml
         qml/StageStrip.qml
         qml/TankView.qml
         qml/TrendChart.qml
         qml/TrendPanel.qml
         qml/UserManagementDialog.qml
-        qml/HmiButton.qml
-        qml/HmiDialog.qml
-        qml/RunSelectionDialog.qml
-        qml/OperatorSelectionDialog.qml
 
     RESOURCES
         qml/assets/pump.png
