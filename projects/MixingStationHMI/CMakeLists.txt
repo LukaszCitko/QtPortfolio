@@ -180,6 +180,9 @@ qt_add_executable(appMixingStationHMI
     src/remoteprocesssynchronizer.cpp
     src/remoteprocesssynchronizer.h
 
+    src/communication/remotecommandfeedback.h
+    src/communication/remotecommandfeedback.cpp
+
     src/database/runpersistencecoordinator.cpp
     src/database/runpersistencecoordinator.h
     src/database/applicationdatabase.h
@@ -214,6 +217,7 @@ qt_add_qml_module(appMixingStationHMI
         qml/assets/pump_gray.png
         qml/assets/valve.png
         qml/assets/valve_gray.png
+
 
 )
 
