@@ -1,5 +1,3 @@
-#include <QCommandLineOption>
-#include <QCommandLineParser>
 #include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -7,6 +5,7 @@
 #include <QSqlDatabase>
 #include <QTimer>
 
+#include "applicationoptions.h"
 #include "batchcontroller.h"
 #include "demomode.h"
 #include "drainservice.h"
@@ -37,15 +36,7 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    QCommandLineParser commandLineParser;
-    commandLineParser.setApplicationDescription(QStringLiteral("Mixing Station HMI"));
-    commandLineParser.addHelpOption();
-
-    QCommandLineOption controllerHostOption(QStringLiteral("controller-host"), QStringLiteral("Connect the HMI to a Modbus TCP process controller."), QStringLiteral("address"));
-    commandLineParser.addOption(controllerHostOption);
-    commandLineParser.process(app);
-
-    const QString controllerHost = commandLineParser.value(controllerHostOption).trimmed();
+    const QString controllerHost = readControllerHost(app);
     const bool hardwareMode = !controllerHost.isEmpty();
 
     QString databaseError;

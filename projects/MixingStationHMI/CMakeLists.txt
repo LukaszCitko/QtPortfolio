@@ -171,6 +171,8 @@ enable_project_warnings(appModbusClientProbe)
 qt_add_executable(appMixingStationHMI
     src/main.cpp
 
+    src/applicationoptions.h
+    src/applicationoptions.cpp
     src/batchcontroller.h
     src/batchcontroller.cpp
     src/demomode.h
@@ -179,6 +181,8 @@ qt_add_executable(appMixingStationHMI
     src/drainservice.cpp
     src/hardwaremode.h
     src/hardwaremode.cpp
+    src/hmiqmlcontext.h
+    src/hmiqmlcontext.cpp
     src/processequipment.h
     src/processequipment.cpp
     src/processeventcoordinator.h
