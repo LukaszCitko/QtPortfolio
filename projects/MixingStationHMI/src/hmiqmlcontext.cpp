@@ -1,4 +1,6 @@
 #include <QQmlContext>
+#include <QCoreApplication>
+#include <QQmlApplicationEngine>
 
 #include "database/applicationdatabase.h"
 
@@ -42,4 +44,10 @@ void exposeHmiServices(QQmlContext &context, QObject &activeController, ModbusCo
     context.setContextProperty("faultResetService", &faultReset);
     context.setContextProperty("drainService", &drain);
     context.setContextProperty("userManagementService", &users);
+}
+
+void loadHmiScreen(QQmlApplicationEngine &engine, QCoreApplication &app)
+{
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
+    engine.loadFromModule("MixingStationHMI", "HMIScreen");
 }

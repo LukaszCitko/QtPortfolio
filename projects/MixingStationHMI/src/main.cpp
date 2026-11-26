@@ -1,8 +1,6 @@
 #include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QSqlDatabase>
 #include <QTimer>
 
 #include "applicationoptions.h"
@@ -79,7 +77,6 @@ int main(int argc, char *argv[])
 
     if (hardwareMode) configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
-
     connectRemoteCommandFeedback(modbusControllerClient, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
 
     QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcessController) : static_cast<QObject *>(&batchController);
@@ -88,16 +85,9 @@ int main(int argc, char *argv[])
     exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);
     exposeHmiServices(*engine.rootContext(), *activeBatchController, modbusControllerClient, hardwareMode, operatorSession, eventManager, trendRecorder, faultResetService, drainService, userManagementService);
 
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []()
-        {
-            QCoreApplication::exit(-1);
-        },
-        Qt::QueuedConnection
-    );
-
     if (hardwareMode) startHardwareConnection(modbusControllerClient, controllerHost);
 
-    engine.loadFromModule("MixingStationHMI", "HMIScreen");
+    loadHmiScreen(engine, app);
 
     return QGuiApplication::exec();
 }
