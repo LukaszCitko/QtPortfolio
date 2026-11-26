@@ -8,6 +8,7 @@ class Pump;
 class Valve;
 class Mixer;
 class MixingTank;
+struct ProcessEquipment;
 
 class RemoteProcessSynchronizer final : public QObject
 {
@@ -15,10 +16,12 @@ class RemoteProcessSynchronizer final : public QObject
 
 public:
     explicit RemoteProcessSynchronizer(ModbusControllerClient *client, Pump *pump1, Valve *valve1, Pump *pump2, Valve *valve2, Pump *pump3, Valve *valve3, Valve *valve4, Mixer *mixer, MixingTank *tank, QObject *parent = nullptr);
+    explicit RemoteProcessSynchronizer(ModbusControllerClient &client, ProcessEquipment &equipment, QObject *parent = nullptr);
 
 private:
     void synchronizeSnapshot();
     int effectiveProcessState(int processState);
+    int m_lastActiveProcessState;
 
     ModbusControllerClient *m_client;
     Pump *m_pump1;
@@ -30,7 +33,7 @@ private:
     Valve *m_valve4;
     Mixer *m_mixer;
     MixingTank *m_tank;
-    int m_lastActiveProcessState;
+
 };
 
 #endif // REMOTEPROCESSSYNCHRONIZER_H

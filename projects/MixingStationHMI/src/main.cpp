@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 
     ModbusControllerClient modbusControllerClient;
     RemoteProcessController remoteProcessController(&modbusControllerClient);
-    RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.valve4, &equipment.mixer, &equipment.mixingTank);
+    RemoteProcessSynchronizer remoteProcessSynchronizer(modbusControllerClient, equipment);
 
     if (hardwareMode) configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 

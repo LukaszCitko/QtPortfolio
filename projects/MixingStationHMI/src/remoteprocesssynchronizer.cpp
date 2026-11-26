@@ -5,6 +5,7 @@
 #include "mixer.h"
 #include "mixingtank.h"
 #include "processconfiguration.h"
+#include "processequipment.h"
 #include "pump.h"
 #include "valve.h"
 
@@ -53,6 +54,7 @@ MixingTank::State tankStateForProcessState(int processState)
 
 RemoteProcessSynchronizer::RemoteProcessSynchronizer(ModbusControllerClient *client, Pump *pump1, Valve *valve1, Pump *pump2, Valve *valve2, Pump *pump3, Valve *valve3, Valve *valve4, Mixer *mixer, MixingTank *tank, QObject *parent)
     : QObject(parent),
+      m_lastActiveProcessState(static_cast<int>(ControllerProtocol::ProcessState::Idle)),
       m_client(client),
       m_pump1(pump1),
       m_valve1(valve1),
@@ -62,8 +64,7 @@ RemoteProcessSynchronizer::RemoteProcessSynchronizer(ModbusControllerClient *cli
       m_valve3(valve3),
       m_valve4(valve4),
       m_mixer(mixer),
-      m_tank(tank),
-      m_lastActiveProcessState(static_cast<int>(ControllerProtocol::ProcessState::Idle))
+      m_tank(tank)
 {
     Q_ASSERT(m_client);
     Q_ASSERT(m_pump1);
@@ -244,4 +245,9 @@ int RemoteProcessSynchronizer::effectiveProcessState(int processState)
 
     m_lastActiveProcessState = processState;
     return processState;
+}
+
+RemoteProcessSynchronizer::RemoteProcessSynchronizer(ModbusControllerClient &client, ProcessEquipment &equipment, QObject *parent)
+    : RemoteProcessSynchronizer(&client, &equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.valve4, &equipment.mixer, &equipment.mixingTank, parent)
+{
 }
