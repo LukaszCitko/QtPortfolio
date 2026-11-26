@@ -201,6 +201,7 @@ qt_add_qml_module(appMixingStationHMI
         qml/EquipmentPanel.qml
         qml/HmiButton.qml
         qml/HmiDialog.qml
+        qml/HmiHeader.qml
         qml/HMIScreen.qml
         qml/NavigationBar.qml
         qml/OperatorSelectionDialog.qml

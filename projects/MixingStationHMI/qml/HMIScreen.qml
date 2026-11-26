@@ -54,107 +54,34 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
-        Rectangle {
+        HmiHeader {
             width: parent.width
-            height: 80
-            color: "#e8e9ea"
 
-            Text {
-                anchors.left: parent.left
-                anchors.leftMargin: 24
-                anchors.verticalCenter: parent.verticalCenter
-                text: "MIXING STATION #1"
-                color: "#252a2d"
-                font.pixelSize: 24
-                font.bold: true
-            }
+            controllerReady: window.controllerReady
+            statusText: window.controllerReady
+                        ? "STATUS: " + batchController.stateText
+                        : (window.isHardwareMode && controllerClient.heartbeatStalled
+                           ? "STATUS: CONTROLLER HEARTBEAT STOPPED"
+                           : "STATUS: CONTROLLER OFFLINE")
 
-            Text {
-                anchors.centerIn: parent
-                text: window.controllerReady
-                      ? "STATUS: " + batchController.stateText
-                      : (window.isHardwareMode && controllerClient.heartbeatStalled
-                          ? "STATUS: CONTROLLER HEARTBEAT STOPPED"
-                          : "STATUS: CONTROLLER OFFLINE")
-                color: window.controllerReady ? "#252a2d" : "#b63838"
-                font.pixelSize: 20
-            }
+            historyStatusText: persistenceRetryQueue.hasPermanentFailure
+                               ? "HISTORY SAVE ERROR · CHECK LOGS"
+                               : (persistenceRetryQueue.hasPendingWrites
+                                  ? "HISTORY SAVE PENDING"
+                                  : "")
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 5
-                visible: persistenceRetryQueue.hasPendingWrites || persistenceRetryQueue.hasPermanentFailure
-                text: persistenceRetryQueue.hasPermanentFailure ? "HISTORY SAVE ERROR · CHECK LOGS" : "HISTORY SAVE PENDING"
-                color: "#b63838"
-                font.pixelSize: 14
-                font.bold: true
-            }
+            loginText: operatorSession.selected
+                       ? operatorSession.operatorName + "\n" + operatorSession.operatorRole
+                       : "LOGIN"
+            operatorChangeAllowed: window.operatorChangeAllowed
+            canManageUsers: operatorSession.canManageUsers
 
-            HmiButton {
-                id: loginButton
-                anchors.right: parent.right
-                anchors.rightMargin: 24
-                anchors.verticalCenter: parent.verticalCenter
-                width: 220
-                height: 48
-
-                text: operatorSession.selected
-                      ? operatorSession.operatorName + "\n" + operatorSession.operatorRole
-                      : "LOGIN"
-
-                enabled: window.operatorChangeAllowed
-
-                onClicked: operatorDialog.open()
-
-                background: Rectangle {
-                    color: "#f7f8f8"
-                    border.color: "#858e92"
-                    radius: 4
-                }
-
-                contentItem: Text {
-                    text: loginButton.text
-                    color: loginButton.enabled ? "#252a2d" : "#596368"
-                    font.pixelSize: 15
-                    font.bold: true
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-            HmiButton {
-                id: manageUsersButton
-                anchors.right: loginButton.left
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                width: 160
-                height: 48
-
-                visible: operatorSession.canManageUsers
-                enabled: loginButton.enabled
-                text: "USERS"
-
-                onClicked: userManagementDialog.open()
-
-                background: Rectangle {
-                    color: manageUsersButton.enabled ? "#f7f8f8" : "#d7dadd"
-                    border.color: "#858e92"
-                    radius: 4
-                }
-
-                contentItem: Text {
-                    text: manageUsersButton.text
-                    color: manageUsersButton.enabled ? "#252a2d" : "#596368"
-                    font.pixelSize: 14
-                    maximumLineCount: 2
-                    wrapMode: Text.NoWrap
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
+            onLoginRequested: operatorDialog.open()
+            onUsersRequested: userManagementDialog.open()
         }
+
+
+
 
         //QML Top Strip
 
