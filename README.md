@@ -10,27 +10,28 @@ This repository presents software projects focused on C++, Qt/QML, embedded cont
 
 <img src="projects/MixingStationHMI/docs/screenshots/hero.jpg" alt="MixingStationHMI controlling an ESP32-S3 hardware prototype" width="900">
 
-MixingStationHMI is a distributed batch-control prototype with a Qt/QML operator interface and an ESP32-S3 process controller. The HMI communicates with the controller over Modbus TCP through Wi-Fi, stores run history and trends in SQLite, and presents process state, equipment status, alarms, and recovery information on a 1280 x 800 touch-oriented interface.
+MixingStationHMI is a distributed batch control prototype. A Raspberry Pi 3 runs the Qt/QML operator interface on a Yocto Project image, while an ESP32-S3 runs the batch process under FreeRTOS. The HMI reads process status, sends commands over Modbus TCP through Wi-Fi, and stores runs, events, and trends in SQLite.
 
-The project can also run without hardware using its desktop simulation mode.
+You can also run the HMI on a desktop with its built-in simulation, without an ESP32 or Raspberry Pi.
 
 **[Watch the 90-second Raspberry Pi and ESP32 hardware demonstration](https://github.com/LukaszCitko/QtPortfolio/releases/download/v2.1.0/MixingStationHMI-v2.1-demo.mp4)**
 
-**Technology stack:** C++17, Qt 6, QML, Qt SerialBus, SQLite, CMake, ESP-IDF 6.1, FreeRTOS, Modbus TCP, GPIO, DS18B20, Qt Test, Unity, and GitHub Actions.
+**Technology stack:** C++17, Qt 6, QML, SQLite, CMake, Embedded Linux, Yocto Project, systemd, Weston, ESP-IDF, FreeRTOS, Modbus TCP, Qt Test, Unity, and GitHub Actions.
 
 **What the project demonstrates:**
 
-- A process state machine shared through an explicit 16-bit Modbus register protocol.
-- A Qt client that polls controller snapshots, sends sequenced commands, reconnects, and detects controller restarts.
+- An ESP32-S3 state machine that owns the batch process and validates commands using equipment state, faults, and temperature.
+- A Qt client that polls snapshots, tracks command acknowledgements, and detects a stalled controller heartbeat.
+- A custom Yocto layer that builds a Raspberry Pi 3 image with Qt, Weston, and automatic HMI startup through systemd.
 - ESP32-S3 firmware with FreeRTOS tasks, Wi-Fi, Modbus TCP, GPIO outputs, a physical mixer-presence input, and a DS18B20 temperature sensor.
 - A touch-oriented HMI based on high-performance HMI principles, with restrained colour and prominent abnormal-state indication.
-- SQLite persistence for operators, runs, events, and historical trend samples.
+- SQLite persistence for operators, runs, events, and trends, with tests for reconnecting to an active run and retrying failed history writes.
 - Role-aware batch control, fault reset, drain control, and demo user management.
 - Automated Qt and firmware builds in CI, host-side Qt tests, and ESP-IDF Unity component tests.
 
 ```mermaid
 flowchart LR
-    Operator[Operator] --> HMI[Qt/QML HMI]
+    Operator[Operator] --> HMI[Qt/QML HMI on Raspberry Pi 3 / Yocto]
     HMI <--> DB[(SQLite)]
     HMI <-->|Modbus TCP / Wi-Fi| ESP[ESP32-S3 controller]
     ESP --> OUT[Pump and mixer output indicators]
@@ -38,7 +39,7 @@ flowchart LR
     INPUT[Mixer connection input] --> ESP
 ```
 
-[Project overview and build instructions](projects/MixingStationHMI/README.md) | [Illustrated system guide](projects/MixingStationHMI/docs/MixingStationHMI-Guide.pdf) | [Qt/C++ source](projects/MixingStationHMI/src/) | [ESP32 firmware](projects/MixingStationHMI/firmware/mixing_controller/) | [Tests](projects/MixingStationHMI/tests/)
+[Project overview and build instructions](projects/MixingStationHMI/README.md) | [Yocto image and build instructions](projects/MixingStationHMI/yocto/meta-mixingstation/README) | [Illustrated system guide (earlier revision)](projects/MixingStationHMI/docs/MixingStationHMI-Guide.pdf) | [Qt/C++ source](projects/MixingStationHMI/src/) | [ESP32 firmware](projects/MixingStationHMI/firmware/mixing_controller/) | [Tests](projects/MixingStationHMI/tests/)
 
 ## Project status
 

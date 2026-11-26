@@ -2,21 +2,22 @@
 
 [![MixingStationHMI CI](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml/badge.svg?branch=main)](https://github.com/LukaszCitko/QtPortfolio/actions/workflows/mixingstation-ci.yml)
 
-A distributed batch mixing station prototype built with a Qt/QML HMI and an ESP32-S3 controller. The HMI communicates with the controller over Modbus TCP through Wi-Fi, records process history in SQLite, and can also run as a self-contained desktop simulation.
+A distributed batch mixing station prototype with a Qt/QML HMI and an ESP32-S3 process controller. The HMI runs on a Raspberry Pi 3 with a Yocto Project image or on a desktop. It communicates with the ESP32-S3 over Modbus TCP through Wi-Fi and records process history in SQLite. Desktop simulation is also available without a controller.
 
 **[Watch the 90-second Raspberry Pi and ESP32 hardware demonstration](https://github.com/LukaszCitko/QtPortfolio/releases/download/v2.1.0/MixingStationHMI-v2.1-demo.mp4)**
 
 <img src="docs/screenshots/hero.jpg" alt="Qt HMI controlling the ESP32-S3 prototype during water filling" width="900">
 
-[Open the illustrated system guide](docs/MixingStationHMI-Guide.pdf) | [Browse selected screenshots](docs/screenshots/) | [Review follow-up work](docs/TODO.md)
+[Open the illustrated system guide (earlier revision)](docs/MixingStationHMI-Guide.pdf) | [Browse selected screenshots](docs/screenshots/) | [Review follow-up work](docs/TODO.md)
 
 ## Current capabilities
 
 - **Batch sequence:** pre-check, 70 L water filling, 30 L concentrate dosing, temperature validation at 30-36 C, 8 seconds of mixing, operator-approved transfer, and preparation for the next batch.
 - **Two operating modes:** local Qt simulation or a remote ESP32-S3 controller selected with `--controller-host`.
+- **Embedded Linux deployment:** a custom Yocto layer for Raspberry Pi 3 with Qt, Weston, and automatic HMI startup through systemd.
 - **Process communication:** Modbus TCP server on the ESP32 and a Qt SerialBus client using port 1502.
 - **Controller identity:** a controller session ID and run sequence create stable run IDs such as `esp-33695-1`.
-- **Command handling:** sequenced commands, acknowledgements, duplicate protection, state validation, reconnect attempts, and snapshot polling.
+- **Command handling:** sequenced commands, acknowledgements, duplicate protection, and controller-side validation. The HMI reports unknown outcomes after a timeout and detects a stalled heartbeat.
 - **Physical prototype:** DS18B20 temperature input, mixer connection button, pump/mixer output LEDs, and separate fault LEDs.
 - **Fault behaviour:** faults pause the batch, remain active until reset, appear in the HMI and on physical fault indicators, and are recorded in History.
 - **Recovery:** an ESP32 restart during an active run marks the run as `INTERRUPTED` and blocks a new batch until recovery is explicitly completed.
@@ -45,7 +46,9 @@ flowchart LR
 | Modbus polling, acknowledgements, and timeouts | `src/communication/modbuscontrollerclient.cpp` |
 | Converting controller snapshots into HMI state | `src/communication/remoteprocesscontroller.cpp` and `src/remoteprocesssynchronizer.cpp` |
 | Run identity, history writes, and retries | `src/database/runpersistencecoordinator.cpp` and `src/database/persistenceretryqueue.cpp` |
-| Operator presentation | `qml/HMIScreen.qml` and the smaller QML components in `qml/` |
+| Application startup and QML bindings | `src/main.cpp` and `src/hmiqmlcontext.cpp` |
+| Operator screen and history view | `qml/HMIScreen.qml` and `qml/HistoryPanel.qml` |
+| Raspberry Pi image and systemd services | `yocto/meta-mixingstation/` |
 
 The HMI owns presentation, operator sessions, history, trends, and user management. The ESP32 owns the active batch state machine, equipment command state, process timing, temperature validation, and Modbus register bank. Losing the HMI connection does not stop the controller task; reconnecting restores the current snapshot.
 
@@ -72,16 +75,22 @@ open -n build/cli-debug/appMixingStationHMI.app
 Start the application with the controller IP address. The local process simulator is disabled and the HMI synchronizes its device models from Modbus snapshots.
 
 ```sh
-./build/cli-debug/appMixingStationHMI --controller-host <IP adress>
+./build/cli-debug/appMixingStationHMI --controller-host 192.168.1.131
 ```
 
 On macOS:
 
 ```sh
-open -n build/cli-debug/appMixingStationHMI.app --args --controller-host <IP adress>
+open -n build/cli-debug/appMixingStationHMI.app --args --controller-host 192.168.1.131
 ```
 
-The address is assigned by the local network and may change after reconnecting the controller.
+Replace `192.168.1.131` with your ESP32-S3 address. The controller prints its address to the serial monitor after joining Wi-Fi.
+
+### Raspberry Pi deployment with Yocto
+
+The [meta-mixingstation layer](yocto/meta-mixingstation/README) builds a Raspberry Pi 3 image with Qt, Weston, Wi-Fi support, SSH, and systemd services. The HMI starts at boot and reads the ESP32 address from its service configuration. The layer guide covers prerequisites, local settings, building the image, and writing it to a microSD card.
+
+The HMI recipe builds a pinned source revision. To build newer HMI changes into the image, update the recipe's `SRCREV` to the intended commit.
 
 ## Prototype hardware
 
@@ -155,7 +164,7 @@ The CMake project also builds:
 
 - `appControllerSimulator`, a desktop Modbus TCP test server;
 - `appModbusClientProbe`, a command-cycle and protocol probe;
-- the HMI application and 19 Qt test executables.
+- the HMI application and the Qt test suite.
 
 ## Build and flash the ESP32-S3 firmware
 
@@ -230,6 +239,7 @@ MixingStationHMI/
 |-- shared/                      Protocol and process configuration shared by Qt and ESP-IDF
 |-- firmware/mixing_controller/  ESP32-S3 FreeRTOS firmware and Unity tests
 |-- tests/                       Qt Test suite
+|-- yocto/meta-mixingstation/    Raspberry Pi image, package recipes, and services
 `-- docs/                        Guide, screenshots, and follow-up work
 ```
 
