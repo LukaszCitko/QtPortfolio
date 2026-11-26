@@ -11,13 +11,10 @@
 #include "faultresetservice.h"
 #include "hardwaremode.h"
 #include "hmiqmlcontext.h"
-
-#include "operatorsession.h"
-
+#include "operatorservices.h"
 #include "processeventcoordinator.h"
 #include "processequipment.h"
 #include "processsimulator.h"
-
 #include "remoteprocesssynchronizer.h"
 #include "trendrecorder.h"
 #include "usermanagementservice.h"
@@ -58,20 +55,18 @@ int main(int argc, char *argv[])
     QTimer batchTimer;
     configureDemoMode(!hardwareMode, simulator, batchController, batchTimer);
 
-    OperatorSession operatorSession(applicationDatabase->connection());
-    UserManagementService userManagementService(operatorSession, applicationDatabase->userRepository(), applicationDatabase->userListModel(), eventManager);
-    DrainService drainService(operatorSession, batchController, equipment.mixingTank, equipment.valve4, eventManager);
-    FaultResetService faultResetService(operatorSession, equipment.pump1, equipment.mixer, eventManager);
+    OperatorServices operatorServices(*applicationDatabase, batchController, equipment, eventManager);
+
     RunPersistenceCoordinator runPersistenceCoordinator(eventManager, applicationDatabase->retryQueue());
 
-    processEventCoordinator.watchRpmChanges(equipment.pump1, equipment.pump2, equipment.pump3, equipment.mixer, operatorSession);
-    connectLocalBatchObservers(batchController, equipment.mixingTank, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
+    processEventCoordinator.watchRpmChanges(equipment.pump1, equipment.pump2, equipment.pump3, equipment.mixer, operatorServices.session);
+    connectLocalBatchObservers(batchController, equipment.mixingTank, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
     ModbusControllerClient modbusControllerClient;
     RemoteProcessController remoteProcessController(modbusControllerClient);
     RemoteProcessSynchronizer remoteProcessSynchronizer(modbusControllerClient, equipment);
 
-    if (hardwareMode) configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
+    if (hardwareMode) configureHardwareMode(modbusControllerClient, remoteProcessController, operatorServices.drain, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
     connectRemoteCommandFeedback(modbusControllerClient, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
 
@@ -79,7 +74,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);
-    exposeHmiServices(*engine.rootContext(), *activeBatchController, modbusControllerClient, hardwareMode, operatorSession, eventManager, trendRecorder, faultResetService, drainService, userManagementService);
+    exposeHmiServices(*engine.rootContext(), *activeBatchController, modbusControllerClient, hardwareMode, operatorServices.session, eventManager, trendRecorder, operatorServices.faultReset, operatorServices.drain, operatorServices.userManagement);
 
     if (hardwareMode) startHardwareConnection(modbusControllerClient, controllerHost);
 
