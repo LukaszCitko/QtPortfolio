@@ -498,9 +498,10 @@ void ProcessEventCoordinator::watchCommandResults(ModbusControllerClient &client
                             return;
                         }
 
-                        const QString message = QStringLiteral("%1 command rejected: %2 (sequence %3)").arg(commandName(commandCode)).arg(resultDescription(result)).arg(commandSequence);
+                        const QString message = QStringLiteral("%1 command rejected: %2 (sequence %3)").arg(commandName(commandCode), resultDescription(result), QString::number(commandSequence));
                         events->addWarning(QStringLiteral("CONTROLLER"), message);
-    });
+                    }
+    );
 
     QObject::connect(&client, &ModbusControllerClient::commandOutcomeUnknown, events, [events, commandName](quint16 commandCode, quint16 commandSequence, const QString &reason)
                     {
