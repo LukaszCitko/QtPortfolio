@@ -8,6 +8,7 @@
 #include <QTimer>
 
 #include "batchcontroller.h"
+#include "demomode.h"
 #include "drainservice.h"
 #include "eventmanager.h"
 #include "faultresetservice.h"
@@ -27,7 +28,6 @@
 #include "database/applicationdatabase.h"
 #include "database/historypersistence.h"
 #include "database/runpersistencecoordinator.h"
-
 
 #include "communication/modbuscontrollerclient.h"
 #include "communication/remoteprocesscontroller.h"
@@ -78,23 +78,13 @@ int main(int argc, char *argv[])
     processEventCoordinator.watchMixerConnection(mixer);
 
     ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &mixingTank);
-    simulator.setEnabled(!hardwareMode);
-
     BatchController batchController(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
     TrendRecorder trendRecorder(&mixingTank);
 
     connectHistoryPersistence(eventManager, trendRecorder, applicationDatabase->retryQueue(), applicationDatabase->eventHistoryModel());
 
     QTimer batchTimer;
-    batchTimer.setInterval(100);
-
-    QObject::connect(&batchTimer, &QTimer::timeout, &batchController, [&batchController]() {
-        batchController.simulateStep(0.1);
-        }
-    );
-
-    if (!hardwareMode) batchTimer.start();
-
+    configureDemoMode(!hardwareMode, simulator, batchController, batchTimer);
 
     OperatorSession operatorSession(applicationDatabase->connection());
     UserManagementService userManagementService(operatorSession, applicationDatabase->userRepository(), applicationDatabase->userListModel(), eventManager);

@@ -173,6 +173,8 @@ qt_add_executable(appMixingStationHMI
 
     src/batchcontroller.h
     src/batchcontroller.cpp
+    src/demomode.h
+    src/demomode.cpp
     src/drainservice.h
     src/drainservice.cpp
     src/hardwaremode.h
