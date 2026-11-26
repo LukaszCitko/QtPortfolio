@@ -3,16 +3,12 @@
 #include <QQmlApplicationEngine>
 
 #include "database/applicationdatabase.h"
-
 #include "communication/modbuscontrollerclient.h"
-#include "drainservice.h"
 #include "eventmanager.h"
-#include "faultresetservice.h"
 #include "hmiqmlcontext.h"
-#include "operatorsession.h"
+#include "operatorservices.h"
 #include "processequipment.h"
 #include "trendrecorder.h"
-#include "usermanagementservice.h"
 
 void exposeEquipmentAndHistory(QQmlContext &context, ProcessEquipment &equipment, ApplicationDatabase &database)
 {
@@ -33,17 +29,17 @@ void exposeEquipmentAndHistory(QQmlContext &context, ProcessEquipment &equipment
     context.setContextProperty("persistenceRetryQueue", &database.retryQueue());
 }
 
-void exposeHmiServices(QQmlContext &context, QObject &activeController, ModbusControllerClient &client, bool hardwareMode, OperatorSession &session, EventManager &events, TrendRecorder &trends, FaultResetService &faultReset, DrainService &drain, UserManagementService &users)
+void exposeHmiServices(QQmlContext &context, QObject &activeController, ModbusControllerClient &client, bool hardwareMode, OperatorServices &operators, EventManager &events, TrendRecorder &trends)
 {
     context.setContextProperty("batchController", &activeController);
     context.setContextProperty("controllerClient", &client);
     context.setContextProperty("hardwareMode", hardwareMode);
-    context.setContextProperty("operatorSession", &session);
+    context.setContextProperty("operatorSession", &operators.session);
     context.setContextProperty("eventManager", &events);
     context.setContextProperty("trendRecorder", &trends);
-    context.setContextProperty("faultResetService", &faultReset);
-    context.setContextProperty("drainService", &drain);
-    context.setContextProperty("userManagementService", &users);
+    context.setContextProperty("faultResetService", &operators.faultReset);
+    context.setContextProperty("drainService", &operators.drain);
+    context.setContextProperty("userManagementService", &operators.userManagement);
 }
 
 void loadHmiScreen(QQmlApplicationEngine &engine, QCoreApplication &app)

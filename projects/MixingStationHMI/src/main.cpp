@@ -66,8 +66,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);
-    exposeHmiServices(*engine.rootContext(), *activeBatchController, remoteProcess.client, hardwareMode, operatorServices.session, eventManager, trendRecorder, operatorServices.faultReset, operatorServices.drain, operatorServices.userManagement);
-
+    exposeHmiServices(*engine.rootContext(), *activeBatchController, remoteProcess.client, hardwareMode, operatorServices, eventManager, trendRecorder);
     if (hardwareMode) startHardwareConnection(remoteProcess.client, controllerHost);
 
     loadHmiScreen(engine, app);
