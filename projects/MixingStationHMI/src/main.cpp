@@ -54,22 +54,21 @@ int main(int argc, char *argv[])
     RunPersistenceCoordinator runPersistenceCoordinator(eventManager, applicationDatabase->retryQueue());
 
     processEventCoordinator.watchRpmChanges(equipment.pump1, equipment.pump2, equipment.pump3, equipment.mixer, operatorServices.session);
-    connectLocalBatchObservers(localProcess.controller, equipment.mixingTank, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
+    DemoMode::connectLocalBatchObservers(localProcess.controller, equipment.mixingTank, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
     RemoteProcessRuntime remoteProcess(equipment);
 
-    if (hardwareMode) configureHardwareMode(remoteProcess.client, remoteProcess.controller, operatorServices.drain, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
+    if (hardwareMode) HardwareMode::configureHardwareMode(remoteProcess.client, remoteProcess.controller, operatorServices.drain, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
     connectRemoteCommandFeedback(remoteProcess.client, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
 
     QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcess.controller) : static_cast<QObject *>(&localProcess.controller);
 
     QQmlApplicationEngine engine;
-    exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);
-    exposeHmiServices(*engine.rootContext(), *activeBatchController, remoteProcess.client, hardwareMode, operatorServices, eventManager, trendRecorder);
-    if (hardwareMode) startHardwareConnection(remoteProcess.client, controllerHost);
-
-    loadHmiScreen(engine, app);
+    HmiQml::exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);
+    HmiQml::exposeHmiServices(*engine.rootContext(), *activeBatchController, remoteProcess.client, hardwareMode, operatorServices, eventManager, trendRecorder);
+    if (hardwareMode) HardwareMode::startHardwareConnection(remoteProcess.client, controllerHost);
+    HmiQml::loadHmiScreen(engine, app);
 
     return QGuiApplication::exec();
 }

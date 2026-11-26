@@ -10,7 +10,9 @@ class RunPersistenceCoordinator;
 class QTimer;
 class TrendRecorder;
 
-void configureDemoMode(bool enabled, ProcessSimulator &simulator, BatchController &controller, QTimer &batchTimer);
-void connectLocalBatchObservers(BatchController &controller, MixingTank &tank, OperatorSession &session, RunPersistenceCoordinator &runPersistence, ProcessEventCoordinator &processEvents, TrendRecorder &trends);
+namespace DemoMode {
+    void configureDemoMode(bool enabled, ProcessSimulator &simulator, BatchController &controller, QTimer &batchTimer);
+    void connectLocalBatchObservers(BatchController &controller, MixingTank &tank, OperatorSession &session, RunPersistenceCoordinator &runPersistence, ProcessEventCoordinator &processEvents, TrendRecorder &trends);
+} // namespace DemoMode
 
 #endif

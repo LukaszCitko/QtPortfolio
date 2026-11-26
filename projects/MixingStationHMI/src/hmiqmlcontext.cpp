@@ -10,40 +10,43 @@
 #include "processequipment.h"
 #include "trendrecorder.h"
 
-void exposeEquipmentAndHistory(QQmlContext &context, ProcessEquipment &equipment, ApplicationDatabase &database)
-{
-    context.setContextProperty("pump1", &equipment.pump1);
-    context.setContextProperty("valve1", &equipment.valve1);
-    context.setContextProperty("pump2", &equipment.pump2);
-    context.setContextProperty("valve2", &equipment.valve2);
-    context.setContextProperty("pump3", &equipment.pump3);
-    context.setContextProperty("valve3", &equipment.valve3);
-    context.setContextProperty("valve4", &equipment.valve4);
-    context.setContextProperty("mixingTank", &equipment.mixingTank);
-    context.setContextProperty("mixer", &equipment.mixer);
+namespace HmiQml {
 
-    context.setContextProperty("userListModel", &database.userListModel());
-    context.setContextProperty("eventHistoryModel", &database.eventHistoryModel());
-    context.setContextProperty("runListModel", &database.runListModel());
-    context.setContextProperty("trendHistorySource", &database.trendHistorySource());
-    context.setContextProperty("persistenceRetryQueue", &database.retryQueue());
-}
+    void exposeEquipmentAndHistory(QQmlContext &context, ProcessEquipment &equipment, ApplicationDatabase &database)
+    {
+        context.setContextProperty("pump1", &equipment.pump1);
+        context.setContextProperty("valve1", &equipment.valve1);
+        context.setContextProperty("pump2", &equipment.pump2);
+        context.setContextProperty("valve2", &equipment.valve2);
+        context.setContextProperty("pump3", &equipment.pump3);
+        context.setContextProperty("valve3", &equipment.valve3);
+        context.setContextProperty("valve4", &equipment.valve4);
+        context.setContextProperty("mixingTank", &equipment.mixingTank);
+        context.setContextProperty("mixer", &equipment.mixer);
 
-void exposeHmiServices(QQmlContext &context, QObject &activeController, ModbusControllerClient &client, bool hardwareMode, OperatorServices &operators, EventManager &events, TrendRecorder &trends)
-{
-    context.setContextProperty("batchController", &activeController);
-    context.setContextProperty("controllerClient", &client);
-    context.setContextProperty("hardwareMode", hardwareMode);
-    context.setContextProperty("operatorSession", &operators.session);
-    context.setContextProperty("eventManager", &events);
-    context.setContextProperty("trendRecorder", &trends);
-    context.setContextProperty("faultResetService", &operators.faultReset);
-    context.setContextProperty("drainService", &operators.drain);
-    context.setContextProperty("userManagementService", &operators.userManagement);
-}
+        context.setContextProperty("userListModel", &database.userListModel());
+        context.setContextProperty("eventHistoryModel", &database.eventHistoryModel());
+        context.setContextProperty("runListModel", &database.runListModel());
+        context.setContextProperty("trendHistorySource", &database.trendHistorySource());
+        context.setContextProperty("persistenceRetryQueue", &database.retryQueue());
+    }
 
-void loadHmiScreen(QQmlApplicationEngine &engine, QCoreApplication &app)
-{
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
-    engine.loadFromModule("MixingStationHMI", "HMIScreen");
-}
+    void exposeHmiServices(QQmlContext &context, QObject &activeController, ModbusControllerClient &client, bool hardwareMode, OperatorServices &operators, EventManager &events, TrendRecorder &trends)
+    {
+        context.setContextProperty("batchController", &activeController);
+        context.setContextProperty("controllerClient", &client);
+        context.setContextProperty("hardwareMode", hardwareMode);
+        context.setContextProperty("operatorSession", &operators.session);
+        context.setContextProperty("eventManager", &events);
+        context.setContextProperty("trendRecorder", &trends);
+        context.setContextProperty("faultResetService", &operators.faultReset);
+        context.setContextProperty("drainService", &operators.drain);
+        context.setContextProperty("userManagementService", &operators.userManagement);
+    }
+
+    void loadHmiScreen(QQmlApplicationEngine &engine, QCoreApplication &app)
+    {
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
+        engine.loadFromModule("MixingStationHMI", "HMIScreen");
+    }
+} // namespace HmiQml

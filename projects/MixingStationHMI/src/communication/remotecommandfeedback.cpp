@@ -16,6 +16,7 @@ void connectRemoteCommandFeedback(ModbusControllerClient &client, EventManager &
     Pump *pump3Ptr = &pump3;
 
     QObject::connect(clientPtr, &ModbusControllerClient::pumpTargetRpmWriteFinished, eventsPtr, [clientPtr, eventsPtr, pump1Ptr, pump2Ptr, pump3Ptr](int pumpNumber, int requestedRpm, bool success) {
+
         Pump *pump = nullptr;
 
         if (pumpNumber == 1)
@@ -39,6 +40,7 @@ void connectRemoteCommandFeedback(ModbusControllerClient &client, EventManager &
     });
 
     QObject::connect(clientPtr, &ModbusControllerClient::simulatedFaultMaskWriteFinished, clientPtr, [clientPtr, hardwareMode](quint16 faultMask, bool success) {
+
         if (!hardwareMode || !success || faultMask != 0U)
             return;
 

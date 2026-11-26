@@ -9,26 +9,30 @@
 #include <QObject>
 #include <QTimer>
 
-void configureDemoMode(bool enabled, ProcessSimulator &simulator, BatchController &controller, QTimer &batchTimer)
-{
-    simulator.setEnabled(enabled);
+namespace DemoMode {
 
-    if (!enabled)
-        return;
+    void configureDemoMode(bool enabled, ProcessSimulator &simulator, BatchController &controller, QTimer &batchTimer)
+    {
+        simulator.setEnabled(enabled);
 
-    constexpr int intervalMs = 100;
-    constexpr double stepSeconds = intervalMs / 1000.0;
+        if (!enabled)
+            return;
 
-    QObject::connect(&batchTimer, &QTimer::timeout, &controller, [&controller]() { controller.simulateStep(stepSeconds); });
-    batchTimer.start(intervalMs);
-}
+        constexpr int intervalMs = 100;
+        constexpr double stepSeconds = intervalMs / 1000.0;
 
-void connectLocalBatchObservers(BatchController &controller, MixingTank &tank, OperatorSession &session, RunPersistenceCoordinator &runPersistence, ProcessEventCoordinator &processEvents, TrendRecorder &trends)
-{
-    runPersistence.watchBatchStart(controller, session);
-    runPersistence.watchTrendRecording(controller, trends);
-    processEvents.watchStageCompletion(controller);
-    processEvents.watchBatchState(controller, tank, session);
-    processEvents.watchBatchId(controller);
-    runPersistence.watchBatchFinish(controller);
-}
+        QObject::connect(&batchTimer, &QTimer::timeout, &controller, [&controller]() { controller.simulateStep(stepSeconds); });
+        batchTimer.start(intervalMs);
+    }
+
+    void connectLocalBatchObservers(BatchController &controller, MixingTank &tank, OperatorSession &session, RunPersistenceCoordinator &runPersistence, ProcessEventCoordinator &processEvents, TrendRecorder &trends)
+    {
+        runPersistence.watchBatchStart(controller, session);
+        runPersistence.watchTrendRecording(controller, trends);
+        processEvents.watchStageCompletion(controller);
+        processEvents.watchBatchState(controller, tank, session);
+        processEvents.watchBatchId(controller);
+        runPersistence.watchBatchFinish(controller);
+    }
+
+} // namespace DemoMode

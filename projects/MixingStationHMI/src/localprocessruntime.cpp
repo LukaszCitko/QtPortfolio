@@ -11,5 +11,5 @@ LocalProcessRuntime::LocalProcessRuntime(ProcessEquipment &equipment)
 
 void LocalProcessRuntime::configure(bool enabled)
 {
-    configureDemoMode(enabled, m_simulator, controller, m_batchTimer);
+    DemoMode::configureDemoMode(enabled, m_simulator, controller, m_batchTimer);
 }
