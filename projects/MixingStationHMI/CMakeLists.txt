@@ -183,10 +183,12 @@ qt_add_executable(appMixingStationHMI
     src/communication/remotecommandfeedback.h
     src/communication/remotecommandfeedback.cpp
 
-    src/database/runpersistencecoordinator.cpp
-    src/database/runpersistencecoordinator.h
     src/database/applicationdatabase.h
     src/database/applicationdatabase.cpp
+    src/database/historypersistence.h
+    src/database/historypersistence.cpp
+    src/database/runpersistencecoordinator.h
+    src/database/runpersistencecoordinator.cpp
 )
 
 qt_add_qml_module(appMixingStationHMI

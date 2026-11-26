@@ -26,6 +26,7 @@
 #include "database/applicationdatabase.h"
 #include "database/eventhistorymodel.h"
 #include "database/eventrepository.h"
+#include "database/historypersistence.h"
 #include "database/persistenceretryqueue.h"
 #include "database/runlistmodel.h"
 #include "database/runpersistencecoordinator.h"
@@ -37,6 +38,7 @@
 
 #include "communication/modbuscontrollerclient.h"
 #include "communication/remoteprocesscontroller.h"
+#include "communication/remotecommandfeedback.h"
 
 int main(int argc, char *argv[])
 {
@@ -113,17 +115,6 @@ int main(int argc, char *argv[])
 
     EventManager eventManager;
 
-    QObject::connect(&retryQueue, &PersistenceRetryQueue::eventSaved, &eventHistoryModel,
-        [&eventHistoryModel](const QString &runId, qint64 timestampMs, const QString &level, const QString &source, const QString &message) {
-            eventHistoryModel.prependSavedEvent(runId, timestampMs, level, source, message);
-    });
-
-    QObject::connect(&eventManager, &EventManager::eventRecorded, &retryQueue,
-        [&retryQueue](const QString &runId, qint64 timestampMs, const QString &level, const QString &source, const QString &message) {
-            retryQueue.submitEvent(runId, timestampMs, level, source, message);
-    });
-
-
     ProcessEventCoordinator processEventCoordinator(eventManager);
 
     processEventCoordinator.watchTemperature(mixingTank);
@@ -136,10 +127,7 @@ int main(int argc, char *argv[])
     BatchController batchController(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
     TrendRecorder trendRecorder(&mixingTank);
 
-    QObject::connect(&trendRecorder, &TrendRecorder::sampleRecorded, &retryQueue,
-        [&retryQueue](const QString &runId, qint64 timestampMs, double volumeL, double temperatureC) {
-          retryQueue.submitSample(runId, timestampMs, volumeL, temperatureC);
-    });
+    connectHistoryPersistence(eventManager, trendRecorder, retryQueue, eventHistoryModel);
 
     QTimer batchTimer;
     batchTimer.setInterval(100);
@@ -201,56 +189,8 @@ int main(int argc, char *argv[])
         processEventCoordinator.watchCommandResults(modbusControllerClient);
     }
 
-    QObject::connect(&modbusControllerClient, &ModbusControllerClient::pumpTargetRpmWriteFinished, &eventManager, [&pump1, &pump2, &pump3, &eventManager, &modbusControllerClient](int pumpNumber, int requestedRpm, bool success)
-                    {
-                        Pump *pump = nullptr;
+    connectRemoteCommandFeedback(modbusControllerClient, eventManager, pump1, pump2, pump3, hardwareMode);
 
-                        if (pumpNumber == 1)
-                        {
-                            pump = &pump1;
-                        }
-                        else if (pumpNumber == 2)
-                        {
-                            pump = &pump2;
-                        }
-                        else if (pumpNumber == 3)
-                        {
-                            pump = &pump3;
-                        }
-
-                        if (pump == nullptr)
-                        {
-                            eventManager.addWarning("COMMUNICATION", "RPM confirmation contains an unknown pump number");
-                            return;
-                        }
-
-                        if (!success)
-                        {
-                            eventManager.addWarning(QString("P%1").arg(pumpNumber), "Target RPM write failed: " + modbusControllerClient.lastError());
-                            return;
-                        }
-
-                        pump->setTargetRpm(static_cast<double>(requestedRpm));
-                    }
-    );
-
-    QObject::connect(&modbusControllerClient, &ModbusControllerClient::simulatedFaultMaskWriteFinished, &modbusControllerClient, [&modbusControllerClient, hardwareMode](quint16 faultMask, bool success)
-                     {
-                        if (!hardwareMode || !success || faultMask != 0U)
-                        {
-                            return;
-                        }
-
-                        QTimer::singleShot(250, &modbusControllerClient, [&modbusControllerClient]()
-                                            {
-                                                if (!modbusControllerClient.commandPending())
-                                                {
-                                                    modbusControllerClient.resetFaults();
-                                                }
-                                            }
-                        );
-                     }
-    );
     QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcessController) : static_cast<QObject *>(&batchController);
 
     QQmlApplicationEngine engine;
