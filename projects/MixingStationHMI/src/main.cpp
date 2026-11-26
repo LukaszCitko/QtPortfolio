@@ -2,7 +2,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-
 #include "applicationoptions.h"
 #include "demomode.h"
 #include "drainservice.h"
