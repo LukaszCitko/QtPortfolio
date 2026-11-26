@@ -25,17 +25,11 @@
 #include "valve.h"
 
 #include "database/applicationdatabase.h"
-#include "database/eventhistorymodel.h"
-#include "database/eventrepository.h"
+
 #include "database/historypersistence.h"
-#include "database/persistenceretryqueue.h"
-#include "database/runlistmodel.h"
+
 #include "database/runpersistencecoordinator.h"
-#include "database/runrepository.h"
-#include "database/trendhistorysource.h"
-#include "database/trendsamplerepository.h"
-#include "database/userlistmodel.h"
-#include "database/userrepository.h"
+
 
 #include "communication/modbuscontrollerclient.h"
 #include "communication/remoteprocesscontroller.h"
@@ -56,48 +50,22 @@ int main(int argc, char *argv[])
     const QString controllerHost = commandLineParser.value(controllerHostOption).trimmed();
     const bool hardwareMode = !controllerHost.isEmpty();
 
-
-    QSqlDatabase database;
     QString databaseError;
+    auto applicationDatabase = ApplicationDatabase::open(databaseError);
 
-    if (!prepareApplicationDatabase(database, &databaseError)) {
+    if (!applicationDatabase) {
         qCritical() << databaseError;
         return 1;
     }
 
-    qInfo() << "SQLite database opened at" << database.databaseName();
+    const auto &database = applicationDatabase->connection();
+    auto &userRepository = applicationDatabase->userRepository();
+    auto &userListModel = applicationDatabase->userListModel();
+    auto &eventHistoryModel = applicationDatabase->eventHistoryModel();
+    auto &runListModel = applicationDatabase->runListModel();
+    auto &trendHistorySource = applicationDatabase->trendHistorySource();
+    auto &retryQueue = applicationDatabase->retryQueue();
 
-    UserListModel userListModel(database);
-    UserRepository userRepository(database);
-
-    QString usersError;
-    if (!userListModel.reload(&usersError))
-    {
-        qCritical() << "Cannot load users:" << usersError;
-        return 1;
-    }
-
-    RunRepository runRepository(database);
-    EventRepository eventRepository(database);
-    TrendSampleRepository trendSampleRepository(database);
-    PersistenceRetryQueue retryQueue(runRepository, eventRepository, trendSampleRepository);
-    EventHistoryModel eventHistoryModel(database);
-    RunListModel runListModel(database);
-    TrendHistorySource trendHistorySource(database);
-    QString runsError;
-
-    if (!runListModel.reload(&runsError))
-    {
-        qCritical() << "Cannot load runs:" << runsError;
-        return 1;
-    }
-
-    QString historyError;
-    if (!eventHistoryModel.reload(&historyError))
-    {
-        qCritical() << "Cannot load event history:" << historyError;
-        return 1;
-    }
 
 
     Pump pump1(1); // Water supply
@@ -145,7 +113,7 @@ int main(int argc, char *argv[])
     UserManagementService userManagementService(operatorSession, userRepository, userListModel, eventManager);
     DrainService drainService(operatorSession, batchController, mixingTank, valve4, eventManager);
     FaultResetService faultResetService(operatorSession, pump1, mixer, eventManager);
-    RunPersistenceCoordinator runPersistenceCoordinator(eventManager, retryQueue);
+    RunPersistenceCoordinator runPersistenceCoordinator(eventManager, applicationDatabase->retryQueue());
     runPersistenceCoordinator.watchBatchStart(batchController, operatorSession);
     runPersistenceCoordinator.watchTrendRecording(batchController, trendRecorder);
     processEventCoordinator.watchRpmChanges(pump1, pump2, pump3, mixer, operatorSession);
@@ -185,7 +153,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("operatorSession", &operatorSession);
     engine.rootContext()->setContextProperty("eventManager", &eventManager);
     engine.rootContext()->setContextProperty("trendRecorder", &trendRecorder);
-    engine.rootContext()->setContextProperty("userListModel", &userListModel);
+    engine.rootContext()->setContextProperty("userListModel", &applicationDatabase->userListModel());
     engine.rootContext()->setContextProperty("eventHistoryModel", &eventHistoryModel);
     engine.rootContext()->setContextProperty("runListModel", &runListModel);
     engine.rootContext()->setContextProperty("trendHistorySource", &trendHistorySource);

@@ -10,7 +10,7 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 
-bool prepareApplicationDatabase(QSqlDatabase &database, QString *errorMessage)
+static bool prepareApplicationDatabase(QSqlDatabase &database, QString *errorMessage)
 {
     const QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 
@@ -61,4 +61,46 @@ bool prepareApplicationDatabase(QSqlDatabase &database, QString *errorMessage)
     }
 
     return true;
+}
+
+ApplicationDatabase::ApplicationDatabase(const QSqlDatabase &connection)
+    : m_connection(connection),
+    m_userRepository(m_connection),
+    m_runRepository(m_connection),
+    m_eventRepository(m_connection),
+    m_trendSampleRepository(m_connection),
+    m_userListModel(m_connection),
+    m_eventHistoryModel(m_connection),
+    m_runListModel(m_connection),
+    m_trendHistorySource(m_connection),
+    m_retryQueue(m_runRepository, m_eventRepository, m_trendSampleRepository)
+{
+}
+
+std::unique_ptr<ApplicationDatabase> ApplicationDatabase::open(QString &errorMessage)
+{
+    QSqlDatabase connection;
+
+    if (!prepareApplicationDatabase(connection, &errorMessage))
+        return nullptr;
+    qInfo() << "SQLite database opened at" << connection.databaseName();
+    auto database = std::unique_ptr<ApplicationDatabase>(new ApplicationDatabase(connection));
+    QString modelError;
+
+    if (!database->m_userListModel.reload(&modelError)) {
+        errorMessage = QStringLiteral("Cannot load users: %1").arg(modelError);
+        return nullptr;
+    }
+
+    if (!database->m_runListModel.reload(&modelError)) {
+        errorMessage = QStringLiteral("Cannot load runs: %1").arg(modelError);
+        return nullptr;
+    }
+
+    if (!database->m_eventHistoryModel.reload(&modelError)) {
+        errorMessage = QStringLiteral("Cannot load event history: %1").arg(modelError);
+        return nullptr;
+    }
+
+    return database;
 }
