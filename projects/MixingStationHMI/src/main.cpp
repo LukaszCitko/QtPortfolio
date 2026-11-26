@@ -13,6 +13,7 @@
 #include "eventmanager.h"
 #include "faultresetservice.h"
 #include "hardwaremode.h"
+#include "hmiqmlcontext.h"
 
 #include "operatorsession.h"
 
@@ -94,33 +95,8 @@ int main(int argc, char *argv[])
     QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcessController) : static_cast<QObject *>(&batchController);
 
     QQmlApplicationEngine engine;
-
-    engine.rootContext()->setContextProperty("pump1", &equipment.pump1);
-    engine.rootContext()->setContextProperty("valve1", &equipment.valve1);
-    engine.rootContext()->setContextProperty("pump2", &equipment.pump2);
-    engine.rootContext()->setContextProperty("valve2", &equipment.valve2);
-    engine.rootContext()->setContextProperty("pump3", &equipment.pump3);
-    engine.rootContext()->setContextProperty("valve3", &equipment.valve3);
-    engine.rootContext()->setContextProperty("valve4", &equipment.valve4);
-    engine.rootContext()->setContextProperty("mixingTank", &equipment.mixingTank);
-    engine.rootContext()->setContextProperty("mixer", &equipment.mixer);
-
-    engine.rootContext()->setContextProperty("batchController", activeBatchController);
-    engine.rootContext()->setContextProperty("controllerClient", &modbusControllerClient);
-    engine.rootContext()->setContextProperty("hardwareMode", hardwareMode);
-
-    engine.rootContext()->setContextProperty("operatorSession", &operatorSession);
-    engine.rootContext()->setContextProperty("eventManager", &eventManager);
-    engine.rootContext()->setContextProperty("trendRecorder", &trendRecorder);
-    engine.rootContext()->setContextProperty("userListModel", &applicationDatabase->userListModel());
-    engine.rootContext()->setContextProperty("eventHistoryModel", &applicationDatabase->eventHistoryModel());
-    engine.rootContext()->setContextProperty("runListModel", &applicationDatabase->runListModel());
-    engine.rootContext()->setContextProperty("trendHistorySource", &applicationDatabase->trendHistorySource());
-    engine.rootContext()->setContextProperty("persistenceRetryQueue", &applicationDatabase->retryQueue());
-    engine.rootContext()->setContextProperty("faultResetService", &faultResetService);
-    engine.rootContext()->setContextProperty("drainService", &drainService);
-    engine.rootContext()->setContextProperty("userManagementService", &userManagementService);
-
+    exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);
+    exposeHmiServices(*engine.rootContext(), *activeBatchController, modbusControllerClient, hardwareMode, operatorSession, eventManager, trendRecorder, faultResetService, drainService, userManagementService);
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []()
         {
