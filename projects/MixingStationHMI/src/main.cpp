@@ -1,20 +1,19 @@
 #include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QTimer>
+
 
 #include "applicationoptions.h"
-#include "batchcontroller.h"
 #include "demomode.h"
 #include "drainservice.h"
 #include "eventmanager.h"
 #include "faultresetservice.h"
 #include "hardwaremode.h"
 #include "hmiqmlcontext.h"
+#include "localprocessruntime.h"
 #include "operatorservices.h"
 #include "processeventcoordinator.h"
 #include "processequipment.h"
-#include "processsimulator.h"
 #include "remoteprocesssynchronizer.h"
 #include "trendrecorder.h"
 #include "usermanagementservice.h"
@@ -45,21 +44,17 @@ int main(int argc, char *argv[])
     ProcessEventCoordinator processEventCoordinator(eventManager);
     processEventCoordinator.watchEquipment(equipment);
 
-    ProcessSimulator simulator(&equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.mixingTank);
-    BatchController batchController(&equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.valve4, &equipment.mixer, &equipment.mixingTank);
+    LocalProcessRuntime localProcess(equipment);
     TrendRecorder trendRecorder(&equipment.mixingTank);
 
     connectHistoryPersistence(eventManager, trendRecorder, applicationDatabase->retryQueue(), applicationDatabase->eventHistoryModel());
+    localProcess.configure(!hardwareMode);
 
-    QTimer batchTimer;
-    configureDemoMode(!hardwareMode, simulator, batchController, batchTimer);
-
-    OperatorServices operatorServices(*applicationDatabase, batchController, equipment, eventManager);
-
+    OperatorServices operatorServices(*applicationDatabase, localProcess.controller, equipment, eventManager);
     RunPersistenceCoordinator runPersistenceCoordinator(eventManager, applicationDatabase->retryQueue());
 
     processEventCoordinator.watchRpmChanges(equipment.pump1, equipment.pump2, equipment.pump3, equipment.mixer, operatorServices.session);
-    connectLocalBatchObservers(batchController, equipment.mixingTank, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
+    connectLocalBatchObservers(localProcess.controller, equipment.mixingTank, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
     RemoteProcessRuntime remoteProcess(equipment);
 
@@ -67,7 +62,7 @@ int main(int argc, char *argv[])
 
     connectRemoteCommandFeedback(remoteProcess.client, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
 
-    QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcess.controller) : static_cast<QObject *>(&batchController);
+    QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcess.controller) : static_cast<QObject *>(&localProcess.controller);
 
     QQmlApplicationEngine engine;
     exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);

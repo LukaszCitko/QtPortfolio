@@ -183,6 +183,8 @@ qt_add_executable(appMixingStationHMI
     src/hardwaremode.cpp
     src/hmiqmlcontext.h
     src/hmiqmlcontext.cpp
+    src/localprocessruntime.h
+    src/localprocessruntime.cpp
     src/operatorservices.h
     src/operatorservices.cpp
     src/processequipment.h
