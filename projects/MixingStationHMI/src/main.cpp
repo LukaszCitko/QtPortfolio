@@ -13,17 +13,16 @@
 #include "eventmanager.h"
 #include "faultresetservice.h"
 #include "hardwaremode.h"
-#include "mixer.h"
-#include "mixingtank.h"
+
 #include "operatorsession.h"
-#include "processconfiguration.h"
+
 #include "processeventcoordinator.h"
+#include "processequipment.h"
 #include "processsimulator.h"
-#include "pump.h"
+
 #include "remoteprocesssynchronizer.h"
 #include "trendrecorder.h"
 #include "usermanagementservice.h"
-#include "valve.h"
 
 #include "database/applicationdatabase.h"
 #include "database/historypersistence.h"
@@ -55,31 +54,18 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Pump pump1(1); // Water supply
-    Valve valve1(1);
-    Pump pump2(2); // Concentrate supply
-    Valve valve2(2);
-    Pump pump3(3); // Finished product transfer
-    Valve valve3(3);
-    Valve valve4(4); // Emergency drain
-    Mixer mixer;
-    MixingTank mixingTank;
-
-    pump1.setTargetRpm(ProcessConfiguration::Pump1DefaultRpm);
-    pump2.setTargetRpm(ProcessConfiguration::Pump2DefaultRpm);
-    pump3.setTargetRpm(ProcessConfiguration::Pump3DefaultRpm);
+    ProcessEquipment equipment;
 
     EventManager eventManager;
-
     ProcessEventCoordinator processEventCoordinator(eventManager);
 
-    processEventCoordinator.watchTemperature(mixingTank);
-    processEventCoordinator.watchFaults(pump1, valve1, pump2, valve2, pump3, valve3, mixer, mixingTank, valve4);
-    processEventCoordinator.watchMixerConnection(mixer);
+    processEventCoordinator.watchTemperature(equipment.mixingTank);
+    processEventCoordinator.watchFaults(equipment.pump1, equipment.valve1, equipment.pump2, equipment.valve2, equipment.pump3, equipment.valve3, equipment.mixer, equipment.mixingTank, equipment.valve4);
+    processEventCoordinator.watchMixerConnection(equipment.mixer);
 
-    ProcessSimulator simulator(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &mixingTank);
-    BatchController batchController(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
-    TrendRecorder trendRecorder(&mixingTank);
+    ProcessSimulator simulator(&equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.mixingTank);
+    BatchController batchController(&equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.valve4, &equipment.mixer, &equipment.mixingTank);
+    TrendRecorder trendRecorder(&equipment.mixingTank);
 
     connectHistoryPersistence(eventManager, trendRecorder, applicationDatabase->retryQueue(), applicationDatabase->eventHistoryModel());
 
@@ -88,40 +74,36 @@ int main(int argc, char *argv[])
 
     OperatorSession operatorSession(applicationDatabase->connection());
     UserManagementService userManagementService(operatorSession, applicationDatabase->userRepository(), applicationDatabase->userListModel(), eventManager);
-    DrainService drainService(operatorSession, batchController, mixingTank, valve4, eventManager);
-    FaultResetService faultResetService(operatorSession, pump1, mixer, eventManager);
+    DrainService drainService(operatorSession, batchController, equipment.mixingTank, equipment.valve4, eventManager);
+    FaultResetService faultResetService(operatorSession, equipment.pump1, equipment.mixer, eventManager);
     RunPersistenceCoordinator runPersistenceCoordinator(eventManager, applicationDatabase->retryQueue());
-    runPersistenceCoordinator.watchBatchStart(batchController, operatorSession);
-    runPersistenceCoordinator.watchTrendRecording(batchController, trendRecorder);
-    processEventCoordinator.watchRpmChanges(pump1, pump2, pump3, mixer, operatorSession);
-    processEventCoordinator.watchStageCompletion(batchController);
-    processEventCoordinator.watchBatchState(batchController, mixingTank, operatorSession);
-    processEventCoordinator.watchBatchId(batchController);
-    runPersistenceCoordinator.watchBatchFinish(batchController);
+
+    processEventCoordinator.watchRpmChanges(equipment.pump1, equipment.pump2, equipment.pump3, equipment.mixer, operatorSession);
+    connectLocalBatchObservers(batchController, equipment.mixingTank, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
     ModbusControllerClient modbusControllerClient;
     RemoteProcessController remoteProcessController(&modbusControllerClient);
-    RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
+    RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.valve4, &equipment.mixer, &equipment.mixingTank);
 
     if (hardwareMode) {
         configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
     }
 
-    connectRemoteCommandFeedback(modbusControllerClient, eventManager, pump1, pump2, pump3, hardwareMode);
+    connectRemoteCommandFeedback(modbusControllerClient, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
 
     QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcessController) : static_cast<QObject *>(&batchController);
 
     QQmlApplicationEngine engine;
 
-    engine.rootContext()->setContextProperty("pump1", &pump1);
-    engine.rootContext()->setContextProperty("valve1", &valve1);
-    engine.rootContext()->setContextProperty("pump2", &pump2);
-    engine.rootContext()->setContextProperty("valve2", &valve2);
-    engine.rootContext()->setContextProperty("pump3", &pump3);
-    engine.rootContext()->setContextProperty("valve3", &valve3);
-    engine.rootContext()->setContextProperty("valve4", &valve4);
-    engine.rootContext()->setContextProperty("mixingTank", &mixingTank);
-    engine.rootContext()->setContextProperty("mixer", &mixer);
+    engine.rootContext()->setContextProperty("pump1", &equipment.pump1);
+    engine.rootContext()->setContextProperty("valve1", &equipment.valve1);
+    engine.rootContext()->setContextProperty("pump2", &equipment.pump2);
+    engine.rootContext()->setContextProperty("valve2", &equipment.valve2);
+    engine.rootContext()->setContextProperty("pump3", &equipment.pump3);
+    engine.rootContext()->setContextProperty("valve3", &equipment.valve3);
+    engine.rootContext()->setContextProperty("valve4", &equipment.valve4);
+    engine.rootContext()->setContextProperty("mixingTank", &equipment.mixingTank);
+    engine.rootContext()->setContextProperty("mixer", &equipment.mixer);
 
     engine.rootContext()->setContextProperty("batchController", activeBatchController);
     engine.rootContext()->setContextProperty("controllerClient", &modbusControllerClient);

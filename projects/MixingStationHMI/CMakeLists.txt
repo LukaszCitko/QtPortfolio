@@ -179,6 +179,8 @@ qt_add_executable(appMixingStationHMI
     src/drainservice.cpp
     src/hardwaremode.h
     src/hardwaremode.cpp
+    src/processequipment.h
+    src/processequipment.cpp
     src/processeventcoordinator.h
     src/processeventcoordinator.cpp
     src/remoteprocesssynchronizer.h
