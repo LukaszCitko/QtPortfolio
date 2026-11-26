@@ -194,6 +194,8 @@ qt_add_executable(appMixingStationHMI
 
     src/communication/remotecommandfeedback.h
     src/communication/remotecommandfeedback.cpp
+    src/communication/remoteprocessruntime.h
+    src/communication/remoteprocessruntime.cpp
 
     src/database/applicationdatabase.h
     src/database/applicationdatabase.cpp

@@ -23,9 +23,8 @@
 #include "database/historypersistence.h"
 #include "database/runpersistencecoordinator.h"
 
-#include "communication/modbuscontrollerclient.h"
-#include "communication/remoteprocesscontroller.h"
 #include "communication/remotecommandfeedback.h"
+#include "communication/remoteprocessruntime.h"
 
 int main(int argc, char *argv[])
 {
@@ -62,21 +61,19 @@ int main(int argc, char *argv[])
     processEventCoordinator.watchRpmChanges(equipment.pump1, equipment.pump2, equipment.pump3, equipment.mixer, operatorServices.session);
     connectLocalBatchObservers(batchController, equipment.mixingTank, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
-    ModbusControllerClient modbusControllerClient;
-    RemoteProcessController remoteProcessController(modbusControllerClient);
-    RemoteProcessSynchronizer remoteProcessSynchronizer(modbusControllerClient, equipment);
+    RemoteProcessRuntime remoteProcess(equipment);
 
-    if (hardwareMode) configureHardwareMode(modbusControllerClient, remoteProcessController, operatorServices.drain, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
+    if (hardwareMode) configureHardwareMode(remoteProcess.client, remoteProcess.controller, operatorServices.drain, operatorServices.session, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
-    connectRemoteCommandFeedback(modbusControllerClient, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
+    connectRemoteCommandFeedback(remoteProcess.client, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
 
-    QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcessController) : static_cast<QObject *>(&batchController);
+    QObject *activeBatchController = hardwareMode ? static_cast<QObject *>(&remoteProcess.controller) : static_cast<QObject *>(&batchController);
 
     QQmlApplicationEngine engine;
     exposeEquipmentAndHistory(*engine.rootContext(), equipment, *applicationDatabase);
-    exposeHmiServices(*engine.rootContext(), *activeBatchController, modbusControllerClient, hardwareMode, operatorServices.session, eventManager, trendRecorder, operatorServices.faultReset, operatorServices.drain, operatorServices.userManagement);
+    exposeHmiServices(*engine.rootContext(), *activeBatchController, remoteProcess.client, hardwareMode, operatorServices.session, eventManager, trendRecorder, operatorServices.faultReset, operatorServices.drain, operatorServices.userManagement);
 
-    if (hardwareMode) startHardwareConnection(modbusControllerClient, controllerHost);
+    if (hardwareMode) startHardwareConnection(remoteProcess.client, controllerHost);
 
     loadHmiScreen(engine, app);
 
