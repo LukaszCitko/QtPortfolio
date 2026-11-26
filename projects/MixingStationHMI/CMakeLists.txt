@@ -200,6 +200,7 @@ qt_add_qml_module(appMixingStationHMI
         qml/HmiButton.qml
         qml/HmiDialog.qml
         qml/HMIScreen.qml
+        qml/NavigationBar.qml
         qml/OperatorSelectionDialog.qml
         qml/PreCheckPanel.qml
         qml/ProcessValues.qml
@@ -217,6 +218,7 @@ qt_add_qml_module(appMixingStationHMI
         qml/assets/pump_gray.png
         qml/assets/valve.png
         qml/assets/valve_gray.png
+
 
 
 )

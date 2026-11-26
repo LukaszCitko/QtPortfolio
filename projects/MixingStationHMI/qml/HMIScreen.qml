@@ -594,76 +594,14 @@ ApplicationWindow {
             }
         }
 
-        Rectangle {
+        NavigationBar {
             width: parent.width
-            height: 88
-            color: "#d0d3d5"
+            activePage: window.activePage
+            hasUnacknowledgedFault: window.hasUnacknowledgedFault
 
-            Row {
-                id: navigationRow
-                anchors.fill: parent
-                anchors.margins: 12
-                spacing: 8
-
-                Repeater {
-                    model: [
-                        "PROCESS",
-                        "TRENDS",
-                        "HISTORY",
-                        "EQUIPMENT",
-                        "ALARMS",
-                        "SIMULATION"
-                    ]
-
-                    Rectangle {
-                        id: navigationButton
-
-                        property bool blinkOn: true
-
-                        width: (navigationRow.width - 5 * navigationRow.spacing) / 6
-                        height: navigationRow.height
-                        color: window.activePage === modelData ? "#f6f7f7" : "#d0d3d5"
-                        border.width: modelData === "ALARMS" && window.hasUnacknowledgedFault ? 3 : 1
-                            border.color: modelData === "ALARMS" && window.hasUnacknowledgedFault
-                                          ? (blinkOn ? "#b63838" : "#a5aaad")
-                                          : "#a5aaad"
-
-                            Timer {
-                                interval: 650
-                                repeat: true
-                                running: modelData === "ALARMS" && window.hasUnacknowledgedFault
-                                onTriggered: navigationButton.blinkOn = !navigationButton.blinkOn
-                            }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: modelData
-                            color: modelData === "PROCESS"
-                                    || modelData === "SIMULATION"
-                                    || modelData === "HISTORY"
-                                    || modelData === "EQUIPMENT"
-                                    || modelData === "TRENDS"
-                                    || modelData === "ALARMS"
-                                    ? "#252a2d" : "#879195"
-                            font.pixelSize: 16
-                            font.bold: window.activePage === modelData
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: modelData === "PROCESS"
-                                    || modelData === "SIMULATION"
-                                    || modelData === "HISTORY"
-                                    || modelData === "EQUIPMENT"
-                                    || modelData === "TRENDS"
-                                    || modelData === "ALARMS"
-                            onClicked: {
-                                window.highlightedEquipmentTag = ""
-                                window.activePage = modelData
-                            }
-                        }
-                    }
-                }
+            onPageSelected: function(page) {
+                window.highlightedEquipmentTag = ""
+                window.activePage = page
             }
         }
     }
