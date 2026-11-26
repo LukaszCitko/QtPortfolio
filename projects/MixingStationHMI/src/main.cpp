@@ -11,6 +11,7 @@
 #include "drainservice.h"
 #include "eventmanager.h"
 #include "faultresetservice.h"
+#include "hardwaremode.h"
 #include "mixer.h"
 #include "mixingtank.h"
 #include "operatorsession.h"
@@ -132,17 +133,13 @@ int main(int argc, char *argv[])
     QTimer batchTimer;
     batchTimer.setInterval(100);
 
-    QObject::connect(&batchTimer, &QTimer::timeout, &batchController,
-                     [&batchController]()
-                     {
-                         batchController.simulateStep(0.1);
-                     }
+    QObject::connect(&batchTimer, &QTimer::timeout, &batchController, [&batchController]() {
+        batchController.simulateStep(0.1);
+        }
     );
 
-    if (!hardwareMode)
-    {
-        batchTimer.start();
-    }
+    if (!hardwareMode) batchTimer.start();
+
 
     OperatorSession operatorSession(database);
     UserManagementService userManagementService(operatorSession, userRepository, userListModel, eventManager);
@@ -159,34 +156,10 @@ int main(int argc, char *argv[])
 
     ModbusControllerClient modbusControllerClient;
     RemoteProcessController remoteProcessController(&modbusControllerClient);
-    remoteProcessController.setRecoveryAuthorization([&operatorSession]()
-    {
-        return operatorSession.canApproveDrain();
-    }
-    );
-
     RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
 
-
-
-
-    if (hardwareMode)
-    {
-        drainService.setRemoteDrainRequest([&modbusControllerClient]()
-                                           {
-                                               return modbusControllerClient.startDrain();
-                                           });
-
-        runPersistenceCoordinator.watchBatchStart(remoteProcessController, operatorSession);
-        runPersistenceCoordinator.watchBatchFinish(remoteProcessController);
-        runPersistenceCoordinator.watchControllerRecovery(remoteProcessController);
-        runPersistenceCoordinator.watchTrendRecording(remoteProcessController, trendRecorder);
-        processEventCoordinator.watchBatchId(remoteProcessController);
-        processEventCoordinator.watchBatchState(remoteProcessController, operatorSession);
-        processEventCoordinator.watchStageCompletion(remoteProcessController);
-        processEventCoordinator.watchConnection(remoteProcessController);
-        processEventCoordinator.watchRecovery(remoteProcessController, operatorSession);
-        processEventCoordinator.watchCommandResults(modbusControllerClient);
+    if (hardwareMode) {
+        configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
     }
 
     connectRemoteCommandFeedback(modbusControllerClient, eventManager, pump1, pump2, pump3, hardwareMode);

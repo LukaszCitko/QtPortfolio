@@ -171,14 +171,16 @@ enable_project_warnings(appModbusClientProbe)
 qt_add_executable(appMixingStationHMI
     src/main.cpp
 
-    src/batchcontroller.cpp
     src/batchcontroller.h
-    src/drainservice.cpp
+    src/batchcontroller.cpp
     src/drainservice.h
-    src/processeventcoordinator.cpp
+    src/drainservice.cpp
+    src/hardwaremode.h
+    src/hardwaremode.cpp
     src/processeventcoordinator.h
-    src/remoteprocesssynchronizer.cpp
+    src/processeventcoordinator.cpp
     src/remoteprocesssynchronizer.h
+    src/remoteprocesssynchronizer.cpp
 
     src/communication/remotecommandfeedback.h
     src/communication/remotecommandfeedback.cpp
