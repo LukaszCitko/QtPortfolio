@@ -15,8 +15,7 @@ ApplicationWindow {
         || batchController.state === BatchController.Idle
         || batchController.state === BatchController.Complete
         || alarmBar.hasFault
-        || (window.isHardwareMode
-            && (!window.controllerReady || batchController.recoveryRequired))
+        || (window.isHardwareMode && (!window.controllerReady || batchController.recoveryRequired))
 
     readonly property bool hasUnacknowledgedFault:
         alarmBar.faults.some(function(tag) {
@@ -79,9 +78,6 @@ ApplicationWindow {
             onLoginRequested: operatorDialog.open()
             onUsersRequested: userManagementDialog.open()
         }
-
-
-
 
         //QML Top Strip
 
@@ -235,136 +231,21 @@ ApplicationWindow {
                 liveSource: trendRecorder
                 historySource: trendHistorySource
             }
-            Rectangle {
-                id: eventManagerHistory
+
+            HistoryPanel {
                 anchors.fill: parent
                 anchors.margins: 24
                 visible: window.activePage === "HISTORY"
-                color: "#eceeef"
-                border.color: "#a5aaad"
+                historyModel: eventHistoryModel
 
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 16
+                onRunSelectionRequested: runSelectionDialog.open()
 
-                    Row {
-                        width: parent.width
-                        height: 48
-                        spacing: 12
-
-                        Text {
-                            width: parent.width
-                                   - (eventHistoryModel.runFilter === "" ? 192 : 384)
-                            height: parent.height
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                            color: "#252a2d"
-                            font.pixelSize: 20
-                            font.bold: true
-
-                            text: eventHistoryModel.runFilter === ""
-                                  ? "EVENT HISTORY · ALL EVENTS"
-                                  : "EVENT HISTORY · RUN "
-                                    + eventHistoryModel.runFilter.substring(0, 8)
-                        }
-
-                        HmiButton {
-                            id: selectRunButton
-                            width: 160
-                            height: parent.height
-                            text: "SELECT RUN"
-
-                            onClicked: runSelectionDialog.open()
-
-                            background: Rectangle {
-                                radius: 4
-                                color: selectRunButton.pressed ? "#d3d6d8" : "#f2f3f3"
-                                border.color: "#858e92"
-                            }
-
-                            contentItem: Text {
-                                text: selectRunButton.text
-                                color: "#252a2d"
-                                font.pixelSize: 13
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
-
-                        HmiButton {
-                            width: 180
-                            height: parent.height
-                            visible: eventHistoryModel.runFilter !== ""
-                            text: "SHOW TRENDS"
-
-                            onClicked: {
-                                if (trendHistorySource.loadRun(eventHistoryModel.runFilter))
-                                    window.activePage = "TRENDS"
-                            }
-                        }
-                    }
-
-                    Text {
-                        id: noEventsText
-                        visible: historyRepeater.count === 0
-                        text: eventHistoryModel.runFilter === ""
-                              ? "No events recorded"
-                              : "No events for this run"
-                        color: "#596368"
-                        font.pixelSize: 16
-                    }
-
-                    Flickable {
-                        width: parent.width
-                        height: parent.height - 64
-                                - (noEventsText.visible ? noEventsText.implicitHeight + 16 : 0)
-                        clip: true
-                        contentHeight: eventColumn.height
-
-                        Column {
-                            id: eventColumn
-                            width: parent.width
-                            spacing: 4
-
-                            Repeater {
-                                id: historyRepeater
-                                model: eventHistoryModel
-
-                                delegate: Rectangle {
-                                    id: eventRow
-
-                                    required property string time
-                                    required property string level
-                                    required property string source
-                                    required property string message
-
-                                    width: eventColumn.width
-                                    height: 44
-                                    color: "#f7f8f8"
-                                    border.color: "#c4c9cb"
-
-                                    Text {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 12
-                                        anchors.rightMargin: 12
-                                        verticalAlignment: Text.AlignVCenter
-                                        elide: Text.ElideRight
-                                        color: "#252a2d"
-                                        font.pixelSize: 15
-
-                                        text: eventRow.time
-                                              + "   " + eventRow.level
-                                              + "   " + eventRow.source
-                                              + "   " + eventRow.message
-                                    }
-                                }
-                            }
-                        }
-                    }
+                onTrendsRequested: function(runId) {
+                    if (trendHistorySource.loadRun(runId))
+                        window.activePage = "TRENDS"
                 }
             }
+
             Rectangle {
                 id: eventManagerAlarms
                 anchors.fill: parent

@@ -215,6 +215,7 @@ qt_add_qml_module(appMixingStationHMI
         qml/BatchActions.qml
         qml/EquipmentLane.qml
         qml/EquipmentPanel.qml
+        qml/HistoryPanel.qml
         qml/HmiButton.qml
         qml/HmiDialog.qml
         qml/HmiHeader.qml
