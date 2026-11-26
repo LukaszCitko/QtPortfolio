@@ -25,9 +25,7 @@
 #include "valve.h"
 
 #include "database/applicationdatabase.h"
-
 #include "database/historypersistence.h"
-
 #include "database/runpersistencecoordinator.h"
 
 
@@ -52,21 +50,10 @@ int main(int argc, char *argv[])
 
     QString databaseError;
     auto applicationDatabase = ApplicationDatabase::open(databaseError);
-
     if (!applicationDatabase) {
         qCritical() << databaseError;
         return 1;
     }
-
-    const auto &database = applicationDatabase->connection();
-    auto &userRepository = applicationDatabase->userRepository();
-    auto &userListModel = applicationDatabase->userListModel();
-    auto &eventHistoryModel = applicationDatabase->eventHistoryModel();
-    auto &runListModel = applicationDatabase->runListModel();
-    auto &trendHistorySource = applicationDatabase->trendHistorySource();
-    auto &retryQueue = applicationDatabase->retryQueue();
-
-
 
     Pump pump1(1); // Water supply
     Valve valve1(1);
@@ -96,7 +83,7 @@ int main(int argc, char *argv[])
     BatchController batchController(&pump1, &valve1, &pump2, &valve2, &pump3, &valve3, &valve4, &mixer, &mixingTank);
     TrendRecorder trendRecorder(&mixingTank);
 
-    connectHistoryPersistence(eventManager, trendRecorder, retryQueue, eventHistoryModel);
+    connectHistoryPersistence(eventManager, trendRecorder, applicationDatabase->retryQueue(), applicationDatabase->eventHistoryModel());
 
     QTimer batchTimer;
     batchTimer.setInterval(100);
@@ -109,8 +96,8 @@ int main(int argc, char *argv[])
     if (!hardwareMode) batchTimer.start();
 
 
-    OperatorSession operatorSession(database);
-    UserManagementService userManagementService(operatorSession, userRepository, userListModel, eventManager);
+    OperatorSession operatorSession(applicationDatabase->connection());
+    UserManagementService userManagementService(operatorSession, applicationDatabase->userRepository(), applicationDatabase->userListModel(), eventManager);
     DrainService drainService(operatorSession, batchController, mixingTank, valve4, eventManager);
     FaultResetService faultResetService(operatorSession, pump1, mixer, eventManager);
     RunPersistenceCoordinator runPersistenceCoordinator(eventManager, applicationDatabase->retryQueue());
@@ -154,13 +141,14 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("eventManager", &eventManager);
     engine.rootContext()->setContextProperty("trendRecorder", &trendRecorder);
     engine.rootContext()->setContextProperty("userListModel", &applicationDatabase->userListModel());
-    engine.rootContext()->setContextProperty("eventHistoryModel", &eventHistoryModel);
-    engine.rootContext()->setContextProperty("runListModel", &runListModel);
-    engine.rootContext()->setContextProperty("trendHistorySource", &trendHistorySource);
+    engine.rootContext()->setContextProperty("eventHistoryModel", &applicationDatabase->eventHistoryModel());
+    engine.rootContext()->setContextProperty("runListModel", &applicationDatabase->runListModel());
+    engine.rootContext()->setContextProperty("trendHistorySource", &applicationDatabase->trendHistorySource());
+    engine.rootContext()->setContextProperty("persistenceRetryQueue", &applicationDatabase->retryQueue());
     engine.rootContext()->setContextProperty("faultResetService", &faultResetService);
     engine.rootContext()->setContextProperty("drainService", &drainService);
     engine.rootContext()->setContextProperty("userManagementService", &userManagementService);
-    engine.rootContext()->setContextProperty("persistenceRetryQueue", &retryQueue);
+
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []()
         {
