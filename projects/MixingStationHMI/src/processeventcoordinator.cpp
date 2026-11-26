@@ -3,21 +3,30 @@
 
 #include "batchcontroller.h"
 #include "eventmanager.h"
+#include "controllerprotocol.h"
+#include "communication/remoteprocesscontroller.h"
+#include "communication/modbuscontrollerclient.h"
 #include "mixer.h"
 #include "mixingtank.h"
 #include "operatorsession.h"
 #include "processconfiguration.h"
+#include "processequipment.h"
 #include "processeventcoordinator.h"
 #include "pump.h"
 #include "valve.h"
-#include "communication/remoteprocesscontroller.h"
-#include "controllerprotocol.h"
-#include "communication/modbuscontrollerclient.h"
 
 ProcessEventCoordinator::ProcessEventCoordinator(EventManager &events)
     : m_events(events)
 {
 }
+
+void ProcessEventCoordinator::watchEquipment(ProcessEquipment &equipment)
+{
+    watchTemperature(equipment.mixingTank);
+    watchFaults(equipment.pump1, equipment.valve1, equipment.pump2, equipment.valve2, equipment.pump3, equipment.valve3, equipment.mixer, equipment.mixingTank, equipment.valve4);
+    watchMixerConnection(equipment.mixer);
+}
+
 
 void ProcessEventCoordinator::watchTemperature(MixingTank &tank)
 {

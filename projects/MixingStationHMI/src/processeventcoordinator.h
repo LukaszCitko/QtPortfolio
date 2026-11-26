@@ -1,15 +1,16 @@
 #ifndef PROCESSEVENTCOORDINATOR_H
 #define PROCESSEVENTCOORDINATOR_H
 
-class EventManager;
-class MixingTank;
-class Pump;
-class Valve;
-class Mixer;
-class OperatorSession;
 class BatchController;
-class RemoteProcessController;
+class EventManager;
+class Mixer;
+class MixingTank;
 class ModbusControllerClient;
+class OperatorSession;
+class Pump;
+class RemoteProcessController;
+class Valve;
+struct ProcessEquipment;
 
 class ProcessEventCoordinator
 {
@@ -31,6 +32,7 @@ public:
     void watchConnection(RemoteProcessController &controller);
     void watchRecovery(RemoteProcessController &controller, OperatorSession &session);
     void watchCommandResults(ModbusControllerClient &client);
+    void watchEquipment(ProcessEquipment &equipment);
 private:
     EventManager &m_events;
 };

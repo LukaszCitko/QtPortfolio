@@ -45,13 +45,9 @@ int main(int argc, char *argv[])
     }
 
     ProcessEquipment equipment;
-
     EventManager eventManager;
     ProcessEventCoordinator processEventCoordinator(eventManager);
-
-    processEventCoordinator.watchTemperature(equipment.mixingTank);
-    processEventCoordinator.watchFaults(equipment.pump1, equipment.valve1, equipment.pump2, equipment.valve2, equipment.pump3, equipment.valve3, equipment.mixer, equipment.mixingTank, equipment.valve4);
-    processEventCoordinator.watchMixerConnection(equipment.mixer);
+    processEventCoordinator.watchEquipment(equipment);
 
     ProcessSimulator simulator(&equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.mixingTank);
     BatchController batchController(&equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.valve4, &equipment.mixer, &equipment.mixingTank);
