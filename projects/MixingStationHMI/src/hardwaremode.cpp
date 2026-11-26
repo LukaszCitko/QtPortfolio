@@ -1,3 +1,5 @@
+#include <QDebug>
+#include "controllerprotocol.h"
 #include "hardwaremode.h"
 
 #include "communication/modbuscontrollerclient.h"
@@ -23,4 +25,14 @@ void configureHardwareMode(ModbusControllerClient &client, RemoteProcessControll
     processEvents.watchConnection(controller);
     processEvents.watchRecovery(controller, session);
     processEvents.watchCommandResults(client);
+}
+
+void startHardwareConnection(ModbusControllerClient &client, const QString &host)
+{
+    if (!client.connectToController(host)) {
+        qWarning() << "Cannot start controller connection:" << client.lastError();
+        return;
+    }
+
+    qInfo() << "Connecting to process controller at" << host << "on port" << ControllerProtocol::TcpPort;
 }

@@ -86,9 +86,8 @@ int main(int argc, char *argv[])
     RemoteProcessController remoteProcessController(&modbusControllerClient);
     RemoteProcessSynchronizer remoteProcessSynchronizer(&modbusControllerClient, &equipment.pump1, &equipment.valve1, &equipment.pump2, &equipment.valve2, &equipment.pump3, &equipment.valve3, &equipment.valve4, &equipment.mixer, &equipment.mixingTank);
 
-    if (hardwareMode) {
-        configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
-    }
+    if (hardwareMode) configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
+
 
     connectRemoteCommandFeedback(modbusControllerClient, eventManager, equipment.pump1, equipment.pump2, equipment.pump3, hardwareMode);
 
@@ -105,17 +104,7 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection
     );
 
-    if (hardwareMode)
-    {
-        if (!modbusControllerClient.connectToController(controllerHost))
-        {
-            qWarning() << "Cannot start controller connection:" << modbusControllerClient.lastError();
-        }
-        else
-        {
-            qInfo() << "Connecting to process controller at" << controllerHost << "on port" << ControllerProtocol::TcpPort;
-        }
-    }
+    if (hardwareMode) startHardwareConnection(modbusControllerClient, controllerHost);
 
     engine.loadFromModule("MixingStationHMI", "HMIScreen");
 
