@@ -7,14 +7,12 @@
 #include <cmath>
 #include <utility>
 
-RemoteProcessController::RemoteProcessController(ModbusControllerClient *client, QObject *parent)
+RemoteProcessController::RemoteProcessController(ModbusControllerClient &client, QObject *parent)
     : QObject(parent),
-      m_client(client),
+      m_client(&client),
       m_previousState(static_cast<int>(ControllerProtocol::ProcessState::Idle)),
       m_lastActiveStageIndex(0)
 {
-    Q_ASSERT(m_client);
-
     connect(m_client, &ModbusControllerClient::snapshotChanged, this, &RemoteProcessController::handleSnapshotChanged);
     connect(m_client, &ModbusControllerClient::connectionChanged, this, &RemoteProcessController::handleConnectionChanged);
 }

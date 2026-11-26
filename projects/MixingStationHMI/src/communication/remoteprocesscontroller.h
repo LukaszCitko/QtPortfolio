@@ -27,8 +27,8 @@ class RemoteProcessController : public QObject
     Q_PROPERTY(bool temperatureSensorReady READ temperatureSensorReady NOTIFY startConditionsChanged)
 
 public:
-    explicit RemoteProcessController(ModbusControllerClient *client, QObject *parent = nullptr);
 
+    explicit RemoteProcessController(ModbusControllerClient &client, QObject *parent = nullptr);
 
     void setRecoveryAuthorization(std::function<bool()> authorization);
     bool connected() const;

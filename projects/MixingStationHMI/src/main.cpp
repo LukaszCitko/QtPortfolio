@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     connectLocalBatchObservers(batchController, equipment.mixingTank, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);
 
     ModbusControllerClient modbusControllerClient;
-    RemoteProcessController remoteProcessController(&modbusControllerClient);
+    RemoteProcessController remoteProcessController(modbusControllerClient);
     RemoteProcessSynchronizer remoteProcessSynchronizer(modbusControllerClient, equipment);
 
     if (hardwareMode) configureHardwareMode(modbusControllerClient, remoteProcessController, drainService, operatorSession, runPersistenceCoordinator, processEventCoordinator, trendRecorder);

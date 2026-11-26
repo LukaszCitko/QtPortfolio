@@ -80,7 +80,7 @@ void TestRemoteHistoryIntegration::recordsObservedRunAcrossHmiRestart()
         EventManager eventManager;
         OperatorSession operatorSession(database);
         ModbusControllerClient client;
-        RemoteProcessController remote(&client);
+        RemoteProcessController remote(client);
         Pump pump1(1);
         Pump pump2(2);
         Pump pump3(3);
@@ -147,7 +147,7 @@ void TestRemoteHistoryIntegration::recordsObservedRunAcrossHmiRestart()
         EventManager eventManager;
         OperatorSession operatorSession(database);
         ModbusControllerClient client;
-        RemoteProcessController remote(&client);
+        RemoteProcessController remote(client);
         RunPersistenceCoordinator coordinator(eventManager, queue);
 
         coordinator.watchBatchStart(remote, operatorSession);
